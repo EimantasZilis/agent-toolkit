@@ -15,6 +15,7 @@ skill directories and invocation IDs are the public interface.
 | coding | javascript-standards | Routed JavaScript engineering guidance. |
 | coding | typescript-standards | Routed TypeScript engineering guidance. |
 | coding | ruby-standards | Routed Ruby engineering guidance. |
+| coding | golang-standards | Routed Go engineering guidance. |
 | coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Implement and commit a complete active phase. |
