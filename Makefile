@@ -9,3 +9,6 @@ validate:
 
 verify:
 	./scripts/verify.sh
+
+test:
+	./tests/installer_test.sh

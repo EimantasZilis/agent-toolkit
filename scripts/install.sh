@@ -116,6 +116,10 @@ while IFS= read -r source; do
   backup_path "$dest"
   render_skill "$source" "$dest" "$key"
   skill_count=$((skill_count + 1))
+  if [[ "${AGENT_TOOLKIT_FAIL_AFTER:-}" == "$skill_count" ]]; then
+    echo "Error: test failure injected after skill $skill_count." >&2
+    exit 97
+  fi
 done < <(source_skills)
 
 trap - EXIT INT TERM
