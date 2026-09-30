@@ -6,7 +6,8 @@ AGENT_TOOLKIT_HOME="${AGENT_TOOLKIT_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 # Configuration
 
 load_provider() {
-  if [[ -z "${LLM_PROVIDER+x}" && -f "$AGENT_TOOLKIT_HOME/.env" ]]; then
+  local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+  if [[ -z "${LLM_PROVIDER+x}" && -f "$config_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" =~ ^[[:space:]]*LLM_PROVIDER[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$ ]] || continue
       LLM_PROVIDER="${BASH_REMATCH[1]}"
@@ -14,7 +15,7 @@ load_provider() {
       LLM_PROVIDER="${LLM_PROVIDER#\'}"; LLM_PROVIDER="${LLM_PROVIDER%\'}"
       export LLM_PROVIDER
       break
-    done < "$AGENT_TOOLKIT_HOME/.env"
+    done < "$config_file"
   fi
   if [[ -z "${LLM_PROVIDER:-}" ]]; then
     echo "Error: LLM_PROVIDER is required; set it in .env or the environment (codex or claude)." >&2
@@ -27,7 +28,8 @@ load_provider() {
 }
 
 load_concise_output() {
-  if [[ -z "${CONCISE_OUTPUT+x}" && -f "$AGENT_TOOLKIT_HOME/.env" ]]; then
+  local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+  if [[ -z "${CONCISE_OUTPUT+x}" && -f "$config_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" =~ ^[[:space:]]*CONCISE_OUTPUT[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$ ]] || continue
       CONCISE_OUTPUT="${BASH_REMATCH[1]}"
@@ -35,7 +37,7 @@ load_concise_output() {
       CONCISE_OUTPUT="${CONCISE_OUTPUT#\'}"; CONCISE_OUTPUT="${CONCISE_OUTPUT%\'}"
       export CONCISE_OUTPUT
       break
-    done < "$AGENT_TOOLKIT_HOME/.env"
+    done < "$config_file"
   fi
   CONCISE_OUTPUT="${CONCISE_OUTPUT:-True}"
   case "$(printf '%s' "$CONCISE_OUTPUT" | tr '[:upper:]' '[:lower:]')" in

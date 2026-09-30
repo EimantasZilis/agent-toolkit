@@ -3,8 +3,9 @@ set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
 
-if [[ ! -f "$AGENT_TOOLKIT_HOME/.env" ]]; then
-  echo "Error: .env is required before installing; copy .env.template to .env and set LLM_PROVIDER to codex or claude." >&2
+AGENT_TOOLKIT_ENV_FILE="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+if [[ ! -f "$AGENT_TOOLKIT_ENV_FILE" ]]; then
+  echo "Error: configuration is required before installing; copy .env.template to .env and set LLM_PROVIDER to codex or claude." >&2
   exit 1
 fi
 

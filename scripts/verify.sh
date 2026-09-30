@@ -3,13 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/shared.sh"
-load_config
 "$SCRIPT_DIR/validate.sh"
 
 errors=0
 fail() { echo "ERROR: $*" >&2; errors=$((errors + 1)); }
-SKILLS_DEST="$(provider_skills_dest)"
-GUIDANCE_DEST="$(provider_guidance_dest)"
 
 check_installed_skill() {
   local source=$1 key dest
@@ -28,8 +25,35 @@ check_installed_skill() {
   fi
 }
 
-while IFS= read -r source; do check_installed_skill "$source"; done < <(source_skills)
-[[ -f "$GUIDANCE_DEST" ]] || fail "missing managed guidance: $GUIDANCE_DEST"
-[[ -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]] || fail "missing guidance ownership marker"
+verify_provider() {
+  local provider=$1 provider_root="$VERIFY_ROOT/$1" config_file="$VERIFY_ROOT/$1/.env"
+  mkdir -p "$provider_root"
+  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\n' "$provider" > "$config_file"
+
+  AGENT_TOOLKIT_ENV_FILE="$config_file" \
+    AGENTS_HOME="$provider_root/agents" \
+    CODEX_HOME="$provider_root/codex" \
+    CLAUDE_HOME="$provider_root/claude" \
+    "$SCRIPT_DIR/install.sh" >/dev/null
+
+  LLM_PROVIDER="$provider"
+  AGENTS_HOME="$provider_root/agents"
+  CODEX_HOME="$provider_root/codex"
+  CLAUDE_HOME="$provider_root/claude"
+  export LLM_PROVIDER AGENTS_HOME CODEX_HOME CLAUDE_HOME
+
+  SKILLS_DEST="$(provider_skills_dest)"
+  GUIDANCE_DEST="$(provider_guidance_dest)"
+  while IFS= read -r source; do check_installed_skill "$source"; done < <(source_skills)
+  [[ -f "$GUIDANCE_DEST" ]] || fail "missing managed guidance: $GUIDANCE_DEST"
+  [[ -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]] || fail "missing guidance ownership marker"
+  echo "OK: $provider temporary installation is complete and owned paths verify"
+}
+
+VERIFY_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-verify.XXXXXX")"
+cleanup() { rm -rf "$VERIFY_ROOT"; }
+trap cleanup EXIT
+
+verify_provider codex
+verify_provider claude
 [[ $errors -eq 0 ]] || exit 1
-echo "OK: $LLM_PROVIDER installation is complete and owned paths verify"
