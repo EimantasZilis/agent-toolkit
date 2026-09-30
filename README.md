@@ -12,6 +12,8 @@ skill directories and invocation IDs are the public interface.
 | coding | define-coding-standards | Build a language standards pack. |
 | coding | bash-standards | Routed Bash engineering guidance. |
 | coding | python-standards | Routed Python engineering guidance. |
+| coding | ruby-standards | Routed Ruby engineering guidance. |
+| coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Implement and commit a complete active phase. |
 | implementation | wrap-up | Branch review and pull-request draft. |
