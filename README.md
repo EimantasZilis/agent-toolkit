@@ -10,6 +10,7 @@ skill directories and invocation IDs are the public interface.
 | Category | Pack | Purpose |
 | --- | --- | --- |
 | coding | define-coding-standards | Build a language standards pack. |
+| coding | bash-standards | Routed Bash engineering guidance. |
 | coding | python-standards | Routed Python engineering guidance. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Implement and commit a complete active phase. |
