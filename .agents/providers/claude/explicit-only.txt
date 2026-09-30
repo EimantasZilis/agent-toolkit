@@ -1,0 +1,12 @@
+coding/define-coding-standards
+implementation/next-commit
+implementation/next-phase
+implementation/wrap-up
+other/developer-highlights
+scoping/plan-conventions
+scoping/plan-review
+scoping/quick-plan
+scoping/requirements-to-tickets
+scoping/ticket-to-plan
+security/security-check
+security/security-review
