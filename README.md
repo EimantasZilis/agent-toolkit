@@ -37,18 +37,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
 
 ### Prerequisites
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) before
-running the Make targets. On macOS or Linux, the official installer is:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Restart your shell if needed, then confirm that `uv` is available:
-
-```bash
-uv --version
-```
+The installer requires Bash, Make, standard Unix tools such as `awk`, `find`,
+`grep`, `mktemp`, and `sed`, plus Perl's `shasum` utility.
 
 ### Configuration
 
