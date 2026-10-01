@@ -56,6 +56,26 @@ test_claude_install() {
     "$root/claude/skills/next-commit/SKILL.md"
 }
 
+test_changed_managed_guidance_is_preserved() {
+  local root="$TEST_ROOT/changed-guidance"
+  run_install claude "$root" >/dev/null
+  printf '\nuser CLAUDE.md content\n' >> "$root/claude/CLAUDE.md"
+  run_install claude "$root" >/dev/null
+  assert_contains 'user CLAUDE.md content' "$root/claude/CLAUDE.md"
+  assert_contains 'agent-toolkit:start' "$root/claude/CLAUDE.md"
+  assert_absent "$root/claude/.agent-toolkit-owned"
+}
+
+test_changed_managed_skill_is_preserved() {
+  local root="$TEST_ROOT/changed-skill"
+  run_install codex "$root" >/dev/null
+  printf '\nuser SKILL.md content\n' >> \
+    "$root/agents/skills/agent-toolkit/python-standards/SKILL.md"
+  run_install codex "$root" >/dev/null
+  assert_contains 'user SKILL.md content' \
+    "$root/agents/skills/agent-toolkit/python-standards/SKILL.md"
+}
+
 test_user_owned_content_is_preserved() {
   local root="$TEST_ROOT/user-owned"
   mkdir -p "$root/codex/skills/agent-toolkit/python-standards"
@@ -96,6 +116,8 @@ test_rollback() {
 
 test_codex_install
 test_claude_install
+test_changed_managed_guidance_is_preserved
+test_changed_managed_skill_is_preserved
 test_user_owned_content_is_preserved
 test_reinstall_and_uninstall
 test_rollback

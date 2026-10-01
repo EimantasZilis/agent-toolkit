@@ -78,8 +78,14 @@ For both providers:
 - If the provider's global `AGENTS.md` or `CLAUDE.md` file already exists and
   is user-owned, its existing content is preserved and the marked
   agent-toolkit block is appended.
+- If a previously managed global guidance file has been edited, installation
+  detects the hash change, preserves the edits, and treats the file as
+  user-owned on future installs.
 - If a skill with the same name already exists and is user-owned, installation
   prints a warning and leaves that skill unchanged.
+- If an installed skill's `SKILL.md` has been edited, its hash no longer
+  matches the ownership marker; installation treats it as user-owned and
+  leaves it unchanged.
 - Installed skill directories contain an ownership marker, so uninstall only
   removes skills managed by this repository; same-named user skills are kept.
 - `make uninstall` removes the generated `AGENTS.md` or `CLAUDE.md` content

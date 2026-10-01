@@ -25,8 +25,15 @@ guidance_user_owned=no
 if [[ -e "$GUIDANCE_DEST" || -L "$GUIDANCE_DEST" ]]; then
   if [[ -L "$GUIDANCE_DEST" && ( "$(resolved_path "$GUIDANCE_DEST")" == "$(cd "$(dirname "$SOURCE_GUIDANCE")" && pwd -P)/$(basename "$SOURCE_GUIDANCE")" || "$(resolved_path "$GUIDANCE_DEST")" == "$AGENT_TOOLKIT_HOME/.agents/global/AGENTS.md" ) ]]; then
     :
-  elif [[ -f "$GUIDANCE_DEST" && ! -L "$GUIDANCE_DEST" && ! -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]]; then
-    guidance_user_owned=yes
+  elif [[ -f "$GUIDANCE_DEST" && ! -L "$GUIDANCE_DEST" ]]; then
+    if [[ ! -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]]; then
+      guidance_user_owned=yes
+    elif ! grep -qx "$AGENT_TOOLKIT_HOME" "$(owned_marker "$(dirname "$GUIDANCE_DEST")")"; then
+      echo "Error: refusing to overwrite non-managed path: $GUIDANCE_DEST" >&2
+      exit 1
+    elif ! is_managed_guidance "$GUIDANCE_DEST"; then
+      guidance_user_owned=yes
+    fi
   elif [[ ! -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]] || ! grep -qx "$AGENT_TOOLKIT_HOME" "$(owned_marker "$(dirname "$GUIDANCE_DEST")")"; then
     echo "Error: refusing to overwrite non-managed path: $GUIDANCE_DEST" >&2
     exit 1
