@@ -78,14 +78,16 @@ test_changed_managed_skill_is_preserved() {
 
 test_user_owned_content_is_preserved() {
   local root="$TEST_ROOT/user-owned"
-  mkdir -p "$root/codex/skills/agent-toolkit/python-standards"
+  mkdir -p "$root/agents/skills/agent-toolkit/python-standards" "$root/codex"
   printf 'user guidance\n' > "$root/codex/AGENTS.md"
-  printf 'user skill\n' > "$root/codex/skills/agent-toolkit/python-standards/SKILL.md"
+  printf 'user skill\n' > \
+    "$root/agents/skills/agent-toolkit/python-standards/SKILL.md"
   run_install codex "$root" >/dev/null
   assert_contains 'user guidance' "$root/codex/AGENTS.md"
   assert_contains 'user skill' \
-    "$root/codex/skills/agent-toolkit/python-standards/SKILL.md"
-  assert_not_contains 'agent-toolkit:start' "$root/codex/skills/agent-toolkit/python-standards/SKILL.md"
+    "$root/agents/skills/agent-toolkit/python-standards/SKILL.md"
+  assert_not_contains 'agent-toolkit:start' \
+    "$root/agents/skills/agent-toolkit/python-standards/SKILL.md"
 }
 
 test_reinstall_and_uninstall() {
