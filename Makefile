@@ -7,7 +7,7 @@ uninstall:
 validate:
 	./scripts/validate.sh
 
-verify:
+verify: test
 	./scripts/verify.sh
 
 test:
