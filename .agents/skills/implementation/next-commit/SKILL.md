@@ -17,8 +17,11 @@ Use the planning README as the sole entrypoint. Load [plan-conventions](../../sc
    calls for. Include any formatting changes in the unit and rerun validation.
 5. Run that commit's validation, or the phase exit checks if none is defined.
 6. Mark the commit complete and update the phase status in the README.
-7. Report changes, a suggested message, changed files, and the next action. Do
-   not run git commit, push, or continue to another unit.
+7. Keep ticket and planning Markdown changes as local progress by default; do
+   not include `docs/planning/**`, `docs/jira/**`, or other ticket/plan files in
+   the suggested commit unless the user explicitly asks. Report changes, a
+   suggested message, implementation files, and the next action. Do not run
+   git commit, push, or continue to another unit.
 
 If the plan is materially wrong, stop and propose a docs-first amendment. When a
 phase completes, point to [wrap-up](../wrap-up/SKILL.md); otherwise point to [next-phase](../next-phase/SKILL.md).
