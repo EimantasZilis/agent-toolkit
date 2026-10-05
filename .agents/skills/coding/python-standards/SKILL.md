@@ -5,9 +5,10 @@ description: Apply the repository's Python engineering guidance to Python edits 
 
 # Python standards
 
-Load the references needed for the change before editing. Always load
-[core](references/core.md) and [linting](references/linting.md); add only the
-context-specific guidance below.
+Before editing or reviewing, read this complete `SKILL.md`, then load every
+reference selected below. Always load [core](references/core.md) and
+[linting](references/linting.md); add only the context-specific guidance
+below. State the exact references loaded before taking action.
 
 | Change context | Load |
 | --- | --- |

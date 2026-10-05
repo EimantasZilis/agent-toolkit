@@ -6,6 +6,9 @@ description: Create or extend a provider-neutral coding-standards pack for one l
 # Define coding standards
 
 Read CONTRIBUTING.md, pack-structure.md, and review-lens.md before editing.
+Before editing a pack, read its complete `SKILL.md`, then read every
+always-required reference and every specialist reference selected by the
+changed context. State the exact references loaded before taking action.
 
 Use this workflow when creating or extending a pack:
 
@@ -38,9 +41,12 @@ Use this workflow when creating or extending a pack:
    tests, frameworks, errors, documentation, logging, data, or other
    contexts the language needs.
 6. Make the index route only relevant specialist references while always
-   loading core and linting. State the source precedence, local-rule override,
-   and that the pack applies to both edits and reviews. Keep the routing table
-   small enough to choose references from the changed context.
+   loading core and linting. The index must explicitly instruct the agent to
+   read the complete index, then every always-required and context-selected
+   reference before editing or reviewing, and to state the exact references
+   loaded. State the source precedence, local-rule override, and that the pack
+   applies to both edits and reviews. Keep the routing table small enough to
+   choose references from the changed context.
 7. Make every reference actionable: begin with application rules, include a
    quick completion checklist, show `DO` and `DO NOT` examples, and document
    concrete allowed exceptions. Cover both implementation and review decisions.
@@ -48,6 +54,11 @@ Use this workflow when creating or extending a pack:
    link and required file, preserve lowercase naming and explicit invocation
    metadata, run the repository verification command, and inspect the final
    diff for unrelated changes.
+
+Every generated or extended pack must include the explicit pre-edit loading
+contract from step 6. A routing table alone is insufficient: the pack must
+make it unambiguous that all selected references are read before action and
+that the loaded-reference list is reported.
 
 Every generated or extended pack must distinguish mechanical tool checks from
 judgment-based LLM checks. Its workflow must require the agent to run the
