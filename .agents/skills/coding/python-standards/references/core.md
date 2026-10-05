@@ -6,6 +6,8 @@
 - After Python edits, run the repository's formatter and linter on changed
   paths, then inspect the diff for vertical spacing and other readability
   details that automated formatters do not enforce.
+- Treat this diff inspection as an LLM implementation pass: make the needed
+  readability edits rather than only reporting them.
 - Run the smallest relevant test or verification command after the edit; do
   not treat formatting and lint success as behavioral validation.
 - Follow formatting/import/complexity constraints from `pyproject.toml`.

@@ -24,11 +24,24 @@ rewrite unrelated lines. Keep functions focused, respect the repository's
 formatter and linter, avoid unnecessary dependencies, and verify changed paths
 plus relevant tests. Never log secrets or automatically commit changes.
 
+Apply the pack in two passes. First run the repository's mechanical formatter
+and linter. Then perform an LLM review-and-edit pass over the changed code for
+guidance that tools cannot infer, including function responsibility, semantic
+variable grouping, logical phase boundaries, vertical spacing, docstrings,
+comments, and test structure. Do not treat formatter or linter success as
+completion of this pass.
+
 Treat the applicable checklists as completion checks, not background reading.
 Use the `DO` examples as the expected shape and an allowed exception only when
 the reference names a concrete reason. If a preferred pattern is not suitable,
 state the local constraint or design reason in the review rather than silently
 dropping the pattern.
+
+Before finalizing, inspect the complete changed diff after formatting. Add
+blank lines between related variable groups and distinct phases inside
+functions when they improve scanability; do not add a blank line after every
+statement or infer arbitrary phases in a short linear function. Preserve
+unrelated existing code unless the user requests a broader standards cleanup.
 
 For test changes, do not omit the test structure: use blank lines to separate
 setup, act, and assert, and add a concise GIVEN/WHEN/THEN docstring whenever

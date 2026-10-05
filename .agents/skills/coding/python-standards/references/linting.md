@@ -9,6 +9,8 @@
 - Give each function one main responsibility and normally keep it below 40
   lines.
 - Prefer keyword arguments, early returns, and readable vertical spacing.
+- Use blank lines to separate related variable groups and distinct logical
+  phases inside functions; do not mechanically separate every statement.
 - Keep imports grouped as standard library, third party, then local modules.
 - Do not use wildcard imports or bare exception handlers.
 - Preserve the original cause when converting an exception.
@@ -21,6 +23,8 @@
 - [ ] `None` comparisons use `is` or `is not`.
 - [ ] Comprehensions remain readable.
 - [ ] Imports, definitions, and logical phases have clear spacing.
+- [ ] Related variables and distinct function phases have clear vertical
+      spacing after the formatter pass.
 - [ ] Helpers are public unless a real API boundary justifies `_`.
 - [ ] Functions remain focused and normally fit within 40 lines.
 

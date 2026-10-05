@@ -49,6 +49,13 @@ Use this workflow when creating or extending a pack:
    metadata, run the repository verification command, and inspect the final
    diff for unrelated changes.
 
+Every generated or extended pack must distinguish mechanical tool checks from
+judgment-based LLM checks. Its workflow must require the agent to run the
+configured formatter and linter, then make a separate LLM review-and-edit pass
+for guidance those tools cannot infer, such as semantic grouping, function
+boundaries, vertical spacing, documentation quality, and test structure. The
+final diff review must be a completion check, not merely a report of findings.
+
 Do not create Cursor rules, globs, routers, or a configuration file. Keep the
 contract language-agnostic: Python is the reference implementation, not a
 special case.
