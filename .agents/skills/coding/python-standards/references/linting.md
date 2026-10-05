@@ -31,9 +31,24 @@
 ## Baseline design rules
 
 Match existing patterns, avoid unrelated refactors, and prefer composition over
-inheritance. Code should be open for extension and closed for modification.
-Use a private-looking helper only when callers, subclasses, or neighboring
-modules should be prevented from depending on it; brevity alone is not enough.
+inheritance. Prefer a cohesive class when several operations target one
+application, domain, or infrastructure responsibility, especially when the
+operations share stable configuration, collaborators, or lifecycle state.
+Inject those collaborators through the constructor when it improves reuse and
+testability, while keeping per-operation mutable state local to each method.
+Do not wrap unrelated pure functions in a class merely to satisfy this
+preference.
+
+Group class methods around one focused responsibility and use small reusable
+units for distinct validation, transformation, persistence, querying, and
+orchestration phases. A public method should read as a clear workflow over
+those units; split it when it mixes responsibilities or has several meaningful
+phases, but do not mechanically split a short linear method. Use a
+private-looking helper only when callers, subclasses, or neighboring modules
+should be prevented from depending on it; brevity alone is not enough.
+When refactoring existing code, introduce these boundaries incrementally at
+cohesive seams and preserve behavior and public contracts unless the task
+explicitly changes them.
 
 ### ✅ DO
 
