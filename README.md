@@ -26,7 +26,7 @@ skill directories and invocation IDs are the public interface.
 | scoping | plan-review | Gate plans before implementation. |
 | scoping | ticket-to-plan | Turn a ticket into a small, focused implementation plan. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
-| scoping | test-plan | Create a prioritized manual test plan for ticketed changes. |
+| scoping | test-cases | Create prioritized Markdown manual test cases for branch changes. |
 | scoping | ticket-context | Build a repository-backed context brief for a ticket. |
 | security | security-check | Short fix, accept, or monitor decision. |
 | security | security-review | Detailed security assessment. |
