@@ -51,10 +51,13 @@ layout, for example:
 ```text
 FILE: src/example.py
 LINES: 18-27
-  18 | changed code
-  19 | changed code
-  20 | nearby context
+
+18 | changed code
+19 | changed code
+20 | nearby context
+
 COMMENT: High-level explanation of the small changed block.
+
 ```
 
 Use the post-change line numbers for added or modified code. For deleted code,
