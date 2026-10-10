@@ -32,6 +32,7 @@ skill directories and invocation IDs are the public interface.
 | security | security-review | Detailed security assessment. |
 | other | concise-output | Direct, complete reader-facing prose. |
 | other | to-markdown | Save the previous response as a formatted Markdown file. |
+| other | to-clipboard | Copy the previous response to the clipboard as Markdown. |
 | other | developer-highlights | Evidence-based career narrative from git history. |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
