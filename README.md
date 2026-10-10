@@ -9,6 +9,7 @@ skill directories and invocation IDs are the public interface.
 
 | Category | Pack | Purpose |
 | --- | --- | --- |
+| coding | annotate | Explain changed code inline without modifying files. |
 | coding | define-coding-standards | Build a language standards pack. |
 | coding | bash-standards | Routed Bash engineering guidance. |
 | coding | python-standards | Routed Python engineering guidance. |
@@ -25,6 +26,8 @@ skill directories and invocation IDs are the public interface.
 | scoping | plan-review | Gate plans before implementation. |
 | scoping | ticket-to-plan | Turn a ticket into a small, focused implementation plan. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
+| scoping | test-plan | Create a prioritized manual test plan for ticketed changes. |
+| scoping | ticket-context | Build a repository-backed context brief for a ticket. |
 | security | security-check | Short fix, accept, or monitor decision. |
 | security | security-review | Detailed security assessment. |
 | other | concise-output | Direct, complete reader-facing prose. |
