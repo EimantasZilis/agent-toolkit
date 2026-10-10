@@ -20,7 +20,7 @@ skill directories and invocation IDs are the public interface.
 | coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Implement and commit a complete active phase. |
-| implementation | wrap-up | Branch review and pull-request draft. |
+| implementation | wrap-up | Evidence-based branch review and pull-request draft. |
 | scoping | quick-plan | Bounded feasibility decisions. |
 | scoping | plan-conventions | Shared planning and progress rules. |
 | scoping | plan-review | Gate plans before implementation. |

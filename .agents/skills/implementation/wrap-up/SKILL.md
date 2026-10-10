@@ -47,6 +47,39 @@ change with its scope, exclusions, acceptance evidence, and exit checks. Prefer
 an explicit planning path; otherwise locate a plausible feature folder under
 `docs/planning/`. If no relevant plan exists, omit this comparison.
 
+Use a multi-pass review. Keep the working analysis structured, but preserve the
+issues-only output contract below:
+
+1. **Scope and contract pass.** Map every changed file to its callers,
+   persistence, configuration, deployment path, and tests. Extract intended
+   behavior, invariants, compatibility expectations, and exclusions from the
+   diff and available specifications. Do not treat an absent specification as
+   permission to invent requirements.
+2. **Behavior and edge-case pass.** For each changed behavior, maintain a
+   small matrix of relevant scenarios and mark each as covered, unverified,
+   contradicted, or not applicable. Consider dimensions the change actually
+   exposes: empty or missing input, malformed or boundary values, duplicates
+   and repeated execution, retries and partial failure, timeout or dependency
+   failure, stale or concurrent state, permission boundaries, legacy data or
+   schema versions, and configuration or deployment transitions. For every
+   conditional or external call, try the counterexample: what if the condition
+   is false, the call fails, the result is delayed, or the operation runs twice?
+3. **Data-flow and invariant pass.** Trace inputs to side effects and outputs.
+   Check validation and authorization order, state transitions, transaction
+   boundaries, cleanup, exception propagation, resource limits, and
+   observability. Compare changed behavior with existing implementations and
+   important callers to find incompatible assumptions or duplicated logic.
+4. **Evidence pass.** Inspect relevant tests, fixtures, CI configuration, and
+   planning exit checks, then map meaningful evidence to the matrix. This
+   review is static: do not claim that tests, linters, or builds passed unless
+   the user explicitly requests execution and the command was actually run.
+
+Do not conclude until every relevant changed behavior has a matrix status and
+high-risk paths have received the deeper passes. Escalate review depth for
+authentication or authorization, data deletion or migration, concurrency,
+public interfaces, billing, secrets, or deployment changes. Keep unresolved
+uncertainty explicit rather than converting it into a hypothetical defect.
+
 Report only actionable concerns. Check, as applicable:
 
 - behavior errors, inconsistent state, races, swallowed failures, and bad data flow;
@@ -80,9 +113,12 @@ When there are findings, use one Markdown table for defects and plan/spec gaps:
 Order rows from highest to lowest severity. Use `-` for the location only when
 the concern genuinely has no primary file. Explain unfamiliar code in plain
 language, include file and line references when available, and distinguish a
-confirmed defect from a test gap or an uncertainty. Mention a test gap only
-when the changed behavior lacks meaningful coverage; do not request tests when
-the existing coverage is sufficient.
+confirmed defect from a test gap or an uncertainty. Every finding must state
+the triggering scenario or precondition, cite concrete evidence from the diff
+or surrounding code, and make its confidence clear through that distinction.
+Mention a test gap only when the changed behavior lacks meaningful coverage;
+do not request tests when the existing coverage is sufficient. Deduplicate
+findings that share the same root cause.
 
 If the user asks to turn a finding into a merge-request comment, write three to
 five sentences: lead with the problem, explain the impact, and include a
