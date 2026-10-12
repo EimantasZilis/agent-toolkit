@@ -48,6 +48,7 @@ render_guidance_block() {
       printf 'Use `<repo-root>/<branch-slug>/<skill-name>/...` for Markdown artifacts when the user does not provide an explicit path.\n'
     fi
     printf 'Derive repository and branch slugs from the target Git repository, use `detached-<short-sha>` for detached HEADs, preserve all files from one skill invocation beneath its skill directory, and never overwrite an existing artifact without explicit direction. An explicit user-provided path always wins.\n'
+    printf "\\nWhen consuming Markdown from another skill, check the explicit path first, then the current Git repository and branch's producer-skill directory, then the configured centralized repository/branch/producer-skill directory, and finally documented legacy locations. Use the target repository's Git root rather than the working directory; do not search another repository or branch silently, and ask when multiple plausible artifacts remain.\\n"
     printf '\n%s\n' "$agent_toolkit_end"
   } > "$temp"
   mv "$temp" "$destination"

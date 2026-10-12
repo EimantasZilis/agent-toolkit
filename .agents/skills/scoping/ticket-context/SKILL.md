@@ -48,6 +48,12 @@ business record, or invent meaning that the available sources do not support.
    needed. Preserve existing user changes and avoid overwriting an existing
    brief without explicit direction.
 
+When an earlier context, plan, or ticket artifact is needed, resolve it with
+the installed Markdown artifact discovery policy. Prefer an explicit path,
+then the current repository and branch's managed producer-skill directory,
+then the configured centralized repository/branch/producer-skill directory;
+use legacy locations only when documented for that artifact type.
+
 ## Required output
 
 Keep sections short and tailored to the ticket. Omit a section only when it is

@@ -25,3 +25,25 @@ replacing each run of characters outside `a-z`, `0-9`, `.`, `_`, and `-` with
 directory, avoid overwriting existing artifacts, and report the exact path.
 An explicit user-provided path always wins. This policy applies to existing
 skills and every future skill that writes Markdown.
+
+## Markdown artifact discovery
+
+When a skill consumes Markdown produced by another skill, resolve artifacts in
+this order:
+
+1. An explicit path supplied by the user or referenced by the current task.
+2. The current Git repository's managed output directory for the current
+   branch: `<repo-root>/<branch-slug>/<producer-skill>/`.
+3. The configured centralized output directory for the current repository and
+   branch: `<configured-output-root>/<repo-slug>/<branch-slug>/<producer-skill>/`.
+4. A documented legacy location such as `docs/planning/`, when supported.
+
+Determine `<repo-root>` with the target repository's Git root, not the current
+working directory. Determine the branch from that repository; detached HEADs
+use `detached-<short-sha>`. Search only the producer skill's directory, keep
+the current repository and branch in scope, and ask the user to choose when
+multiple plausible artifacts remain. Do not silently search another repository,
+branch, or output root.
+
+Skills that form a workflow must name their expected producer skill and use
+this discovery order before falling back to repository-wide searches.

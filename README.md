@@ -159,6 +159,13 @@ empty slugs fall back to `repo` or `branch`. Detached HEADs use
 `detached-<short-sha>`. Markdown artifacts are not automatically committed or
 removed by `make uninstall`.
 
+When a skill consumes another skill's Markdown output, it checks an explicit
+path first, then the current repository's current-branch producer-skill
+directory, then the configured centralized repository/branch/producer-skill
+directory, and finally any documented legacy location. Repository-local
+lookups are anchored at the Git repository root, not the process working
+directory. Skills must not silently cross repository or branch boundaries.
+
 
 ## Uninstall
 To remove this repository's skills without affecting other global skills, run:

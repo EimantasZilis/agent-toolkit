@@ -80,6 +80,8 @@ test_repo_local_output_policy() {
   local root="$TEST_ROOT/repo-local"
   run_install codex "$root" >/dev/null
   assert_contains '<repo-root>/<branch-slug>/<skill-name>/...' "$root/codex/AGENTS.md"
+  assert_contains 'When consuming Markdown from another skill' "$root/codex/AGENTS.md"
+  assert_contains 'target repository' "$root/codex/AGENTS.md"
 }
 
 test_external_output_policy() {
@@ -87,6 +89,8 @@ test_external_output_policy() {
   local output_root="$TEST_ROOT/centralized outputs"
   run_install_with_output_root codex "$root" "$output_root" >/dev/null
   assert_contains "$output_root/<repo-slug>/<branch-slug>/<skill-name>/..." \
+    "$root/codex/AGENTS.md"
+  assert_contains 'configured centralized repository/branch/producer-skill directory' \
     "$root/codex/AGENTS.md"
   assert_contains "MARKDOWN_OUTPUT_PATH=$output_root" "$root/config.env"
 }

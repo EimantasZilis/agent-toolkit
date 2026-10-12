@@ -27,6 +27,12 @@ business-system record.
    before the diff. Then inspect the diff, affected application paths,
    existing automated tests, documentation, configuration, schema, fixtures,
    and rollout context when they clarify behavior.
+
+Resolve plan and context artifacts using the installed Markdown artifact
+discovery policy: explicit paths first, then the current repository and
+branch's managed producer-skill directory, then the configured centralized
+repository/branch/producer-skill directory, followed by documented legacy
+locations. Do not silently use an artifact from another repository or branch.
 5. Use automated tests to understand what is already covered. Do not turn unit
    or integration assertions into manual cases. Manual cases must exercise an
    observable application flow through the UI, API/backend, job, integration,

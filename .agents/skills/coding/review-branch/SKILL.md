@@ -32,6 +32,12 @@ checks. Prefer an explicit planning path; otherwise locate the current
 branch's managed `ticket-to-plan` output and then a plausible feature folder
 under `docs/planning/`. If no relevant plan exists, omit this comparison.
 
+For managed Markdown, resolve the current branch's output using the installed
+Markdown artifact discovery policy. Check the repository-local producer-skill
+directory first, then the configured centralized repository/branch/producer-
+skill directory, and only then documented legacy locations. Do not silently
+cross repository or branch boundaries.
+
 Use a multi-pass review. Keep the working analysis structured, but preserve
 the issues-only output contract below:
 
