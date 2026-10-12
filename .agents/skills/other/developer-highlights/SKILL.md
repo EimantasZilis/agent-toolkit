@@ -26,7 +26,7 @@ when helpful, omit per-repository tables, and never invent metrics or technologi
 4. Merge evidence across repositories, rank sustained ownership above one-off work,
    and distinguish observed facts from inferred impact.
 5. Present the result as At a glance, Tech stack, Career highlights, and
-   Business / user impact. Load [concise-output](../concise-output/SKILL.md).
+   Business / user impact. Load [concise-output](../../productivity/concise-output/SKILL.md).
 
 Do not write a file unless the user requests one. When a file is requested and
 no path is supplied, use the installed Markdown output policy beneath the

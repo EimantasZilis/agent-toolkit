@@ -21,10 +21,10 @@ Claude and Codex LLM providers.
 | implementation | next-phase | Implement and commit a complete active phase. |
 | coding | review-branch | Evidence-based review of committed branch changes. |
 | productivity | pr-description | Copy-ready pull-request description. |
-| other | concise-output | Direct, complete reader-facing prose. |
+| productivity | concise-output | Direct, complete reader-facing prose. |
 | other | developer-highlights | Evidence-based career narrative from git history. |
-| other | to-clipboard | Copy the previous response to the clipboard as Markdown. |
-| other | to-markdown | Save the previous response as a formatted Markdown file. |
+| productivity | to-clipboard | Copy the previous response to the clipboard as Markdown. |
+| productivity | to-markdown | Save the previous response as a formatted Markdown file. |
 | scoping | plan-conventions | Shared planning and progress rules. |
 | scoping | quick-plan | Bounded feasibility decisions. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
