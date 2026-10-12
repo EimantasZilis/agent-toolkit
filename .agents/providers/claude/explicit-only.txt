@@ -1,7 +1,6 @@
 coding/define-coding-standards
 implementation/next-commit
 implementation/next-phase
-implementation/wrap-up
 other/developer-highlights
 scoping/plan-conventions
 scoping/plan-review

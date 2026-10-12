@@ -29,4 +29,5 @@ checks fail, stop with prior commits and planning state intact. If the plan no
 longer matches reality, amend the plan before continuing.
 
 Finish with a phase summary, commit table, remaining work, and the reminder that
-commits are local. The natural next step is [wrap-up](../wrap-up/SKILL.md).
+commits are local. The natural next step is [review-branch](../../coding/review-branch/SKILL.md),
+followed by [pr-description](../../productivity/pr-description/SKILL.md).

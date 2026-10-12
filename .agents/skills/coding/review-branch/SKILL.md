@@ -1,32 +1,16 @@
 ---
-name: wrap-up
+name: review-branch
 description: >-
-  Inspect a committed branch for merge-blocking issues and prepare a concise
-  merge-request description; supports the combined workflow or either output alone.
+  Inspect a committed branch for merge-blocking issues and report actionable,
+  evidence-based findings before merge.
 ---
 
-# Wrap up a branch
+# Review a branch
 
-Work as the final engineering checkpoint before a branch is merged. The normal
-result has two parts: an issues-only review of committed changes, followed by a
-copy-ready merge-request description. The user may instead request only the
-review or only the description.
+Work as the final engineering checkpoint before a branch is merged. Produce
+an issues-only review of committed changes.
 
-Recognize these modes:
-
-| Request | Result |
-| --- | --- |
-| No mode specified | Review first, then write the merge-request description. |
-| `review-only` | Review committed changes and omit the merge-request draft. |
-| `mr-only` | Write the merge-request draft from supplied context or the diff; do not repeat the review unless asked. |
-
-When another implementation skill hands off a completed phase, retain the
-default combined behavior unless the user has already selected a mode.
-
-## Review the committed branch
-
-Do not review the working tree as though it were part of the branch. Resolve
-the comparison base before inspecting the diff:
+Resolve the comparison base before inspecting the diff:
 
 1. Use a base named by the user when one is available.
 2. Otherwise prefer the repository's configured remote default branch, then
@@ -39,17 +23,17 @@ committed diff. If the worktree is dirty, say so explicitly and continue with
 `merge-base..HEAD` only; never fold local staged or unstaged changes into the
 review without being asked.
 
-Read the surrounding files touched by the diff, plus any ticket, specification,
-or plan the user supplied. Search for existing implementations before calling
-something missing or duplicated. If the branch has a relevant planning folder,
-use its README and active phase as the review's specification: compare the
-change with its scope, exclusions, acceptance evidence, and exit checks. Prefer
-an explicit planning path; otherwise locate the current branch's managed
-`ticket-to-plan` output and then a plausible feature folder under
-`docs/planning/`. If no relevant plan exists, omit this comparison.
+Read the surrounding files touched by the diff, plus any ticket,
+specification, or plan the user supplied. Search for existing implementations
+before calling something missing or duplicated. If the branch has a relevant
+planning folder, use its README and active phase as the review's specification:
+compare the change with its scope, exclusions, acceptance evidence, and exit
+checks. Prefer an explicit planning path; otherwise locate the current
+branch's managed `ticket-to-plan` output and then a plausible feature folder
+under `docs/planning/`. If no relevant plan exists, omit this comparison.
 
-Use a multi-pass review. Keep the working analysis structured, but preserve the
-issues-only output contract below:
+Use a multi-pass review. Keep the working analysis structured, but preserve
+the issues-only output contract below:
 
 1. **Scope and contract pass.** Map every changed file to its callers,
    persistence, configuration, deployment path, and tests. Extract intended
@@ -63,8 +47,9 @@ issues-only output contract below:
    and repeated execution, retries and partial failure, timeout or dependency
    failure, stale or concurrent state, permission boundaries, legacy data or
    schema versions, and configuration or deployment transitions. For every
-   conditional or external call, try the counterexample: what if the condition
-   is false, the call fails, the result is delayed, or the operation runs twice?
+   conditional or external call, try the counterexample: what if the
+   condition is false, the call fails, the result is delayed, or the operation
+   runs twice?
 3. **Data-flow and invariant pass.** Trace inputs to side effects and outputs.
    Check validation and authorization order, state transitions, transaction
    boundaries, cleanup, exception propagation, resource limits, and
@@ -89,11 +74,11 @@ Report only actionable concerns. Check, as applicable:
 - permissions, boundary, compatibility, deployment, or test risks;
 - language-specific convention problems visible in the changed code.
 
-For Python diffs, load [python-standards](../../coding/python-standards/SKILL.md)
+For Python diffs, load [python-standards](../python-standards/SKILL.md)
 before reviewing code. Always follow its core and linting guidance, then load
 only the references relevant to the changed paths, such as tests, frameworks,
-migrations, imports, errors, docstrings, or logging. Report only
-violations that are visible in this diff, not hypothetical cleanup.
+migrations, imports, errors, docstrings, or logging. Report only violations
+that are visible in this diff, not hypothetical cleanup.
 
 ## Findings format
 
@@ -125,80 +110,9 @@ If the user asks to turn a finding into a merge-request comment, write three to
 five sentences: lead with the problem, explain the impact, and include a
 reproduction only for a UI or runtime issue.
 
-## Prepare the merge-request description
-
-Skip this section for `review-only`. Prefer context already supplied in the
-conversation, followed by findings from this review, then the planning
-README's goal and active-phase summary. Fill only real gaps. Ask once for a
-missing ticket identifier or change type when that information materially
-changes the draft; otherwise infer the type from the change.
-
-Choose the shape that matches the work:
-
-- For a bug fix or feature, explain `Problem`, `Cause`, and `Fix`.
-- For a refactor, chore, or dependency change, explain `Context`, `Approach`,
-  and `Risks`.
-
-Start with one sentence beginning `This MR ...`; add a ticket identifier in
-parentheses when known. Keep the description outcome-focused rather than a
-file-by-file changelog. Use short bullets or short paragraphs and casual,
-high-level language.
-
-For a bug fix or feature:
-
-```markdown
-This MR ...
-
-## The problem
-
-- User, client, or deployment impact.
-
-## The cause
-
-- Root cause(s).
-
-## The fix
-
-- Concrete behavior or outcome delivered.
-```
-
-For a refactor, chore, or dependency update:
-
-```markdown
-This MR ...
-
-## Context
-
-- Why the change is needed and its boundaries.
-
-## Approach
-
-- Main design moves, expected behavior, and verification.
-
-## Risks
-
-- Potential regressions and mitigations, or a brief statement that risk is low.
-```
-
-Do not paste raw commit lists unless requested. Add GitLab quick actions only
-when the user supplies the people or explicitly asks for them:
-
-```text
-/assign @<assignee>
-/assign_reviewer @<reviewer>
-```
-
-Return the final merge-request description inside a fenced `markdown` block so
-it can be copied directly.
-
-## Boundaries and handoff
+## Boundaries
 
 Do not modify code, create commits, push, or conceal findings by default. If
 the user explicitly requests fixes, make only those fixes, apply the routed
 standards, run the relevant formatter, linter, and tests, and report what was
 verified. Never push.
-
-The usual previous steps are
-[next-phase](../next-phase/SKILL.md) or
-[next-commit](../next-commit/SKILL.md). After this skill, the user can open or
-update the pull request.

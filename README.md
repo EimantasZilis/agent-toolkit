@@ -19,7 +19,8 @@ Claude and Codex LLM providers.
 | coding | annotate | Explain changed code inline without modifying files. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Implement and commit a complete active phase. |
-| implementation | wrap-up | Evidence-based branch review and pull-request draft. |
+| coding | review-branch | Evidence-based review of committed branch changes. |
+| productivity | pr-description | Copy-ready pull-request description. |
 | other | concise-output | Direct, complete reader-facing prose. |
 | other | developer-highlights | Evidence-based career narrative from git history. |
 | other | to-clipboard | Copy the previous response to the clipboard as Markdown. |
@@ -64,7 +65,8 @@ flowchart TD
     end
 
     subgraph deliver[Deliver]
-        wrap[wrap-up\nbranch review and PR draft]
+        reviewbranch[review-branch\ncommitted branch review]
+        prdescription[pr-description\nPR draft]
     end
 
     brief --> direction
@@ -74,7 +76,7 @@ flowchart TD
     review --> standards
     standards --> unit
     unit --> phase
-    phase --> tests --> wrap
+    phase --> tests --> reviewbranch --> prdescription
     review -. security-sensitive .-> security[security-review or\nsecurity-check]
     security -. findings inform plan .-> plan
 ```

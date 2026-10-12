@@ -26,4 +26,6 @@ directory and then legacy `docs/planning/`. Load [plan-conventions](../../scopin
    next action. Do not run git commit, push, or continue to another unit.
 
 If the plan is materially wrong, stop and propose a docs-first amendment. When a
-phase completes, point to [wrap-up](../wrap-up/SKILL.md); otherwise point to [next-phase](../next-phase/SKILL.md).
+phase completes, point to [review-branch](../../coding/review-branch/SKILL.md)
+and [pr-description](../../productivity/pr-description/SKILL.md); otherwise
+point to [next-phase](../next-phase/SKILL.md).
