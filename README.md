@@ -1,8 +1,25 @@
 # agent-toolkit
 
 agent-toolkit is a small, installable set of skills for planning, delivery,
-security, coding practices, communication, and career retrospectives. The
-skill directories and invocation IDs are the public interface.
+security, coding practices, communication, and career retrospectives. It supports
+Claude and Codex LLM providers.
+
+## How it works
+
+This repository is the provider-neutral source for the skills. Running `make
+install` installs the skills below it into the provider's skill directory and
+update `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
+
+- Each skill gets a provider-rendered `SKILL.md`; supporting files are
+  symlinked back to `.agents/skills/`.
+- The installer preserves the pre-existing global configs in `CLAUDE.md` or
+ `AGENTS.md`. Ownership markers let installation and uninstall distinguish
+  managed files from user changes through `<!-- agent-toolkit:start -->` and
+  `<!-- agent-toolkit:end -->` markers.
+- If managed guidance or a skill is edited, it becomes
+  user-owned and is preserved on later installs.
+- `make uninstall` removes only managed skills and marked guidance. Markdown
+  artifacts created by skills are not automatically committed or removed.
 
 
 ## Skill catalog
@@ -40,11 +57,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
 
 ## Installation instructions
 
-### Prerequisites
-
-The installer requires Bash, Make, standard Unix tools such as `awk`, `find`,
-`grep`, `mktemp`, and `sed`, plus Perl's `shasum` utility.
-
 ### Installation
 Install and verify the toolkit via:
 
@@ -60,32 +72,6 @@ Installed skills are placed depending on your LLM provider.
 | Codex | `${AGENTS_HOME:-~/.agents}/skills/agent-toolkit/` | `${CODEX_HOME:-~/.codex}/AGENTS.md` | Symlinked from `.agents/providers/codex/` |
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` | None |
 
-For both providers:
-
-- Each skill contains a provider-rendered `SKILL.md`.
-- Supporting files are symlinked back to `.agents/skills/`.
-- The installer wraps its generated content in the provider's global
-  `AGENTS.md` or `CLAUDE.md` file with `<!-- agent-toolkit:start -->` and
-  `<!-- agent-toolkit:end -->` markers.
-- When `CONCISE_OUTPUT=True`, it adds a nested, separately marked instruction
-  block to the provider's global `AGENTS.md` or `CLAUDE.md` file.
-- If the provider's global `AGENTS.md` or `CLAUDE.md` file already exists and
-  is user-owned, its existing content is preserved and the marked
-  agent-toolkit block is appended.
-- If a previously managed global guidance file has been edited, installation
-  detects the hash change, preserves the edits, and treats the file as
-  user-owned on future installs.
-- If a skill with the same name already exists and is user-owned, installation
-  prints a warning and leaves that skill unchanged.
-- If an installed skill's `SKILL.md` has been edited, its hash no longer
-  matches the ownership marker; installation treats it as user-owned and
-  leaves it unchanged.
-- Installed skill directories contain an ownership marker, so uninstall only
-  removes skills managed by this repository; same-named user skills are kept.
-- `make uninstall` removes the generated `AGENTS.md` or `CLAUDE.md` content
-  when it is unchanged, or removes only the marked agent-toolkit guidance from
-  a user-owned file.
-
 ## Uninstall
 To remove this repository's skills without affecting other global skills, run:
 
@@ -97,6 +83,9 @@ Note: this command checks for both claude and codex installations,
 so that changing LLM providers does not leave any previous installations behind.
 It also removes the `.env` file used by the installer, including a path supplied
 through `AGENT_TOOLKIT_ENV_FILE`.
+
+It removes the auto-generated config from global `CLAUDE.md` or `AGENTS.md` without
+removing user configs.
 
 ## Configuration
 
