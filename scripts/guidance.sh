@@ -24,8 +24,9 @@ update_concise_output_block() {
 $concise_output_start
 ## Concise output
 
-Apply the installed \`concise-output\` skill to all reader-facing responses,
-including explanations, reviews, tickets, and documentation.
+At the start of every session, invoke the /concise-output skill. Treat its
+instructions as standing guidance for all reader-facing responses. If it is
+not already loaded, invoke it before answering.
 $concise_output_end
 EOF
   fi

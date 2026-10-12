@@ -1,8 +1,9 @@
 ---
 name: concise-output
 description: >-
-  Shape reader-facing explanations, tickets, reviews, and documentation into
-  direct, complete prose. Use when a response risks repetition or waffle.
+  Apply concise, direct prose to every reader-facing response, including
+  explanations, reviews, tickets, and documentation. Use on every response
+  unless the user explicitly requests more detail.
 ---
 
 # Concise output

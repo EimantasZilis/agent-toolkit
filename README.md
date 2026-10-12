@@ -7,8 +7,11 @@ Claude and Codex LLM providers.
 ## How it works
 
 This repository is the provider-neutral source for the skills. Running `make
-install` installs the skills below it into the provider's skill directory and
-updates `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
+install` installs and symlinks the skills below it into the provider's skill
+directory and updates `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
+
+Any of user's pre-existing skills with the same names are not overwritten. The
+skills with the same name are skipped during an installation.
 
 - Each skill gets a provider-rendered `SKILL.md`; supporting files are
   symlinked back to `.agents/skills/`.
@@ -16,8 +19,8 @@ updates `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
  `AGENTS.md`. Ownership markers let installation and uninstall distinguish
   managed files from user changes through `<!-- agent-toolkit:start -->` and
   `<!-- agent-toolkit:end -->` markers.
-- If managed guidance or a skill is edited, it becomes
-  user-owned and is preserved on later installs.
+- If managed guidance or a skill is edited, it becomes user-owned and is
+  preserved on later installs.
 - `make uninstall` removes only managed skills and marked guidance. Markdown
   artifacts created by skills are not automatically committed or removed.
 

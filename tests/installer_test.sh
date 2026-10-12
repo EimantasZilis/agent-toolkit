@@ -66,8 +66,14 @@ test_claude_install() {
   run_install claude "$root" >/dev/null
   assert_directory "$root/claude/skills"
   assert_file "$root/claude/CLAUDE.md"
+  assert_contains 'invoke the /concise-output skill' "$root/claude/CLAUDE.md"
+  assert_contains 'Treat its' "$root/claude/CLAUDE.md"
+  assert_contains 'standing guidance for all reader-facing responses' \
+    "$root/claude/CLAUDE.md"
   assert_contains 'disable-model-invocation: true' \
     "$root/claude/skills/next-commit/SKILL.md"
+  assert_contains 'Apply concise, direct prose to every reader-facing response' \
+    "$root/claude/skills/concise-output/SKILL.md"
 }
 
 test_repo_local_output_policy() {
