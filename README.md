@@ -8,7 +8,7 @@ Claude and Codex LLM providers.
 
 This repository is the provider-neutral source for the skills. Running `make
 install` installs the skills below it into the provider's skill directory and
-update `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
+updates `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
 
 - Each skill gets a provider-rendered `SKILL.md`; supporting files are
   symlinked back to `.agents/skills/`.
