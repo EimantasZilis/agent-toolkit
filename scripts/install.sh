@@ -4,10 +4,62 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
 
 AGENT_TOOLKIT_ENV_FILE="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
-if [[ ! -f "$AGENT_TOOLKIT_ENV_FILE" ]]; then
-  echo "Error: configuration is required before installing; copy .env.template to .env and set LLM_PROVIDER to codex or claude." >&2
-  exit 1
-fi
+
+prompt_for_value() {
+  local label=$1 default=$2 variable=$3 display_default answer
+  display_default="${4:-$default}"
+  printf '%s [%s]: ' "$label" "$display_default" >&2
+  IFS= read -r answer || {
+    echo "Error: unable to read $label." >&2
+    return 1
+  }
+  printf -v "$variable" '%s' "${answer:-$default}"
+}
+
+configure_installation() {
+  local config_file=$AGENT_TOOLKIT_ENV_FILE template="$AGENT_TOOLKIT_HOME/.env.template"
+  local provider concise output
+
+  if [[ ! -f "$config_file" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      echo "Error: configuration is missing; run make install interactively to create .env." >&2
+      return 1
+    fi
+    mkdir -p -- "$(dirname "$config_file")"
+    cp -- "$template" "$config_file"
+  fi
+
+  if [[ -t 0 && -t 1 ]]; then
+    provider="$(config_value "$config_file" LLM_PROVIDER 2>/dev/null || printf '%s' codex)"
+    output="$(config_value "$config_file" MARKDOWN_OUTPUT_PATH 2>/dev/null || true)"
+    concise="$(config_value "$config_file" CONCISE_OUTPUT 2>/dev/null || printf '%s' True)"
+    [[ -n "$provider" ]] || provider=codex
+    [[ -n "$concise" ]] || concise=True
+
+    prompt_for_value "LLM provider (codex or claude)" "$provider" provider || return 1
+    prompt_for_value "Markdown output path (where generated output Markdown files are stored; Enter a global path or leave blank for repo-local outputs)" "$output" output repo-local || return 1
+    prompt_for_value "Concise output (whether to enable concise responses for all LLM outputs: True or False)" "$concise" concise || return 1
+
+    case "$provider" in
+      codex|claude) ;;
+      *) echo "Error: invalid LLM provider '$provider'; expected codex or claude." >&2; return 1 ;;
+    esac
+    if [[ -n "$output" && "$output" != /* ]]; then
+      echo "Error: Markdown output path must be blank or an absolute path." >&2
+      return 1
+    fi
+    case "$(printf '%s' "$concise" | tr '[:upper:]' '[:lower:]')" in
+      true|1|yes|on|false|0|no|off) ;;
+      *) echo "Error: invalid concise output '$concise'; expected True or False." >&2; return 1 ;;
+    esac
+
+    persist_config_setting "$config_file" LLM_PROVIDER "$provider"
+    persist_config_setting "$config_file" MARKDOWN_OUTPUT_PATH "$output"
+    persist_config_setting "$config_file" CONCISE_OUTPUT "$concise"
+  fi
+}
+
+configure_installation
 
 # Installation provider and concise-output behavior are controlled by the
 # repository's .env, even when the caller has exported values. The output

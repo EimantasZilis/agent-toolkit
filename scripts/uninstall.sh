@@ -55,3 +55,9 @@ for LLM_PROVIDER in codex claude; do
     echo "Removed agent-toolkit concise-output guidance from $GUIDANCE_DEST"
   fi
 done
+
+config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+if [[ -f "$config_file" || -L "$config_file" ]]; then
+  rm -f -- "$config_file"
+  echo "Removed $config_file"
+fi

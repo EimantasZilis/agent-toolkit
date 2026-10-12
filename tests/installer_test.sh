@@ -44,7 +44,8 @@ run_install_with_output_root() {
 
 run_uninstall() {
   local root=$1
-  AGENTS_HOME="$root/agents" \
+  AGENT_TOOLKIT_ENV_FILE="$root/config.env" \
+    AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/codex" \
     CLAUDE_HOME="$root/claude" \
     "$REPO_ROOT/scripts/uninstall.sh"
@@ -173,6 +174,7 @@ test_reinstall_and_uninstall() {
   run_uninstall "$root" >/dev/null
   assert_absent "$root/codex/AGENTS.md"
   assert_absent "$root/agents/skills/agent-toolkit/next-commit"
+  assert_absent "$root/config.env"
 }
 
 test_rollback() {

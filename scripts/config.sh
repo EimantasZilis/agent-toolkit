@@ -1,5 +1,44 @@
 # Configuration and provider routing helpers.
 
+config_value() {
+  local config_file=$1 key=$2 line value
+  [[ -f "$config_file" ]] || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*${key}[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$ ]] || continue
+    value="${BASH_REMATCH[1]}"
+    value="${value#\"}"; value="${value%\"}"
+    value="${value#\'}"; value="${value%\'}"
+    printf '%s' "$value"
+    return 0
+  done < "$config_file"
+  return 1
+}
+
+persist_config_setting() {
+  local config_file=$1 key=$2 value=$3 temp
+  temp="$(mktemp "${config_file}.XXXXXX")"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { replaced = 0 }
+    {
+      lhs = $0
+      sub(/[[:space:]]*=.*$/, "", lhs)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", lhs)
+      if (lhs == key) {
+        if (!replaced) {
+          print key "=" value
+          replaced = 1
+        }
+        next
+      }
+      print
+    }
+    END {
+      if (!replaced) print key "=" value
+    }
+  ' "$config_file" > "$temp"
+  mv -- "$temp" "$config_file"
+}
+
 load_provider() {
   local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
   if [[ -z "${LLM_PROVIDER+x}" && -f "$config_file" ]]; then
@@ -44,23 +83,7 @@ load_concise_output() {
 }
 
 persist_output_setting() {
-  local config_file=$1 value=$2 temp
-  temp="$(mktemp "${config_file}.XXXXXX")"
-  awk -v value="$value" '
-    BEGIN { replaced = 0 }
-    /^[[:space:]]*MARKDOWN_OUTPUT_PATH[[:space:]]*=/ {
-      if (!replaced) {
-        print "MARKDOWN_OUTPUT_PATH=" value
-        replaced = 1
-      }
-      next
-    }
-    { print }
-    END {
-      if (!replaced) print "MARKDOWN_OUTPUT_PATH=" value
-    }
-  ' "$config_file" > "$temp"
-  mv "$temp" "$config_file"
+  persist_config_setting "$1" MARKDOWN_OUTPUT_PATH "$2"
 }
 
 load_output_location() {
