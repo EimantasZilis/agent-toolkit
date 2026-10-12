@@ -27,11 +27,12 @@ produce a broad or difficult-to-review diff, narrow the phase or create
 explicitly dependent plans/phases with clear handoffs and acceptance criteria.
 Keep each phase's commits focused on that phase's outcome.
 
-After user confirmation, write README.md and phase-N.md under
-docs/planning/date-slug/; for chat-only input also retain a retrospective
-ticket under docs/jira/. Run plan-review as the checkpoint. Stop at
-ready-to-implement; never write application code. Run
-[plan-review](../plan-review/SKILL.md) as the checkpoint.
+After user confirmation, write `README.md` and `phase-N.md` under a
+date-slugged directory beneath the installed Markdown output policy's
+`ticket-to-plan` skill directory. For chat-only input, retain the retrospective
+ticket in that same skill directory. An explicit output path wins. Run
+[plan-review](../plan-review/SKILL.md) as the checkpoint. Stop at
+ready-to-implement; never write application code.
 
 Start each generated `README.md` with a concise Mermaid diagram that gives the
 overview of the work and shows phase dependencies before the detailed Goal,

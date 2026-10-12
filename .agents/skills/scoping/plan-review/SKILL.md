@@ -5,7 +5,10 @@ description: Review a phase-indexed implementation plan for vague scope, missing
 
 # Plan review
 
-Read the planning README and every listed phase file. Do not implement code.
+Read the planning README and every listed phase file. Resolve an explicitly
+supplied plan path first; otherwise search the current branch's managed
+`ticket-to-plan` output directory, requiring the user to choose if multiple
+plans exist, then fall back to legacy `docs/planning/`. Do not implement code.
 
 Check that the README is the entrypoint, one phase is active or clearly next,
 each phase has atomic commits and observable exit checks, dependencies are

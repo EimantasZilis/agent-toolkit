@@ -24,6 +24,17 @@ provider with `LLM_PROVIDER=codex` or `LLM_PROVIDER=claude` in `.env` (or an
 exported environment variable), then run the installer. Local Markdown links
 are relative to their source file.
 
+## Markdown artifact outputs
+
+Skills that write Markdown must follow the installed output-location policy.
+When no path is supplied, write beneath the current repository's branch and
+skill directory in repo-local mode, or beneath the configured
+`<output-root>/<repo>/<branch>/<skill>/` hierarchy in external mode. Explicit
+user-provided paths always win. Keep all files from one invocation beneath the
+skill directory, avoid overwriting existing artifacts, and report the exact
+written path. Do not hardcode `docs/` as the default destination for new
+skills.
+
 Before changing a skill, preserve its public behavior, update the catalog, and
 run `make verify`. Keep references in Markdown rather than adding editor
 rules, routers, or unsupported configuration.

@@ -40,6 +40,13 @@ render_guidance_block() {
     printf '%s\n' "$agent_toolkit_start"
     printf '%s\n\n' "$agent_toolkit_notice"
     cat "$destination"
+    printf '\n## Installed Markdown output location\n\n'
+    if [[ -n "${MARKDOWN_OUTPUT_PATH:-}" ]]; then
+      printf 'Use `%s/<repo-slug>/<branch-slug>/<skill-name>/...` for Markdown artifacts when the user does not provide an explicit path.\n' "$MARKDOWN_OUTPUT_PATH"
+    else
+      printf 'Use `<repo-root>/<branch-slug>/<skill-name>/...` for Markdown artifacts when the user does not provide an explicit path.\n'
+    fi
+    printf 'Derive repository and branch slugs from the target Git repository, use `detached-<short-sha>` for detached HEADs, preserve all files from one skill invocation beneath its skill directory, and never overwrite an existing artifact without explicit direction. An explicit user-provided path always wins.\n'
     printf '\n%s\n' "$agent_toolkit_end"
   } > "$temp"
   mv "$temp" "$destination"

@@ -32,9 +32,10 @@ Create a `.md` file from the immediately preceding assistant response.
 - Otherwise choose a short, descriptive, filesystem-safe lowercase filename
   based on the response's main subject, such as `database-migration-plan.md`.
   Use `response.md` when no subject can be inferred.
-- Write the file in the current workspace unless the user specifies another
-  location. Avoid overwriting an existing file without the user's instruction;
-  choose an unused descriptive variant such as `topic-2.md`.
+- Write the file beneath the installed Markdown output policy's `to-markdown`
+  skill directory unless the user specifies another location. Avoid
+  overwriting an existing file without the user's instruction; choose an
+  unused descriptive variant such as `topic-2.md`.
 
 ## Result
 

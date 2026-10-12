@@ -43,9 +43,70 @@ load_concise_output() {
   export CONCISE_OUTPUT
 }
 
+persist_output_setting() {
+  local config_file=$1 value=$2 temp
+  temp="$(mktemp "${config_file}.XXXXXX")"
+  awk -v value="$value" '
+    BEGIN { replaced = 0 }
+    /^[[:space:]]*MARKDOWN_OUTPUT_PATH[[:space:]]*=/ {
+      if (!replaced) {
+        print "MARKDOWN_OUTPUT_PATH=" value
+        replaced = 1
+      }
+      next
+    }
+    { print }
+    END {
+      if (!replaced) print "MARKDOWN_OUTPUT_PATH=" value
+    }
+  ' "$config_file" > "$temp"
+  mv "$temp" "$config_file"
+}
+
+load_output_location() {
+  local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+  local configured=no value=''
+
+  if [[ -n "${MARKDOWN_OUTPUT_PATH+x}" ]]; then
+    configured=yes
+    value="$MARKDOWN_OUTPUT_PATH"
+  elif [[ -f "$config_file" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ "$line" =~ ^[[:space:]]*MARKDOWN_OUTPUT_PATH[[:space:]]*=(.*)[[:space:]]*$ ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="${value#\"}"; value="${value%\"}"
+      value="${value#\'}"; value="${value%\'}"
+      configured=yes
+      break
+    done < "$config_file"
+  fi
+
+  if [[ "$configured" == no ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      echo "Error: MARKDOWN_OUTPUT_PATH is not configured; set it to an absolute path or run installation interactively and leave it blank for repo-local outputs." >&2
+      return 1
+    fi
+    printf 'Markdown output directory (leave blank for repo-local outputs): ' >&2
+    IFS= read -r value || {
+      echo "Error: unable to read MARKDOWN_OUTPUT_PATH." >&2
+      return 1
+    }
+    persist_output_setting "$config_file" "$value"
+  fi
+
+  if [[ -n "$value" && "$value" != /* ]]; then
+    echo "Error: MARKDOWN_OUTPUT_PATH must be blank for repo-local outputs or an absolute path." >&2
+    return 1
+  fi
+
+  MARKDOWN_OUTPUT_PATH="$value"
+  export MARKDOWN_OUTPUT_PATH
+}
+
 load_config() {
   load_provider
   load_concise_output
+  load_output_location
 }
 
 provider_skills_dest() {

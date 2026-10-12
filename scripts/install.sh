@@ -9,8 +9,9 @@ if [[ ! -f "$AGENT_TOOLKIT_ENV_FILE" ]]; then
   exit 1
 fi
 
-# Installation must be controlled by the repository's .env, even when the
-# caller has an exported LLM_PROVIDER value.
+# Installation provider and concise-output behavior are controlled by the
+# repository's .env, even when the caller has exported values. The output
+# location intentionally supports an environment override for CI.
 unset LLM_PROVIDER
 unset CONCISE_OUTPUT
 load_config

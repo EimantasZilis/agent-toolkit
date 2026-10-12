@@ -77,10 +77,11 @@ confirmation`. Call out conflicts between the ticket, plan, code, and tests.
 
 ## Required Markdown output
 
-Write a Markdown file. If no output path is requested, use
-`docs/test-plans/<yyyy-mm-dd>-<ticket-or-branch-slug>.md`, creating the
-directory as needed. Do not overwrite an existing plan without explicit
-direction.
+Write a Markdown file. If no output path is requested, use the installed
+Markdown output policy and place the file beneath the `test-cases` skill
+directory, using `<yyyy-mm-dd>-<ticket-or-branch-slug>.md` as its filename.
+Create the directory as needed. Do not overwrite an existing plan without
+explicit direction; an explicit output path always wins.
 
 Use this structure, adapting or omitting only sections that are genuinely
 irrelevant:

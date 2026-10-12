@@ -44,7 +44,8 @@ or plan the user supplied. Search for existing implementations before calling
 something missing or duplicated. If the branch has a relevant planning folder,
 use its README and active phase as the review's specification: compare the
 change with its scope, exclusions, acceptance evidence, and exit checks. Prefer
-an explicit planning path; otherwise locate a plausible feature folder under
+an explicit planning path; otherwise locate the current branch's managed
+`ticket-to-plan` output and then a plausible feature folder under
 `docs/planning/`. If no relevant plan exists, omit this comparison.
 
 Use a multi-pass review. Keep the working analysis structured, but preserve the

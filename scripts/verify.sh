@@ -28,7 +28,7 @@ check_installed_skill() {
 verify_provider() {
   local provider=$1 provider_root="$VERIFY_ROOT/$1" config_file="$VERIFY_ROOT/$1/.env"
   mkdir -p "$provider_root"
-  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\n' "$provider" > "$config_file"
+  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=\n' "$provider" > "$config_file"
 
   AGENT_TOOLKIT_ENV_FILE="$config_file" \
     AGENTS_HOME="$provider_root/agents" \

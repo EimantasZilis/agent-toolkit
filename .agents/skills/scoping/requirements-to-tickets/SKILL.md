@@ -32,7 +32,9 @@ changes in one ticket. Before presenting tickets, check that every ticket can
 be described in a short title and that its suggested commits would form a
 focused PR; if not, decompose it further.
 
-Do not create files unless asked; when asked, write only ticket files.
+Do not create files unless asked; when asked, write only ticket files. If no
+path is supplied, place them beneath the installed Markdown output policy's
+`requirements-to-tickets` skill directory. An explicit output path wins.
 
 ## Ticket structure
 

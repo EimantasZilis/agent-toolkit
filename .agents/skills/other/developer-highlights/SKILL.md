@@ -28,4 +28,6 @@ when helpful, omit per-repository tables, and never invent metrics or technologi
 5. Present the result as At a glance, Tech stack, Career highlights, and
    Business / user impact. Load [concise-output](../concise-output/SKILL.md).
 
-Do not write a file unless the user requests one.
+Do not write a file unless the user requests one. When a file is requested and
+no path is supplied, use the installed Markdown output policy beneath the
+`developer-highlights` skill directory. An explicit output path wins.

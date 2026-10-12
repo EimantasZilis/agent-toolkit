@@ -20,9 +20,22 @@ run_install() {
   local provider=$1 root=$2 fail_after=${3:-}
   local config_file="$root/config.env"
   mkdir -p "$root"
-  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\n' "$provider" > "$config_file"
+  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=\n' "$provider" > "$config_file"
   AGENT_TOOLKIT_ENV_FILE="$config_file" \
     AGENT_TOOLKIT_FAIL_AFTER="$fail_after" \
+    AGENTS_HOME="$root/agents" \
+    CODEX_HOME="$root/codex" \
+    CLAUDE_HOME="$root/claude" \
+    "$REPO_ROOT/scripts/install.sh"
+}
+
+run_install_with_output_root() {
+  local provider=$1 root=$2 output_root=$3
+  local config_file="$root/config.env"
+  mkdir -p "$root"
+  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=%s\n' \
+    "$provider" "$output_root" > "$config_file"
+  AGENT_TOOLKIT_ENV_FILE="$config_file" \
     AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/codex" \
     CLAUDE_HOME="$root/claude" \
@@ -54,6 +67,67 @@ test_claude_install() {
   assert_file "$root/claude/CLAUDE.md"
   assert_contains 'disable-model-invocation: true' \
     "$root/claude/skills/next-commit/SKILL.md"
+}
+
+test_repo_local_output_policy() {
+  local root="$TEST_ROOT/repo-local"
+  run_install codex "$root" >/dev/null
+  assert_contains '<repo-root>/<branch-slug>/<skill-name>/...' "$root/codex/AGENTS.md"
+}
+
+test_external_output_policy() {
+  local root="$TEST_ROOT/external"
+  local output_root="$TEST_ROOT/centralized outputs"
+  run_install_with_output_root codex "$root" "$output_root" >/dev/null
+  assert_contains "$output_root/<repo-slug>/<branch-slug>/<skill-name>/..." \
+    "$root/codex/AGENTS.md"
+  assert_contains "MARKDOWN_OUTPUT_PATH=$output_root" "$root/config.env"
+}
+
+test_environment_output_override() {
+  local root="$TEST_ROOT/environment-output"
+  local output_root="$TEST_ROOT/environment outputs"
+  mkdir -p "$root"
+  printf 'LLM_PROVIDER=codex\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=\n' \
+    > "$root/config.env"
+  MARKDOWN_OUTPUT_PATH="$output_root" \
+    AGENT_TOOLKIT_ENV_FILE="$root/config.env" \
+    AGENTS_HOME="$root/agents" \
+    CODEX_HOME="$root/codex" \
+    CLAUDE_HOME="$root/claude" \
+    "$REPO_ROOT/scripts/install.sh" >/dev/null
+  assert_contains "$output_root/<repo-slug>/<branch-slug>/<skill-name>/..." \
+    "$root/codex/AGENTS.md"
+  assert_contains 'MARKDOWN_OUTPUT_PATH=' "$root/config.env"
+}
+
+test_missing_output_setting_requires_interactive_configuration() {
+  local root="$TEST_ROOT/missing-output" output status
+  mkdir -p "$root"
+  printf 'LLM_PROVIDER=codex\nCONCISE_OUTPUT=True\n' > "$root/config.env"
+  set +e
+  output="$(
+    unset MARKDOWN_OUTPUT_PATH
+    AGENT_TOOLKIT_ENV_FILE="$root/config.env" \
+      AGENTS_HOME="$root/agents" \
+      CODEX_HOME="$root/codex" \
+      CLAUDE_HOME="$root/claude" \
+      "$REPO_ROOT/scripts/install.sh" 2>&1
+  )"
+  status=$?
+  set -e
+  [[ "$status" -eq 1 ]] || fail "expected missing output configuration to fail, got $status"
+  assert_contains 'MARKDOWN_OUTPUT_PATH is not configured' <(printf '%s\n' "$output")
+}
+
+test_blank_output_setting_persists_exactly() {
+  local root="$TEST_ROOT/blank-output"
+  mkdir -p "$root"
+  printf 'LLM_PROVIDER=codex\nCONCISE_OUTPUT=True\n' > "$root/config.env"
+  AGENT_TOOLKIT_HOME="$REPO_ROOT" bash -c \
+    'source "$AGENT_TOOLKIT_HOME/scripts/config.sh"; persist_output_setting "$1" ""' \
+    _ "$root/config.env"
+  assert_contains 'MARKDOWN_OUTPUT_PATH=' "$root/config.env"
 }
 
 test_changed_managed_guidance_is_preserved() {
@@ -118,6 +192,11 @@ test_rollback() {
 
 test_codex_install
 test_claude_install
+test_repo_local_output_policy
+test_external_output_policy
+test_environment_output_override
+test_missing_output_setting_requires_interactive_configuration
+test_blank_output_setting_persists_exactly
 test_changed_managed_guidance_is_preserved
 test_changed_managed_skill_is_preserved
 test_user_owned_content_is_preserved

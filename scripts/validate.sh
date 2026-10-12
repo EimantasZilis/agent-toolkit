@@ -43,6 +43,7 @@ done < <(find "$AGENT_TOOLKIT_HOME/.agents/skills" -mindepth 3 -maxdepth 3 -type
 [[ -f "$AGENT_TOOLKIT_HOME/.env.template" ]] || fail "missing .env.template"
 grep -qx 'LLM_PROVIDER=' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must define a blank LLM_PROVIDER"
 grep -qx 'CONCISE_OUTPUT=True' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must default CONCISE_OUTPUT to True"
+grep -qx '# MARKDOWN_OUTPUT_PATH=' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must document the optional MARKDOWN_OUTPUT_PATH setting"
 
 if [[ $errors -gt 0 ]]; then echo "Validation failed with $errors error(s)."; exit 1; fi
 pass "$skill_count skills, metadata, links, provider boundaries, and layout are valid"

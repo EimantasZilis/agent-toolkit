@@ -43,9 +43,10 @@ business record, or invent meaning that the available sources do not support.
    Mark gaps as `Unknown`, `Assumption`, or `Needs confirmation`; never fill a
    business gap with a confident guess.
 7. Write the context brief to the requested Markdown path. If no path is
-   given, use `docs/ticket-context/<date>-<ticket-slug>.md`, creating the
-   directory if needed. Preserve existing user changes and avoid overwriting
-   an existing brief without explicit direction.
+   given, use the installed Markdown output policy beneath the `ticket-context`
+   skill directory, using `<date>-<ticket-slug>.md`. Create the directory if
+   needed. Preserve existing user changes and avoid overwriting an existing
+   brief without explicit direction.
 
 ## Required output
 

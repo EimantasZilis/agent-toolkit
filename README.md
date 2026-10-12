@@ -55,6 +55,33 @@ cp .env.template .env
 | --- | --- | --- |
 | `LLM_PROVIDER` | `codex`, `claude` | Selects the provider used for installation. |
 | `CONCISE_OUTPUT` | `True`, `False` (default: `True`) | Enables or disables the `concise-output` skill in the LLM global config. |
+| `MARKDOWN_OUTPUT_PATH` | blank or an absolute path | Selects repo-local or centralized Markdown artifact storage. |
+
+`MARKDOWN_OUTPUT_PATH` is optional. If the key is missing during `make install`
+step below, the installer asks where Markdown artifacts should
+go. Press Enter to choose repo-local storage; the installer records that
+choice as the exact blank setting `MARKDOWN_OUTPUT_PATH=` in `.env`. A later
+installation treats that present-but-blank value as repo-local and does not ask
+again. An absolute path selects centralized storage, and an environment value
+overrides `.env` without changing it.
+
+Skills that write Markdown use the configured output policy unless the user
+provides an explicit path. Repo-local artifacts are written to:
+
+```text
+<repo-root>/<branch-slug>/<skill-name>/...
+```
+
+With `MARKDOWN_OUTPUT_PATH=/absolute/path`, artifacts are written to:
+
+```text
+/absolute/path/<repo-slug>/<branch-slug>/<skill-name>/...
+```
+
+Repository and branch names are lowercased, runs of unsafe characters are
+replaced with `-`, and empty slugs fall back to `repo` or `branch`. Detached
+HEADs use `detached-<short-sha>`. Planning, ticket, review, and other Markdown
+artifacts are not automatically committed or removed by `make uninstall`.
 
 ### Installation
 Once configured, install and verify the toolkit via:
