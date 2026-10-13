@@ -67,3 +67,5 @@ when the user supplies the people or explicitly asks for them:
 Return the final pull-request description inside a fenced `markdown` block so
 it can be copied directly. Do not imply that a branch review, tests, linters,
 or builds were performed unless the supplied context provides that evidence.
+After returning it, invoke `$to-clipboard` so the same Markdown remains visible
+in the terminal and is copied to the clipboard.
