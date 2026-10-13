@@ -21,6 +21,7 @@ Claude and Codex LLM providers.
 | implementation | next-phase | Implement and commit a complete active phase. |
 | coding | review-branch | Evidence-based review of committed branch changes. |
 | productivity | pr-description | Copy-ready pull-request description. |
+| productivity | pr-comment | Concise, human response to pull-request feedback. |
 | productivity | concise-output | Direct, complete reader-facing prose. |
 | other | developer-highlights | Evidence-based career narrative from git history. |
 | productivity | to-clipboard | Copy the previous response to the clipboard as Markdown. |
