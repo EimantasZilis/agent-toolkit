@@ -59,7 +59,7 @@ LINES: 18-27
 COMMENT: High-level explanation of the small changed block.
 
 ```
-
+Note the spacing around the code snippet. 
 Use the post-change line numbers for added or modified code. For deleted code,
 use the old-file line numbers and label them as such. Keep context minimal but
 large enough to make each explanation understandable. Preserve the source
@@ -70,12 +70,18 @@ When the output is being emitted to a terminal that preserves ANSI styling,
 make the display easier to scan with colour:
 
 - Prefer an already-installed syntax highlighter for the affected language,
-  with colour forced on and without changing the source text. Do not install a
-  dependency just for annotation.
+  with colour forced on and without changing the source text. Apply its output
+  only to the source-text portion of each code line: render the line-number
+  gutter, separator, headings, blank lines, and annotations separately. Never
+  pass the complete formatted row to the highlighter, and do not use alternating
+  row or background highlighting. Do not install a dependency just for
+  annotation.
 - If no syntax highlighter is available, use ANSI SGR styling for display
   structure only: dim line-number gutters, distinct filename and range
-  headings, and a contrasting `COMMENT:` label. Use addition/deletion colours
-  only when the displayed layout explicitly distinguishes those states.
+  headings, and a contrasting `COMMENT:` label. Keep line-number gutters and
+  all non-code output free of syntax-highlight styles. Use addition/deletion
+  colours only on the displayed code text when the layout explicitly
+  distinguishes those states.
 - Reset styling after every line or display block. Never leave raw escape codes
   in a Markdown or captured-log fallback, and never rely on colour alone to
   convey meaning.
