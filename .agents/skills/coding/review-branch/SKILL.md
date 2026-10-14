@@ -1,8 +1,9 @@
 ---
 name: review-branch
 description: >-
-  Inspect a committed branch for merge-blocking issues and report actionable,
-  evidence-based findings before merge.
+  Inspect a committed branch, optionally using pull-request context, for
+  merge-blocking issues and report actionable, evidence-based findings before
+  merge.
 ---
 
 # Review a branch
@@ -22,6 +23,33 @@ Inspect `git status --short`, the merge base, the diff summary, and the full
 committed diff. If the worktree is dirty, say so explicitly and continue with
 `merge-base..HEAD` only; never fold local staged or unstaged changes into the
 review without being asked.
+
+If the user supplies a pull-request or merge-request link, and it is
+accessible through the available repository-hosting or browser integration,
+read the description, linked metadata, and existing review comments and
+threads before completing the review. Use the description and any user-supplied
+brief to establish the intended scope, behavior, acceptance criteria, and
+explicit exclusions. For each existing comment, determine whether the current
+diff addresses it, leaves it unresolved, supersedes it, or makes it
+inapplicable. Re-check comments against the current code: do not repeat an
+already-raised issue as a separate finding, but incorporate a valid unresolved
+issue into the relevant finding and use the comment as additional evidence.
+
+Look for Jira or other issue-tracker references in the pull-request
+description, linked metadata, comments, and supplied brief. For each
+reference, try to open it when access is available. Use accessible tickets as
+requirements context, including their acceptance criteria, scope, exclusions,
+and known constraints. If a supplied source or ticket is inaccessible, do not
+invent its contents; continue with the accessible evidence and preserve the
+resulting uncertainty when it materially affects the review. If sources
+conflict, make the conflict explicit and treat the requirement as unresolved
+rather than silently choosing an interpretation.
+
+When a pull-request link or brief is provided, account for all accessible
+context in the scope and contract pass, behavior matrix, and evidence pass.
+The committed diff remains the implementation evidence, while the pull
+request, existing comments, brief, and accessible tickets provide the stated
+intent against which it must be assessed.
 
 Read the surrounding files touched by the diff, plus any ticket,
 specification, or plan the user supplied. Search for existing implementations
@@ -94,12 +122,12 @@ If there are no actionable concerns, write exactly: `No issues found.`
 When there are findings, use one Markdown table for defects and plan/spec gaps:
 
 ```markdown
-| Severity | Finding | Location | Why it matters | Recommended action |
-| --- | --- | --- | --- | --- |
-| Critical — fix before merge | Short title | `path/to/file` | Impact and evidence | Specific correction or mitigation |
-| Medium — fix before merge | Short title | `path/to/file` | Impact and evidence | Specific correction or mitigation |
-| Low — follow-up ticket | Short title | `path/to/file` | Impact and evidence | Concrete follow-up |
-| Low (spec) — acceptable with note | Short title | `docs/planning/...` | Missing or unclear requirement | Confirmation or documentation |
+| Severity | Finding | Location | Why it matters | Recommended action | PR comment: issue summary and fix options |
+| --- | --- | --- | --- | --- | --- |
+| Critical — fix before merge | Short title | `path/to/file` | Impact and evidence | Specific correction or mitigation | The changed path fails when [triggering scenario], because [evidence]. This can [impact]. Fix by [option A] or [option B]. |
+| Medium — fix before merge | Short title | `path/to/file` | Impact and evidence | Specific correction or mitigation | [Concern and evidence]. Please [option A], or [option B] if [condition]. |
+| Low — follow-up ticket | Short title | `path/to/file` | Impact and evidence | Concrete follow-up | [Concern and impact]. Consider [option A] or [option B] in a follow-up. |
+| Low (spec) — acceptable with note | Short title | `docs/planning/...` | Missing or unclear requirement | Confirmation or documentation | The implementation leaves [requirement] unclear. Please confirm the intended behavior or document [option A]/[option B]. |
 ```
 
 Order rows from highest to lowest severity. Use `-` for the location only when
@@ -111,6 +139,14 @@ or surrounding code, and make its confidence clear through that distinction.
 Mention a test gap only when the changed behavior lacks meaningful coverage;
 do not request tests when the existing coverage is sufficient. Deduplicate
 findings that share the same root cause.
+
+The final `PR comment: issue summary and fix options` column must be a concise,
+copy-ready Markdown comment in the style of `$pr-comment`: lead with the issue,
+state the evidence and impact, preserve uncertainty when relevant, and give
+one or two concrete fix options or the next decision needed. Keep it factual,
+helpful, and empathetic; do not invent implementation details, test results,
+or commitments. Keep the comment compact enough to remain readable inside a
+table cell.
 
 If the user asks to turn a finding into a merge-request comment, write three to
 five sentences: lead with the problem, explain the impact, and include a
