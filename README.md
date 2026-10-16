@@ -66,8 +66,10 @@ flowchart TD
     end
 
     subgraph deliver[Deliver]
+        incoming[Someone else's PR]
         reviewbranch[review-branch\ncommitted branch review]
         prdescription[pr-description\nPR draft]
+        prcomment[pr-comment\nreview feedback]
     end
 
     brief --> direction
@@ -75,9 +77,12 @@ flowchart TD
     direction -- Yes --> tickets
     tickets --> context --> plan --> review
     review --> standards
-    standards --> unit
-    unit --> phase
-    phase --> tests --> reviewbranch --> prdescription
+    standards --> unit --> tests
+    standards --> phase --> tests
+    tests --> reviewbranch
+    reviewbranch -- if needed --> prdescription
+    incoming --> reviewbranch
+    reviewbranch -- if needed --> prcomment
     review -. security-sensitive .-> security[security-review or\nsecurity-check]
     security -. findings inform plan .-> plan
 ```
