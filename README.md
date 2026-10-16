@@ -16,22 +16,22 @@ Claude and Codex LLM providers.
 | coding | ruby-standards | Routed Ruby engineering guidance. |
 | coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | coding | typescript-standards | Routed TypeScript engineering guidance. |
-| review | annotate | Explain branch changes in terminal output without modifying files. |
 | implementation | next-commit | Implement one planned unit without committing. |
 | implementation | next-phase | Execute every unchecked commit in an active phase, committing locally without pushing. |
-| review | review-branch | Evidence-based review of committed branch changes. |
+| other | developer-highlights | Evidence-based career narrative from git history. |
+| productivity | concise-output | Direct, complete reader-facing prose. |
 | productivity | pr-description | Copy-ready pull-request description. |
 | productivity | pr-comment | Concise, human response to pull-request feedback. |
-| productivity | concise-output | Direct, complete reader-facing prose. |
-| other | developer-highlights | Evidence-based career narrative from git history. |
 | productivity | to-clipboard | Copy the previous response to the clipboard as Markdown. |
 | productivity | to-markdown | Save the previous response as a formatted Markdown file. |
+| review | plan-review | Gate plans before implementation. |
+| review | annotate | Explain branch changes in terminal output without modifying files. |
+| review | review-branch | Evidence-based review of committed branch changes. |
 | scoping | plan-conventions | Shared planning and progress rules. |
 | scoping | quick-plan | Investigate feasibility and give one recommendation without implementation or a commit plan. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
 | scoping | ticket-context | Build a repository-backed context brief for a ticket. |
 | scoping | ticket-to-plan | Turn a file, chat, or Jira ticket into an implementation-ready planning folder. |
-| review | plan-review | Gate plans before implementation. |
 | scoping | test-cases | Create prioritized Markdown manual test cases for branch changes. |
 | security | security-check | Short fix, accept, or monitor decision. |
 | security | security-review | Detailed security assessment. |

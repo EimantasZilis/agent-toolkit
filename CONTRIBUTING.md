@@ -38,3 +38,9 @@ skills.
 Before changing a skill, preserve its public behavior, update the catalog, and
 run `make verify`. Keep references in Markdown rather than adding editor
 rules, routers, or unsupported configuration.
+
+When adding or amending skills, keep the skill summaries in `README.md`
+grouped by category, with categories ordered alphabetically. Within each
+category, follow the workflow order where one exists; otherwise, order skills
+alphabetically by name. Put shared guidance before the workflow steps it
+supports, and order independent skills alphabetically.
