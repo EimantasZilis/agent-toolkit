@@ -16,9 +16,9 @@ Claude and Codex LLM providers.
 | coding | ruby-standards | Routed Ruby engineering guidance. |
 | coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | coding | typescript-standards | Routed TypeScript engineering guidance. |
-| coding | annotate | Explain changed code inline without modifying files. |
+| coding | annotate | Explain branch changes in terminal output without modifying files. |
 | implementation | next-commit | Implement one planned unit without committing. |
-| implementation | next-phase | Implement and commit a complete active phase. |
+| implementation | next-phase | Execute every unchecked commit in an active phase, committing locally without pushing. |
 | coding | review-branch | Evidence-based review of committed branch changes. |
 | productivity | pr-description | Copy-ready pull-request description. |
 | productivity | pr-comment | Concise, human response to pull-request feedback. |
@@ -27,10 +27,10 @@ Claude and Codex LLM providers.
 | productivity | to-clipboard | Copy the previous response to the clipboard as Markdown. |
 | productivity | to-markdown | Save the previous response as a formatted Markdown file. |
 | scoping | plan-conventions | Shared planning and progress rules. |
-| scoping | quick-plan | Bounded feasibility decisions. |
+| scoping | quick-plan | Investigate feasibility and give one recommendation without implementation or a commit plan. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
 | scoping | ticket-context | Build a repository-backed context brief for a ticket. |
-| scoping | ticket-to-plan | Turn a ticket into a small, focused implementation plan. |
+| scoping | ticket-to-plan | Turn a file, chat, or Jira ticket into an implementation-ready planning folder. |
 | scoping | plan-review | Gate plans before implementation. |
 | scoping | test-cases | Create prioritized Markdown manual test cases for branch changes. |
 | security | security-check | Short fix, accept, or monitor decision. |
@@ -51,17 +51,17 @@ flowchart TD
 
     subgraph scope[Shape the work]
         direction{Clear enough to plan?}
-        quick[quick-plan\nfeasibility decision]
+        quick[quick-plan\nfeasibility recommendation]
         tickets[requirements-to-tickets\nsmall backlog units]
         context[ticket-context\nrepository domain map]
-        plan[ticket-to-plan\nimplementation plan]
+        plan[ticket-to-plan\nimplementation-ready plan]
         review[plan-review\nscope and risk gate]
     end
 
     subgraph build[Build and validate]
         standards[Language standards\nPython / JS / TS / Go / Ruby / Bash]
         unit[next-commit\none planned unit]
-        phase[next-phase\ncomplete active phase]
+        phase[next-phase\nunchecked commits, local only]
         tests[test-cases\nprioritized manual checks]
     end
 
