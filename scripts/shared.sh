@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Load shared helpers; executable callers own shell options.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_TOOLKIT_HOME="${AGENT_TOOLKIT_HOME:-$(cd "$SCRIPT_DIR/.." && pwd)}"

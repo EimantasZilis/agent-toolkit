@@ -1,7 +1,7 @@
 # Skill rendering helpers.
 
 render_skill() {
-  local source=$1 dest=$2 key=$3
+  local source=$1 dest=$2 key=$3 file rel
   local explicit=no
   if provider_skill_is_explicit "$key"; then
     explicit=yes

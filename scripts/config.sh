@@ -14,11 +14,13 @@ config_value() {
   return 1
 }
 
-persist_config_setting() {
+persist_config_setting() (
   local config_file=$1 key=$2 value=$3 temp
-  temp="$(mktemp "${config_file}.XXXXXX")"
-  awk -v key="$key" -v value="$value" '
-    BEGIN { replaced = 0 }
+  temp="$(mktemp "${config_file}.XXXXXX")" || return 1
+  trap 'rm -f -- "$temp"' EXIT
+  # Read the value from the environment so awk does not interpret backslashes.
+  if ! AGENT_TOOLKIT_CONFIG_VALUE="$value" awk -v key="$key" '
+    BEGIN { replaced = 0; value = ENVIRON["AGENT_TOOLKIT_CONFIG_VALUE"] }
     {
       lhs = $0
       sub(/[[:space:]]*=.*$/, "", lhs)
@@ -35,12 +37,15 @@ persist_config_setting() {
     END {
       if (!replaced) print key "=" value
     }
-  ' "$config_file" > "$temp"
+  ' "$config_file" > "$temp"; then
+    return 1
+  fi
   mv -- "$temp" "$config_file"
-}
+)
 
 load_provider() {
   local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+  local line
   if [[ -z "${LLM_PROVIDER+x}" && -f "$config_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" =~ ^[[:space:]]*LLM_PROVIDER[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$ ]] || continue
@@ -63,6 +68,7 @@ load_provider() {
 
 load_concise_output() {
   local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+  local line
   if [[ -z "${CONCISE_OUTPUT+x}" && -f "$config_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" =~ ^[[:space:]]*CONCISE_OUTPUT[[:space:]]*=[[:space:]]*(.*)[[:space:]]*$ ]] || continue
@@ -88,7 +94,7 @@ persist_output_setting() {
 
 load_output_location() {
   local config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
-  local configured=no value=''
+  local configured=no value='' line
 
   if [[ -n "${MARKDOWN_OUTPUT_PATH+x}" ]]; then
     configured=yes

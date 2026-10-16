@@ -147,6 +147,70 @@ test_blank_output_setting_persists_exactly() {
   assert_contains 'MARKDOWN_OUTPUT_PATH=' "$root/config.env"
 }
 
+test_output_setting_preserves_backslashes() {
+  local root="$TEST_ROOT/literal-output" value='/output/with\backslashes\n'
+  mkdir -p "$root"
+  printf 'MARKDOWN_OUTPUT_PATH=\n' > "$root/config.env"
+  AGENT_TOOLKIT_HOME="$REPO_ROOT" bash -c \
+    'source "$AGENT_TOOLKIT_HOME/scripts/config.sh"; persist_output_setting "$1" "$2"' \
+    _ "$root/config.env" "$value"
+  [[ "$(cat "$root/config.env")" == "MARKDOWN_OUTPUT_PATH=$value" ]] ||
+    fail 'configuration update changed literal backslashes'
+}
+
+test_failed_config_update_preserves_original() {
+  local root="$TEST_ROOT/config-failure" status
+  mkdir -p "$root/bin"
+  printf 'LLM_PROVIDER=codex\n' > "$root/config.env"
+  printf '#!/usr/bin/env bash\nexit 23\n' > "$root/bin/awk"
+  chmod +x "$root/bin/awk"
+  if PATH="$root/bin:$PATH" AGENT_TOOLKIT_HOME="$REPO_ROOT" bash -c \
+    'source "$AGENT_TOOLKIT_HOME/scripts/config.sh"; persist_output_setting "$1" /output' \
+    _ "$root/config.env"; then
+    fail 'expected configuration rewrite failure'
+  else
+    status=$?
+  fi
+  [[ "$status" -eq 1 ]] || fail "unexpected configuration failure status: $status"
+  [[ "$(cat "$root/config.env")" == LLM_PROVIDER=codex ]] ||
+    fail 'failed configuration rewrite replaced the original'
+  [[ -z "$(find "$root" -name 'config.env.*' -print)" ]] ||
+    fail 'failed configuration rewrite left temporary files'
+}
+
+test_ownership_requires_literal_repository_path() {
+  local root="$TEST_ROOT/literal.ownership"
+  mkdir -p "$root/skill" "$root/guidance"
+  printf '%s\n' "${root/./X}" > "$root/skill/.agent-toolkit-owned"
+  cp "$root/skill/.agent-toolkit-owned" "$root/guidance/.agent-toolkit-owned"
+  printf 'guidance\n' > "$root/guidance/AGENTS.md"
+  AGENT_TOOLKIT_HOME="$root" bash -c '
+    source "$1/scripts/paths.sh"
+    printf "GUIDANCE.md %s\n" "$(file_hash "$2/guidance/AGENTS.md")" >> "$2/guidance/.agent-toolkit-owned"
+    if is_owned_dir "$2/skill"; then exit 1; fi
+    if is_managed_guidance "$2/guidance/AGENTS.md"; then exit 1; fi
+  ' _ "$REPO_ROOT" "$root" || fail 'ownership accepted a regex match for the repository path'
+}
+
+test_unrelated_guidance_symlink_is_preserved() {
+  local root="$TEST_ROOT/guidance-symlink" output status
+  mkdir -p "$root/codex"
+  printf 'user guidance\n' > "$root/user.md"
+  ln -s "$root/user.md" "$root/codex/AGENTS.md"
+  printf '%s\n' "$REPO_ROOT" > "$root/codex/.agent-toolkit-owned"
+  if output="$(run_install codex "$root" 2>&1)"; then
+    fail 'expected installation to reject an unrelated guidance symlink'
+  else
+    status=$?
+  fi
+  [[ "$status" -eq 1 ]] || fail "unexpected symlink rejection status: $status"
+  [[ "$output" == *'refusing to overwrite non-managed path'* ]] ||
+    fail "missing symlink rejection diagnostic: $output"
+  [[ -L "$root/codex/AGENTS.md" ]] || fail 'unrelated guidance symlink was replaced'
+  [[ "$(cat "$root/user.md")" == 'user guidance' ]] || fail 'symlink target was changed'
+  assert_absent "$root/agents"
+}
+
 test_changed_managed_guidance_is_preserved() {
   local root="$TEST_ROOT/changed-guidance"
   run_install claude "$root" >/dev/null
@@ -208,6 +272,36 @@ test_rollback() {
   assert_contains 'test failure injected' <(printf '%s\n' "$output")
 }
 
+test_failed_rollback_retains_recovery_backup() {
+  local root="$TEST_ROOT/failed-rollback" output status
+  run_install codex "$root" >/dev/null
+  cp "$root/codex/AGENTS.md" "$root/original.md"
+  mkdir -p "$root/bin" "$root/transactions"
+  cat > "$root/bin/mv" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == */agent-toolkit-install.*/0 && "$2" == "$AGENT_TOOLKIT_TEST_GUIDANCE_PATH" ]]; then
+  printf 'injected restore failure\n' >&2
+  exit 23
+fi
+exec /bin/mv "$@"
+EOF
+  chmod +x "$root/bin/mv"
+  if output="$(PATH="$root/bin:$PATH" TMPDIR="$root/transactions" \
+    AGENT_TOOLKIT_TEST_GUIDANCE_PATH="$root/codex/AGENTS.md" \
+    run_install codex "$root" 1 2>&1)"; then
+    fail 'expected injected installation failure'
+  else
+    status=$?
+  fi
+  [[ "$status" -eq 97 ]] || fail "rollback changed installation failure status: $status"
+  [[ "$output" == *'rollback incomplete; recovery backups retained at '* ]] ||
+    fail "missing recovery diagnostic: $output"
+  local backup
+  backup="$(find "$root/transactions" -type f -name 0 -print)"
+  assert_file "$backup"
+  cmp -s "$root/original.md" "$backup" || fail 'original guidance backup was lost'
+}
+
 test_codex_install
 test_claude_install
 test_repo_local_output_policy
@@ -215,9 +309,14 @@ test_external_output_policy
 test_environment_output_override
 test_missing_output_setting_requires_interactive_configuration
 test_blank_output_setting_persists_exactly
+test_output_setting_preserves_backslashes
+test_failed_config_update_preserves_original
+test_ownership_requires_literal_repository_path
+test_unrelated_guidance_symlink_is_preserved
 test_changed_managed_guidance_is_preserved
 test_changed_managed_skill_is_preserved
 test_user_owned_content_is_preserved
 test_reinstall_and_uninstall
 test_rollback
+test_failed_rollback_retains_recovery_backup
 echo "OK: installer integration tests passed"

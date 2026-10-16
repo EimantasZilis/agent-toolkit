@@ -15,7 +15,7 @@ resolved_path() {
 owned_marker() { printf '%s/.agent-toolkit-owned\n' "$1"; }
 file_hash() { shasum -a 256 "$1" | awk '{print $1}'; }
 
-is_owned_dir() { [[ -f "$(owned_marker "$1")" ]] && grep -qx "$AGENT_TOOLKIT_HOME" "$(owned_marker "$1")"; }
+is_owned_dir() { [[ -f "$(owned_marker "$1")" ]] && grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$(owned_marker "$1")"; }
 is_managed_skill() {
   local destination=$1 marker expected_hash current_hash
   marker="$(owned_marker "$destination")"
@@ -28,7 +28,7 @@ is_managed_guidance() {
   local destination=$1 marker expected_hash current_hash
   marker="$(owned_marker "$(dirname "$destination")")"
   [[ -f "$marker" ]] || return 1
-  grep -qx "$AGENT_TOOLKIT_HOME" "$marker" || return 1
+  grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker" || return 1
   expected_hash="$(awk '$1 == "GUIDANCE.md" { print $2 }' "$marker")"
   current_hash="$(file_hash "$destination" 2>/dev/null || true)"
   [[ -n "$expected_hash" && "$expected_hash" == "$current_hash" ]]

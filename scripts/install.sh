@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Install provider skills and guidance with rollback on failure.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
@@ -81,13 +82,13 @@ if [[ -e "$GUIDANCE_DEST" || -L "$GUIDANCE_DEST" ]]; then
   elif [[ -f "$GUIDANCE_DEST" && ! -L "$GUIDANCE_DEST" ]]; then
     if [[ ! -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]]; then
       guidance_user_owned=yes
-    elif ! grep -qx "$AGENT_TOOLKIT_HOME" "$(owned_marker "$(dirname "$GUIDANCE_DEST")")"; then
+    elif ! grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$(owned_marker "$(dirname "$GUIDANCE_DEST")")"; then
       echo "Error: refusing to overwrite non-managed path: $GUIDANCE_DEST" >&2
       exit 1
     elif ! is_managed_guidance "$GUIDANCE_DEST"; then
       guidance_user_owned=yes
     fi
-  elif [[ ! -f "$(owned_marker "$(dirname "$GUIDANCE_DEST")")" ]] || ! grep -qx "$AGENT_TOOLKIT_HOME" "$(owned_marker "$(dirname "$GUIDANCE_DEST")")"; then
+  else
     echo "Error: refusing to overwrite non-managed path: $GUIDANCE_DEST" >&2
     exit 1
   fi
@@ -136,6 +137,7 @@ backup_path() {
   backup_count=$((backup_count + 1))
 }
 rollback_transaction() {
+  local status=$? restore_failed=no
   [[ "${transaction_active:-no}" == yes ]] || return 0
   transaction_active=no
   local i path slot mode state
@@ -145,16 +147,27 @@ rollback_transaction() {
     mode="${backup_modes[$i]}"
     state="${backup_states[$i]}"
     [[ "$state" == pending ]] && continue
-    remove_path "$path" 2>/dev/null || true
-    if path_exists "$slot"; then
-      if [[ "$mode" == copy ]]; then
-        cp -p "$slot" "$path" 2>/dev/null || true
-      else
-        mv "$slot" "$path" 2>/dev/null || true
+    if [[ "$state" == present ]]; then
+      if ! path_exists "$slot" || ! remove_path "$path"; then
+        restore_failed=yes
+        continue
       fi
+      if [[ "$mode" == copy ]]; then
+        cp -p "$slot" "$path" || restore_failed=yes
+      else
+        mv "$slot" "$path" || restore_failed=yes
+      fi
+    else
+      remove_path "$path" || restore_failed=yes
     fi
   done
-  rm -rf "$transaction_root" 2>/dev/null || true
+  if [[ "$restore_failed" == yes ]]; then
+    printf 'Error: rollback incomplete; recovery backups retained at %s\n' "$transaction_root" >&2
+    [[ "$status" -ne 0 ]] || status=1
+  else
+    rm -rf -- "$transaction_root" || status=1
+  fi
+  return "$status"
 }
 trap rollback_transaction EXIT
 trap 'exit 130' INT TERM

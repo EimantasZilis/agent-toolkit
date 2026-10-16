@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Validate source skills, links, and provider adapters.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
+# Remove managed installations while preserving user-owned content.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
 remove_skill() {
-  local dest=$1
+  local dest=$1 item
   is_owned_dir "$dest" || return 0
   local skill_hash expected_hash
   skill_hash="$(file_hash "$dest/SKILL.md" 2>/dev/null || true)"
@@ -40,7 +41,7 @@ for LLM_PROVIDER in codex claude; do
   fi
 
   marker="$(owned_marker "$(dirname "$GUIDANCE_DEST")")"
-  if [[ -f "$marker" ]] && grep -qx "$AGENT_TOOLKIT_HOME" "$marker"; then
+  if [[ -f "$marker" ]] && grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker"; then
     guidance_hash="$(file_hash "$GUIDANCE_DEST" 2>/dev/null || true)"
     expected_hash="$(awk '$1 == "GUIDANCE.md" { print $2 }' "$marker")"
     [[ -n "$guidance_hash" && "$guidance_hash" == "$expected_hash" ]] && rm -f "$GUIDANCE_DEST"

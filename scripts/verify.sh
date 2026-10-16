@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Verify isolated installations for both providers.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
