@@ -11,6 +11,15 @@ or unreadable.
 
 Repository-specific guidance wins.
 
+## Code readability
+
+For every language and coding standards pack, write human-readable code. Use
+blank lines to separate logical groups of variable declarations, expressions,
+and statements, and to distinguish blocks or stages of work. Keep closely
+related lines together; avoid both dense code and unnecessary blank lines.
+Follow the language's conventions and the repository's formatter, and review
+the final code for readable spacing before completing implementation.
+
 ## Markdown artifact outputs
 
 When a skill writes a Markdown artifact and the user has not supplied an

@@ -39,6 +39,10 @@ Claude and Codex LLM providers.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
 
+Global coding guidance requires readable spacing across all languages and
+standards packs: separate logical groups with blank lines, keep related lines
+together, and follow language conventions and the repository's formatter.
+
 
 ## Chaining skills for software development
 
