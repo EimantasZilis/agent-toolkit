@@ -1,41 +1,52 @@
 # agent-toolkit
 
-agent-toolkit is a small, installable set of skills for planning, delivery,
-security, coding practices, communication, and career retrospectives. It supports
-Claude and Codex LLM providers.
+agent-toolkit provides installable skills for concise communication, coding
+standards, planning, implementation, and review, with support for Claude and Codex.
+
+## Highlights
+
+- **Get clearer answers everywhere:** [concise-output](.agents/skills/productivity/concise-output/SKILL.md) leads with the answer, removes repetition, and keeps necessary detail. Recommended for global use.
+- **Apply coding standards:** packs for Python, JavaScript, TypeScript, Go, Ruby/Rails, and Bash guide edits and reviews. See [python-standards](.agents/skills/coding/python-standards/SKILL.md) or the [catalog](#skill-catalog).
+- **Shape work before coding:** investigate feasibility with [quick-plan](.agents/skills/scoping/quick-plan/SKILL.md), or turn a brief into tickets and a repository-grounded plan with [requirements-to-tickets](.agents/skills/scoping/requirements-to-tickets/SKILL.md) → [ticket-to-plan](.agents/skills/scoping/ticket-to-plan/SKILL.md).
+- **Implement in controlled steps:** [next-commit](.agents/skills/implementation/next-commit/SKILL.md) implements and validates one planned unit; [next-phase](.agents/skills/implementation/next-phase/SKILL.md) completes a phase with local commits.
+- **Check readiness to merge:** [review-branch](.agents/skills/review/review-branch/SKILL.md) reports actionable findings with evidence; [test-cases](.agents/skills/scoping/test-cases/SKILL.md) prepares prioritized manual checks.
+- **Explain the change clearly:** [pr-description](.agents/skills/productivity/pr-description/SKILL.md) drafts the problem and delivered behavior; [commit-message](.agents/skills/productivity/commit-message/SKILL.md) summarizes staged changes.
+
+See the [examples guide](EXAMPLES.md) for prompts, before/after excerpts, and a
+workflow from feature brief to PR description.
 
 ## Skill catalog
 
 | Category | Pack | Purpose |
 | --- | --- | --- |
-| coding | bash-standards | Routed Bash engineering guidance. |
-| coding | define-coding-standards | Build a language standards pack. |
-| coding | golang-standards | Routed Go engineering guidance. |
-| coding | javascript-standards | Routed JavaScript engineering guidance. |
-| coding | python-standards | Routed Python engineering guidance. |
-| coding | ruby-standards | Routed Ruby engineering guidance. |
-| coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
-| coding | typescript-standards | Routed TypeScript engineering guidance. |
-| implementation | next-commit | Implement one planned unit without committing. |
-| implementation | next-phase | Validate and commit each implementation unit locally; keep planning progress uncommitted unless requested. |
-| other | developer-highlights | Evidence-based career narrative from git history. |
-| productivity | commit-message | Short commit message from staged changes and available conversation context. |
-| productivity | concise-output | Direct, complete reader-facing prose. |
-| productivity | pr-description | Copy-ready pull-request description. |
-| productivity | pr-comment | Concise, human response to pull-request feedback. |
-| productivity | to-clipboard | Copy the previous response to the clipboard as Markdown. |
-| productivity | to-markdown | Save the previous response as a formatted Markdown file. |
-| review | plan-review | Gate plans before implementation. |
-| review | annotate | Explain branch changes in terminal output without modifying files. |
-| review | review-branch | Evidence-based review of committed branch changes. |
-| scoping | plan-conventions | Shared planning and progress rules; exclude planning Markdown from implementation commits unless requested. |
-| scoping | quick-plan | Investigate feasibility and give one recommendation without implementation or a commit plan. |
-| scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
-| scoping | ticket-context | Build a repository-backed context brief for a ticket. |
-| scoping | ticket-to-plan | Turn a file, chat, or Jira ticket into an implementation-ready planning folder. |
-| scoping | test-cases | Create prioritized Markdown manual test cases for branch changes. |
-| security | security-check | Short fix, accept, or monitor decision. |
-| security | security-review | Detailed security assessment. |
+| coding | [bash-standards](.agents/skills/coding/bash-standards/SKILL.md) | Routed Bash engineering guidance. |
+| coding | [define-coding-standards](.agents/skills/coding/define-coding-standards/SKILL.md) | Build a language standards pack. |
+| coding | [golang-standards](.agents/skills/coding/golang-standards/SKILL.md) | Routed Go engineering guidance. |
+| coding | [javascript-standards](.agents/skills/coding/javascript-standards/SKILL.md) | Routed JavaScript engineering guidance. |
+| coding | [python-standards](.agents/skills/coding/python-standards/SKILL.md) | Routed Python engineering guidance. |
+| coding | [ruby-standards](.agents/skills/coding/ruby-standards/SKILL.md) | Routed Ruby engineering guidance. |
+| coding | [ruby-rails-standards](.agents/skills/coding/ruby-rails-standards/SKILL.md) | Routed Ruby on Rails engineering guidance. |
+| coding | [typescript-standards](.agents/skills/coding/typescript-standards/SKILL.md) | Routed TypeScript engineering guidance. |
+| implementation | [next-commit](.agents/skills/implementation/next-commit/SKILL.md) | Implement one planned unit without committing. |
+| implementation | [next-phase](.agents/skills/implementation/next-phase/SKILL.md) | Validate and commit each implementation unit locally; keep planning progress uncommitted unless requested. |
+| other | [developer-highlights](.agents/skills/other/developer-highlights/SKILL.md) | Evidence-based career narrative from git history. |
+| productivity | [commit-message](.agents/skills/productivity/commit-message/SKILL.md) | Short commit message from staged changes and available conversation context. |
+| productivity | [concise-output](.agents/skills/productivity/concise-output/SKILL.md) | Direct, complete reader-facing prose. |
+| productivity | [pr-description](.agents/skills/productivity/pr-description/SKILL.md) | Copy-ready pull-request description. |
+| productivity | [pr-comment](.agents/skills/productivity/pr-comment/SKILL.md) | Concise, human response to pull-request feedback. |
+| productivity | [to-clipboard](.agents/skills/productivity/to-clipboard/SKILL.md) | Copy the previous response to the clipboard as Markdown. |
+| productivity | [to-markdown](.agents/skills/productivity/to-markdown/SKILL.md) | Save the previous response as a formatted Markdown file. |
+| review | [plan-review](.agents/skills/review/plan-review/SKILL.md) | Gate plans before implementation. |
+| review | [annotate](.agents/skills/review/annotate/SKILL.md) | Explain branch changes in terminal output without modifying files. |
+| review | [review-branch](.agents/skills/review/review-branch/SKILL.md) | Evidence-based review of committed branch changes. |
+| scoping | [plan-conventions](.agents/skills/scoping/plan-conventions/SKILL.md) | Shared planning and progress rules; exclude planning Markdown from implementation commits unless requested. |
+| scoping | [quick-plan](.agents/skills/scoping/quick-plan/SKILL.md) | Investigate feasibility and give one recommendation without implementation or a commit plan. |
+| scoping | [requirements-to-tickets](.agents/skills/scoping/requirements-to-tickets/SKILL.md) | Turn feature briefs into small, self-contained backlog tickets. |
+| scoping | [ticket-context](.agents/skills/scoping/ticket-context/SKILL.md) | Build a repository-backed context brief for a ticket. |
+| scoping | [ticket-to-plan](.agents/skills/scoping/ticket-to-plan/SKILL.md) | Turn a file, chat, or Jira ticket into an implementation-ready planning folder. |
+| scoping | [test-cases](.agents/skills/scoping/test-cases/SKILL.md) | Create prioritized Markdown manual test cases for branch changes. |
+| security | [security-check](.agents/skills/security/security-check/SKILL.md) | Short fix, accept, or monitor decision. |
+| security | [security-review](.agents/skills/security/security-review/SKILL.md) | Detailed security assessment. |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
 
@@ -43,12 +54,11 @@ Global coding guidance requires readable spacing across all languages and
 standards packs: separate logical groups with blank lines, keep related lines
 together, and follow language conventions and the repository's formatter.
 
-
 ## Chaining skills for software development
 
-Skills are most useful as a workflow, not as isolated prompts. Each one turns
-an ambiguous input into a more useful artifact or decision that the next skill
-can consume. A typical feature can move from discovery to delivery like this:
+Chain skills by passing each result to the next step. Follow the
+[worked example](EXAMPLES.md#chain-skills-from-a-feature-brief-to-delivery), or
+choose the steps your change needs:
 
 ```mermaid
 flowchart TD
@@ -92,27 +102,22 @@ flowchart TD
     security -. findings inform plan .-> plan
 ```
 
-The chain is intentionally flexible: use `next-commit` for controlled,
-incremental delivery or `next-phase` when the active phase is ready to run;
-insert security and coding-standards skills where the change warrants them.
-The result is a repeatable handoff between reasoning, repository knowledge,
-implementation, and evidence of readiness.
-
-
-
-
+Use `next-commit` for one unit or `next-phase` for a full phase. Apply relevant
+coding standards and add security review where needed. Commit implementation
+changes before `review-branch`, which reviews committed changes only.
 
 ## Installation instructions
 
 ### Installation
-Install and verify the toolkit via:
+
+Install and verify:
 
 ```bash
 make install
 make verify
 ```
 
-Installed skills are placed depending on your LLM provider.
+Installation paths depend on the provider:
 
 | LLM Provider | Skills | Global config | Provider-specific metadata |
 | --- | --- | --- | --- |
@@ -121,30 +126,21 @@ Installed skills are placed depending on your LLM provider.
 
 ### How it works
 
-This repository is the provider-neutral source for the skills. Running `make
-install` installs and symlinks the skills below it into the provider's skill
-directory and updates `CLAUDE.md` or `AGENTS.md` for global LLM configuration.
-
-Any of user's pre-existing skills with the same names are not overwritten. The
-skills with the same name are skipped during an installation.
+`make install` renders skills for the selected provider and updates its global
+guidance. Pre-existing skills with matching names are skipped.
 
 - Each skill gets a provider-rendered `SKILL.md`; supporting files are
   symlinked back to `.agents/skills/`.
-- The installer preserves the pre-existing global configs in `CLAUDE.md` or
- `AGENTS.md`. Ownership markers let installation and uninstall distinguish
-  managed files from user changes through `<!-- agent-toolkit:start -->` and
-  `<!-- agent-toolkit:end -->` markers.
+- Existing global configuration is preserved. Managed guidance sits between
+  `<!-- agent-toolkit:start -->` and `<!-- agent-toolkit:end -->` markers.
 - If managed guidance or a skill is edited, it becomes user-owned and is
   preserved on later installs.
-- `make uninstall` removes only managed skills and marked guidance. Markdown
-  artifacts created by skills are not automatically committed or removed.
 
 ### Configuration
 
-`make install` creates `.env` from `.env.template` when needed, then asks for
-each setting. Press Enter to accept the displayed default: `codex` for
-`LLM_PROVIDER`, repo-local output for `MARKDOWN_OUTPUT_PATH`, and `True` for
-`CONCISE_OUTPUT`. Existing values are used as the defaults on later installs.
+`make install` creates `.env` from `.env.template` if needed and prompts for
+settings. Defaults are `codex`, repo-local Markdown output, and concise output
+enabled. Later installs default to existing values.
 
 | Environment variable | Valid values | Controls |
 | --- | --- | --- |
@@ -177,19 +173,15 @@ directory, and finally any documented legacy location. Repository-local
 lookups are anchored at the Git repository root, not the process working
 directory. Skills must not silently cross repository or branch boundaries.
 
-
 ## Uninstall
-To remove this repository's skills without affecting other global skills, run:
+
+Remove managed skills and guidance:
 
 ```bash
 make uninstall
 ```
 
-Note: this command checks for both claude and codex installations,
-so that changing LLM providers does not leave any previous installations behind.
-It also removes the `.env` file used by the installer, including a path supplied
-through `AGENT_TOOLKIT_ENV_FILE`.
-
-It removes the auto-generated config from global `CLAUDE.md` or `AGENTS.md` without
-removing user configs.
+Uninstall checks both providers and preserves user-owned skills and global
+configuration. It also removes the installer's `.env` file, including one
+selected through `AGENT_TOOLKIT_ENV_FILE`.
 
