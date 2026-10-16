@@ -108,7 +108,7 @@ Report only actionable concerns. Check, as applicable:
 - permissions, boundary, compatibility, deployment, or test risks;
 - language-specific convention problems visible in the changed code.
 
-For Python diffs, load [python-standards](../python-standards/SKILL.md)
+For Python diffs, load [python-standards](../../coding/python-standards/SKILL.md)
 before reviewing code. Always follow its core and linting guidance, then load
 only the references relevant to the changed paths, such as tests, frameworks,
 migrations, imports, errors, docstrings, or logging. Report only violations
