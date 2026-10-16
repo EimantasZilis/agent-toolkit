@@ -3,6 +3,44 @@
 agent-toolkit provides installable skills for concise communication, coding
 standards, planning, implementation, and review, with support for Claude and Codex.
 
+## Quick start
+
+**Prerequisites:** `Git`, `Bash`, and `Make` installed, signed-in Codex or
+Claude Code clients. Run the following in a unix terminal:
+
+```bash
+git clone https://github.com/EimantasZilis/agent-toolkit.git
+cd agent-toolkit
+make install
+```
+
+When prompted, enter `codex` or `claude` for your client. Press Enter at the
+remaining prompts to keep Markdown output repo-local and concise output enabled.
+The installer installs the skill catalog and adds managed global guidance for
+that provider; see [installation details](#installation-instructions) for paths
+and ownership rules. Keep this clone in place: installed supporting files link
+back to it.
+
+Check the toolkit's validation and isolated installations for both providers:
+
+```bash
+make verify
+```
+
+Then start a new Codex or Claude session and send the matching prompt:
+
+```text
+$concise-output Rewrite this update in one sentence: We have now completed the work to fix the login issue, and users are once again able to sign in successfully.
+```
+
+An example result is:
+
+> The login issue is fixed, and users can sign in again.
+
+Wording may vary; success is a direct, one-sentence update that preserves the
+meaning. Try the [worked examples](EXAMPLES.md) next, or choose a skill from
+the [catalog](#skill-catalog).
+
 ## Highlights
 
 - **Get clearer answers everywhere:** [concise-output](.agents/skills/productivity/concise-output/SKILL.md) leads with the answer, removes repetition, and keeps necessary detail. Recommended for global use.
