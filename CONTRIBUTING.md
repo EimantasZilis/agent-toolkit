@@ -19,6 +19,14 @@ installer render or attach it for that provider. When adding or changing a
 skill, run `make verify`; verification must cover installation for both Codex
 and Claude.
 
+Codex adapters belong at
+`.agents/providers/codex/skills/<category>/<skill-name>/agents/openai.yaml`;
+Claude explicit-only entries use the same `<category>/<skill-name>` key.
+Adapters are optional, but every adapter and explicit-only entry must resolve
+to a source skill. Move or remove adapters when moving or removing a skill;
+`make validate` checks these references before `make verify` checks both
+providers' installed metadata.
+
 Global guidance lives at `.agents/global/instructions.md`. Select the target
 provider with `LLM_PROVIDER=codex` or `LLM_PROVIDER=claude` in `.env` (or an
 exported environment variable), then run the installer. Local Markdown links

@@ -11,4 +11,5 @@ verify: test
 	./scripts/verify.sh
 
 test:
+	bash ./tests/validation_test.sh
 	./tests/installer_test.sh

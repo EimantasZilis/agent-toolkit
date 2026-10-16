@@ -17,8 +17,9 @@ Claude and Codex LLM providers.
 | coding | ruby-rails-standards | Routed Ruby on Rails engineering guidance. |
 | coding | typescript-standards | Routed TypeScript engineering guidance. |
 | implementation | next-commit | Implement one planned unit without committing. |
-| implementation | next-phase | Execute every unchecked commit in an active phase, committing locally without pushing. |
+| implementation | next-phase | Validate and commit each implementation unit locally; keep planning progress uncommitted unless requested. |
 | other | developer-highlights | Evidence-based career narrative from git history. |
+| productivity | commit-message | Short commit message from staged changes and available conversation context. |
 | productivity | concise-output | Direct, complete reader-facing prose. |
 | productivity | pr-description | Copy-ready pull-request description. |
 | productivity | pr-comment | Concise, human response to pull-request feedback. |
@@ -27,7 +28,7 @@ Claude and Codex LLM providers.
 | review | plan-review | Gate plans before implementation. |
 | review | annotate | Explain branch changes in terminal output without modifying files. |
 | review | review-branch | Evidence-based review of committed branch changes. |
-| scoping | plan-conventions | Shared planning and progress rules. |
+| scoping | plan-conventions | Shared planning and progress rules; exclude planning Markdown from implementation commits unless requested. |
 | scoping | quick-plan | Investigate feasibility and give one recommendation without implementation or a commit plan. |
 | scoping | requirements-to-tickets | Turn feature briefs into small, self-contained backlog tickets. |
 | scoping | ticket-context | Build a repository-backed context brief for a ticket. |

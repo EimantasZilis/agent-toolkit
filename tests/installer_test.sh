@@ -59,6 +59,10 @@ test_codex_install() {
   assert_file "$root/codex/.agent-toolkit-owned"
   [[ -L "$root/agents/skills/agent-toolkit/next-commit/agents/openai.yaml" ]] ||
     fail "expected Codex metadata symlink"
+  [[ -L "$root/agents/skills/agent-toolkit/plan-review/agents/openai.yaml" ]] ||
+    fail "expected moved plan-review metadata symlink"
+  assert_contains 'allow_implicit_invocation: false' \
+    "$root/agents/skills/agent-toolkit/plan-review/agents/openai.yaml"
 }
 
 test_claude_install() {
@@ -72,6 +76,8 @@ test_claude_install() {
     "$root/claude/CLAUDE.md"
   assert_contains 'disable-model-invocation: true' \
     "$root/claude/skills/next-commit/SKILL.md"
+  assert_contains 'disable-model-invocation: true' \
+    "$root/claude/skills/plan-review/SKILL.md"
   assert_contains 'Apply concise, direct prose to every reader-facing response' \
     "$root/claude/skills/concise-output/SKILL.md"
 }

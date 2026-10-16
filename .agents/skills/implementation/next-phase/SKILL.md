@@ -1,6 +1,6 @@
 ---
 name: next-phase
-description: Execute every unchecked commit in the active planning phase, validate and locally commit each unit with its progress docs, then stop without pushing.
+description: Execute every unchecked commit in the active planning phase, validate and locally commit each implementation unit, and update planning progress locally without pushing.
 ---
 
 # Next phase
