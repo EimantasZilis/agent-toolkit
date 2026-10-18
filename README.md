@@ -5,8 +5,8 @@ standards, planning, implementation, and review, with support for Claude and Cod
 
 ## Quick start
 
-**Prerequisites:** `Git`, `Bash`, and `Make` installed, signed-in Codex or
-Claude Code clients. Run the following in a unix terminal:
+**Prerequisites:** Git, Bash, Make, `shasum`, and an installed, signed-in Codex or
+Claude Code client. Run the following in a macOS or Linux terminal:
 
 ```bash
 git clone https://github.com/EimantasZilis/agent-toolkit.git
@@ -15,11 +15,12 @@ make install
 ```
 
 When prompted, enter `codex` or `claude` for your client. Press Enter at the
-remaining prompts to keep Markdown output repo-local and concise output enabled.
-The installer installs the skill catalog and adds managed global guidance for
-that provider; see [installation details](#installation-instructions) for paths
-and ownership rules. Keep this clone in place: installed supporting files link
-back to it.
+remaining prompts to install the starter bundle (`concise-output` and
+`commit-message`), keep Markdown output repo-local, and leave global guidance
+unchanged. The installer previews selected skills, required helpers, and paths
+before writing files. Existing configurations retain their previous full-catalog
+and global-guidance defaults. See [installation details](#installation-instructions)
+for custom selection. Keep this clone in place: supporting files link back to it.
 
 Check the toolkit's validation and isolated installations for both providers:
 
@@ -27,11 +28,13 @@ Check the toolkit's validation and isolated installations for both providers:
 make verify
 ```
 
-Then start a new Codex or Claude session and send the matching prompt:
+Then start a new session. In Codex, send:
 
 ```text
 $concise-output Rewrite this update in one sentence: We have now completed the work to fix the login issue, and users are once again able to sign in successfully.
 ```
+
+In Claude Code, use `/concise-output` followed by the same request.
 
 An example result is:
 
@@ -155,6 +158,34 @@ make install
 make verify
 ```
 
+Choose `starter`, `all`, or space-separated skill names when prompted. Required
+helpers are included automatically; suggestions for a subsequent workflow are
+not. Implementation and review skills also include the language standards they
+may need. The preview distinguishes requested skills, dependencies, and skipped
+user-owned skills.
+
+For explicit, non-interactive selection, use the script directly:
+
+```bash
+# Inspect the catalog and preview a small installation.
+./scripts/install.sh --list
+./scripts/install.sh --provider codex --bundle starter --no-global-guidance --dry-run
+
+# Install one skill and its to-clipboard helper for Claude.
+./scripts/install.sh --provider claude --skill pr-description --no-global-guidance
+
+# Install several skills for Codex, leaving global guidance untouched.
+./scripts/install.sh --provider codex --skill commit-message --skill to-markdown --no-global-guidance
+
+# Opt into the full catalog and managed global guidance.
+./scripts/install.sh --provider codex --bundle all --global-guidance
+```
+
+Repeat `--skill` to select multiple skills; it cannot be combined with `--bundle`.
+CLI options override saved settings. With options supplied, unspecified settings
+use saved values or defaults without prompting. Install for each provider
+separately if you use both. `--list` and `--dry-run` do not write files or settings.
+
 Installation paths depend on the provider:
 
 | LLM Provider | Skills | Global config | Provider-specific metadata |
@@ -164,27 +195,43 @@ Installation paths depend on the provider:
 
 ### How it works
 
-`make install` renders skills for the selected provider and updates its global
-guidance. Pre-existing skills with matching names are skipped.
+`make install` renders selected skills and their required dependencies for the
+chosen provider. Pre-existing user-owned skills with matching names are skipped.
 
 - Each skill gets a provider-rendered `SKILL.md`; supporting files are
   symlinked back to `.agents/skills/`.
-- Existing global configuration is preserved. Managed guidance sits between
-  `<!-- agent-toolkit:start -->` and `<!-- agent-toolkit:end -->` markers.
+- Global guidance is optional. When enabled, managed guidance sits between
+  `<!-- agent-toolkit:start -->` and `<!-- agent-toolkit:end -->` markers while
+  preserving existing content. When disabled, global files and their ownership
+  markers are left untouched, including previously installed guidance.
+- Skills that write or discover Markdown carry their task-specific output rules
+  even without global guidance. Installing `concise-output` alone does not make
+  it a standing instruction for every session.
 - If managed guidance or a skill is edited, it becomes user-owned and is
   preserved on later installs.
 
 ### Configuration
 
-`make install` creates `.env` from `.env.template` if needed and prompts for
-settings. Defaults are `codex`, repo-local Markdown output, and concise output
-enabled. Later installs default to existing values.
+Interactive `make install` prompts for settings and saves them to `.env` only
+after successful installation. Fresh defaults are `codex`, the starter bundle,
+repo-local Markdown output, and disabled global guidance. Legacy `.env` files
+without selection and guidance settings default to `all` and enabled guidance.
+Later installs default to saved choices.
 
-| Environment variable | Valid values | Controls |
+| Setting in `.env` | Valid values | Controls |
 | --- | --- | --- |
 | `LLM_PROVIDER` | `codex`, `claude` | Selects the provider used for installation. |
+| `SKILL_SELECTION` | `starter`, `all`, or space-separated names | Selects requested skills; required dependencies are automatic. |
+| `GLOBAL_GUIDANCE` | `True`, `False` | Whether installation updates the provider's global guidance. |
 | `MARKDOWN_OUTPUT_PATH` | blank or an absolute path | Selects repo-local or centralized Markdown artifact storage. |
-| `CONCISE_OUTPUT` | `True`, `False` | Enables or disables the `concise-output` skill in the provider's global configuration. |
+| `CONCISE_OUTPUT` | `True`, `False` | Enables standing concise output when global guidance is enabled; automatically includes the skill. |
+
+`AGENT_TOOLKIT_ENV_FILE` selects an alternative settings file.
+Each settings file stores one selection; use separate files to retain different
+choices for each provider.
+`MARKDOWN_OUTPUT_PATH` also accepts an environment override for that invocation;
+the override does not replace the saved output path. Provider, selection, and
+guidance choices come from CLI options or the settings file.
 
 Skills that write Markdown use the configured output policy unless the user
 provides an explicit path. Repo-local artifacts are written to:
@@ -210,6 +257,36 @@ directory, then the configured centralized repository/branch/producer-skill
 directory, and finally any documented legacy location. Repository-local
 lookups are anchored at the Git repository root, not the process working
 directory. Skills must not silently cross repository or branch boundaries.
+
+### Updating
+
+Pull updates in this clone, then rerun installation for each provider you use:
+
+```bash
+git pull --ff-only
+make install
+make verify
+```
+
+Saved choices become the prompt defaults. To update without prompts, run
+`./scripts/install.sh --provider codex` (or `claude`). Selection is additive:
+choosing fewer skills does not remove earlier installations. Disabling guidance
+also leaves existing guidance in place; use uninstall to remove managed content.
+
+### Troubleshooting
+
+- **Skill missing:** check the selected provider and preview with `--dry-run`.
+  Start a new client session after installation and check the matching provider
+  path above. Codex uses `$skill-name`; Claude Code uses `/skill-name`.
+- **User-owned skill skipped:** the preview identifies name conflicts. Preserve
+  your custom version or move it aside yourself before reinstalling.
+- **Broken supporting-file links:** restore this clone at its original path or
+  reinstall from its new location. Keep the clone after installation.
+- **Missing legacy output setting:** run `make install` interactively and choose
+  a Markdown output location, or add `MARKDOWN_OUTPUT_PATH=` to the settings file
+  for repo-local output.
+- **Installation failure:** changes and saved settings roll back. If rollback
+  itself fails, the error reports the retained recovery-backup directory.
 
 ## Uninstall
 

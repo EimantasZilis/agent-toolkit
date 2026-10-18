@@ -68,11 +68,15 @@ done < <(find "$AGENT_TOOLKIT_HOME/.agents/skills" -mindepth 3 -maxdepth 3 -type
 
 [[ $skill_count -gt 0 ]] || fail "no skills found in .agents/skills"
 skill_keys="$(while IFS= read -r source; do skill_key "$source"; done < <(source_skills))"
+SKILL_CATALOG="$(source_skills)"
+validate_dependencies || fail 'invalid skill dependency registry'
 check_adapters
 [[ -f "$AGENT_TOOLKIT_HOME/.env.template" ]] || fail "missing .env.template"
 grep -qx 'LLM_PROVIDER=' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must define a blank LLM_PROVIDER"
 grep -qx 'CONCISE_OUTPUT=True' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must default CONCISE_OUTPUT to True"
 grep -qx '# MARKDOWN_OUTPUT_PATH=' "$AGENT_TOOLKIT_HOME/.env.template" || fail ".env.template must document the optional MARKDOWN_OUTPUT_PATH setting"
+grep -qx 'SKILL_SELECTION=starter' "$AGENT_TOOLKIT_HOME/.env.template" || fail '.env.template must default SKILL_SELECTION to starter'
+grep -qx 'GLOBAL_GUIDANCE=False' "$AGENT_TOOLKIT_HOME/.env.template" || fail '.env.template must default GLOBAL_GUIDANCE to False'
 
 if [[ $errors -gt 0 ]]; then echo "Validation failed with $errors error(s)."; exit 1; fi
 pass "$skill_count skills, metadata, links, provider boundaries, and layout are valid"

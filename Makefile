@@ -13,3 +13,4 @@ verify: test
 test:
 	bash ./tests/validation_test.sh
 	./tests/installer_test.sh
+	bash ./tests/selection_test.sh

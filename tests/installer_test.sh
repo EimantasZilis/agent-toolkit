@@ -55,6 +55,12 @@ test_codex_install() {
   local root="$TEST_ROOT/codex root"
   run_install codex "$root" >/dev/null
   assert_directory "$root/agents/skills/agent-toolkit"
+  [[ -L "$root/agents/skills/agent-toolkit/python-standards/references/core.md" ]] ||
+    fail "expected Python standards core reference symlink"
+  [[ -L "$root/agents/skills/agent-toolkit/python-standards/references/tests.md" ]] ||
+    fail "expected Python standards tests reference symlink"
+  [[ -L "$root/agents/skills/agent-toolkit/python-standards/scripts/check_function_size.py" ]] ||
+    fail "expected Python standards helper symlink"
   assert_file "$root/codex/AGENTS.md"
   assert_file "$root/codex/.agent-toolkit-owned"
   [[ -L "$root/agents/skills/agent-toolkit/next-commit/agents/openai.yaml" ]] ||
@@ -69,6 +75,8 @@ test_claude_install() {
   local root="$TEST_ROOT/claude"
   run_install claude "$root" >/dev/null
   assert_directory "$root/claude/skills"
+  [[ -L "$root/claude/skills/python-standards/references/core.md" ]] ||
+    fail "expected Claude Python standards core reference symlink"
   assert_file "$root/claude/CLAUDE.md"
   assert_contains 'invoke the /concise-output skill' "$root/claude/CLAUDE.md"
   assert_contains 'Treat its' "$root/claude/CLAUDE.md"

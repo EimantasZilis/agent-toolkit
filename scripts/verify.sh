@@ -10,7 +10,7 @@ errors=0
 fail() { echo "ERROR: $*" >&2; errors=$((errors + 1)); }
 
 check_installed_skill() {
-  local source=$1 key dest
+  local source=$1 key dest file rel
   key="$(skill_key "$source")"; dest="$SKILLS_DEST/$(basename "$source")"
   [[ -d "$dest" ]] || { fail "missing installed skill: $dest"; return; }
   if ! is_owned_dir "$dest"; then
@@ -18,6 +18,10 @@ check_installed_skill() {
     return
   fi
   [[ -f "$dest/SKILL.md" ]] || fail "missing rendered manifest: $dest/SKILL.md"
+  while IFS= read -r file; do
+    rel=${file#"$source/"}
+    [[ -f "$dest/$rel" && -L "$dest/$rel" ]] || fail "missing linked skill resource: $dest/$rel"
+  done < <(find "$source" -type f ! -name SKILL.md | sort)
   if [[ "$LLM_PROVIDER" == codex && -f "$AGENT_TOOLKIT_HOME/.agents/providers/codex/skills/$key/agents/openai.yaml" ]]; then
     [[ -L "$dest/agents/openai.yaml" && "$(resolved_path "$dest/agents/openai.yaml")" == "$(cd "$(dirname "$AGENT_TOOLKIT_HOME/.agents/providers/codex/skills/$key/agents/openai.yaml")" && pwd -P)/openai.yaml" ]] || fail "missing Codex metadata: $dest/agents/openai.yaml"
   fi

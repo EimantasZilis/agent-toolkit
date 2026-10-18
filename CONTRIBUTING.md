@@ -27,10 +27,20 @@ to a source skill. Move or remove adapters when moving or removing a skill;
 `make validate` checks these references before `make verify` checks both
 providers' installed metadata.
 
-Global guidance lives at `.agents/global/instructions.md`. Select the target
-provider with `LLM_PROVIDER=codex` or `LLM_PROVIDER=claude` in `.env` (or an
-exported environment variable), then run the installer. Local Markdown links
-are relative to their source file.
+Global guidance lives at `.agents/global/instructions.md` and is optional at
+installation. Select the provider in `.env` or pass `--provider codex` or
+`--provider claude` to `scripts/install.sh`. Local Markdown links are relative
+to their source file; rendering resolves cross-skill links for the installed
+layout.
+
+Declare required in-session skill loads and invocations in
+`.agents/dependencies.txt`, including conditional standards and security gates.
+Do not include entry-point routing or recommendations for later workflows.
+Dependencies are installed transitively; conditional cycles such as Ruby/Rails
+are deduplicated. Keep this registry synchronized when changing a workflow.
+Markdown-producing or discovery workflows also need task-local output rules;
+maintain the consumer list in `scripts/skills.sh` when adding one. Validate
+selective and full-catalog installation for both providers with `make verify`.
 
 ## Markdown artifact outputs
 

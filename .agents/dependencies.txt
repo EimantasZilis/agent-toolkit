@@ -1,0 +1,14 @@
+# Required in-session loads, including conditional standards and security gates.
+# Entry-point routing and recommendations for subsequent workflows are excluded.
+# Format: skill-name dependency-name ...
+developer-highlights concise-output
+next-commit plan-conventions bash-standards golang-standards javascript-standards python-standards ruby-standards ruby-rails-standards typescript-standards
+next-phase plan-conventions bash-standards golang-standards javascript-standards python-standards ruby-standards ruby-rails-standards typescript-standards
+plan-conventions requirements-to-tickets security-check security-review
+pr-comment to-clipboard
+pr-description to-clipboard
+review-branch bash-standards golang-standards javascript-standards python-standards ruby-standards ruby-rails-standards typescript-standards
+ruby-rails-standards ruby-standards
+ruby-standards ruby-rails-standards
+security-check security-review
+ticket-to-plan plan-review

@@ -63,9 +63,25 @@ test_missing_claude_list() {
   assert_invalid "$root" 'missing or unreadable Claude explicit-only list'
 }
 
+test_unknown_dependency() {
+  local root
+  root="$(fixture dependency)"
+  printf '\ncommit-message missing-helper\n' >> "$root/.agents/dependencies.txt"
+  assert_invalid "$root" 'unknown skill: missing-helper'
+}
+
+test_duplicate_dependency_entry() {
+  local root
+  root="$(fixture duplicate-dependency)"
+  printf '\npr-description to-clipboard\n' >> "$root/.agents/dependencies.txt"
+  assert_invalid "$root" 'duplicate dependency entry: pr-description'
+}
+
 test_optional_codex_adapter
 test_moved_codex_adapter
 test_removed_codex_skill
 test_stale_claude_entry
 test_missing_claude_list
+test_unknown_dependency
+test_duplicate_dependency_entry
 printf 'OK: adapter validation tests passed\n'
