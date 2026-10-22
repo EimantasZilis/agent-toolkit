@@ -5,6 +5,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-tests.XXXXXX")"
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
+# State belongs to the toolkit root, so test against a disposable toolkit too.
+mkdir "$TEST_ROOT/toolkit"
+cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$REPO_ROOT/.env.template" "$TEST_ROOT/toolkit/"
+REPO_ROOT="$TEST_ROOT/toolkit"
+export AGENT_TOOLKIT_HOME="$REPO_ROOT"
+
 fail() {
   echo "FAIL: $*" >&2
   exit 1
@@ -287,7 +293,14 @@ test_failed_rollback_retains_recovery_backup() {
   mkdir -p "$root/bin" "$root/transactions"
   cat > "$root/bin/mv" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$1" == */agent-toolkit-install.*/0 && "$2" == "$AGENT_TOOLKIT_TEST_GUIDANCE_PATH" ]]; then
+source_path=$1
+destination_path=$2
+if [[ "$1" == -- ]]; then
+  source_path=$2
+  destination_path=$3
+fi
+if [[ "$source_path" == */agent-toolkit-install.*/* && "$destination_path" == "$AGENT_TOOLKIT_TEST_GUIDANCE_PATH" ]]; then
+  printf '%s\n' "$source_path" > "$AGENT_TOOLKIT_TEST_BACKUP_RECORD"
   printf 'injected restore failure\n' >&2
   exit 23
 fi
@@ -296,6 +309,7 @@ EOF
   chmod +x "$root/bin/mv"
   if output="$(PATH="$root/bin:$PATH" TMPDIR="$root/transactions" \
     AGENT_TOOLKIT_TEST_GUIDANCE_PATH="$root/codex/AGENTS.md" \
+    AGENT_TOOLKIT_TEST_BACKUP_RECORD="$root/backup-path" \
     run_install codex "$root" 1 2>&1)"; then
     fail 'expected injected installation failure'
   else
@@ -305,7 +319,7 @@ EOF
   [[ "$output" == *'rollback incomplete; recovery backups retained at '* ]] ||
     fail "missing recovery diagnostic: $output"
   local backup
-  backup="$(find "$root/transactions" -type f -name 0 -print)"
+  backup="$(cat "$root/backup-path")"
   assert_file "$backup"
   cmp -s "$root/original.md" "$backup" || fail 'original guidance backup was lost'
 }

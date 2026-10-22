@@ -1,0 +1,13 @@
+{
+  "installed": [
+    {
+      "pluginId": "ticket-to-plan@agent-toolkit",
+      "name": "ticket-to-plan",
+      "marketplaceName": "agent-toolkit",
+      "version": "0.1.0",
+      "installed": true,
+      "enabled": true
+    }
+  ],
+  "available": []
+}

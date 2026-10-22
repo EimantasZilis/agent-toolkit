@@ -9,6 +9,18 @@ concise_output_end='<!-- agent-toolkit:concise-output:end -->'
 has_concise_output_block() {
   grep -Fxq "$concise_output_start" "$1" && grep -Fxq "$concise_output_end" "$1"
 }
+print_concise_output_block() {
+  cat <<EOF
+$concise_output_start
+## Concise output
+
+At the start of every session, invoke the /concise-output skill. Treat its
+instructions as standing guidance for all reader-facing responses. If it is
+not already loaded, invoke it before answering.
+$concise_output_end
+EOF
+}
+
 update_concise_output_block() {
   local destination=$1 temp
   temp="$(mktemp "${destination}.XXXXXX")"
@@ -19,16 +31,8 @@ update_concise_output_block() {
     !in_block { print }
   ' "$destination" > "$temp"
   if [[ "$CONCISE_OUTPUT" == true ]]; then
-    cat >> "$temp" <<EOF
-
-$concise_output_start
-## Concise output
-
-At the start of every session, invoke the /concise-output skill. Treat its
-instructions as standing guidance for all reader-facing responses. If it is
-not already loaded, invoke it before answering.
-$concise_output_end
-EOF
+    printf '\n' >> "$temp"
+    print_concise_output_block >> "$temp"
   fi
   mv "$temp" "$destination"
 }
@@ -53,9 +57,7 @@ render_guidance_block() {
   } > "$temp"
   mv "$temp" "$destination"
 }
-strip_guidance_blocks() {
-  local destination=$1 temp
-  temp="$(mktemp "${destination}.XXXXXX")"
+print_guidance_without_blocks() {
   awk -v guidance_start="$agent_toolkit_start" \
       -v guidance_end="$agent_toolkit_end" \
       -v concise_start="$concise_output_start" \
@@ -66,7 +68,13 @@ strip_guidance_blocks() {
       next
     }
     block_depth == 0 { print }
-  ' "$destination" > "$temp"
+  ' "$1"
+}
+
+strip_guidance_blocks() {
+  local destination=$1 temp
+  temp="$(mktemp "${destination}.XXXXXX")"
+  print_guidance_without_blocks "$destination" > "$temp"
   mv "$temp" "$destination"
 }
 append_guidance() {

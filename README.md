@@ -148,9 +148,32 @@ settings; unspecified settings use saved values or defaults. `--list` and
 
 ### Configuration
 
+For explicit reconciliation across providers, use `scripts/managed.sh preview`
+with repeated `--provider` and `--skill` arguments. Apply the same selection with
+`scripts/managed.sh apply --revision REVISION`, using the revision from preview.
+Removals require `--confirm-removals`; conflicts stop the whole apply.
+`--no-providers` removes owned installations, and `--remove-skill NAME` removes
+an unused skill or helper. Required helpers cannot be removed while selected
+skills need them. Native plugins and user-owned files are preserved.
+The [versioned backend contract](docs/managed-backend.md) describes its JSON
+responses, read-only status/catalog commands, revisions, and errors.
+
+Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
+and `--concise true|false` for shared output and automatic-loading preferences.
+Disabling concise loading keeps the skill installed. These controls update only
+the toolkit's guidance block and preserve surrounding instructions. The full
+global template remains an explicit CLI choice through `--full-template true`
+or the legacy installer's `--global-guidance` option.
+
 The installer saves successful choices to `.env` and reuses them next time.
 Older configurations without selection or guidance settings retain `all` and
 enabled guidance.
+
+Successful installs also record shared preferences in `config/settings.env` and
+actual installed skills for each provider in `config/inventory.json`. These
+ignored files stay under this toolkit clone, regardless of the caller's working
+directory. Existing installations are imported without removing skills; provider
+ownership markers still determine which files the toolkit may change.
 
 | Setting | Values | Purpose |
 | --- | --- | --- |

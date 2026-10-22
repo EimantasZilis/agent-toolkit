@@ -5,6 +5,10 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-selection.XXXXXX")"
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
+mkdir "$TEST_ROOT/toolkit"
+cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$REPO_ROOT/.env.template" "$TEST_ROOT/toolkit/"
+REPO_ROOT="$TEST_ROOT/toolkit"
+export AGENT_TOOLKIT_HOME="$REPO_ROOT"
 unset MARKDOWN_OUTPUT_PATH
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }

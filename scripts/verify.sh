@@ -59,6 +59,11 @@ VERIFY_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-verify.XXXXXX")"
 cleanup() { rm -rf "$VERIFY_ROOT"; }
 trap cleanup EXIT
 
+mkdir "$VERIFY_ROOT/toolkit"
+cp -R "$AGENT_TOOLKIT_HOME/.agents" "$AGENT_TOOLKIT_HOME/scripts" \
+  "$AGENT_TOOLKIT_HOME/.env.template" "$VERIFY_ROOT/toolkit/"
+export AGENT_TOOLKIT_HOME="$VERIFY_ROOT/toolkit"
+
 verify_provider codex
 verify_provider claude
 [[ $errors -eq 0 ]] || exit 1
