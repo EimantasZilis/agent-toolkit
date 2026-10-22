@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -43,6 +42,13 @@ type model struct {
 	err                         string
 	notice                      string
 	expanded                    map[string]bool
+	globalOutput                bool
+	outputPath, originalPath    string
+	editingPath                 bool
+	pathCursor                  int
+	createOutput                bool
+	scroll                      int
+	manualScroll                bool
 }
 
 // Run starts the TUI. root must contain the toolkit's scripts and source skills.
@@ -80,7 +86,9 @@ func clone(s settings) settings {
 	return s
 }
 
-func (m model) dirty() bool { return !reflect.DeepEqual(m.saved, m.draft) || len(m.removed) > 0 }
+func (m model) dirty() bool {
+	return !reflect.DeepEqual(m.saved, m.draft) || len(m.removed) > 0 || m.globalOutput != (m.saved.Output != "")
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -101,13 +109,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+		m.syncOutput()
+		if m.wizard {
+			m.globalOutput = true
+			m.draft.Output = m.outputPath
+		}
 		return m, nil
 	case resultMsg:
 		return m.result(msg)
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case tea.KeyPressMsg:
+		if m.editingPath && !m.busy && msg.Text != "" {
+			m.insertPath(msg.Text)
+			return m, nil
+		}
 		return m.key(msg.String())
+	case tea.PasteMsg:
+		if m.editingPath && !m.busy {
+			m.insertPath(msg.Content)
+		}
 	}
 	return m, nil
 }
@@ -116,6 +137,20 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	if m.busy {
 		return m, nil
 	}
+	if m.editingPath {
+		return m.editPath(key)
+	}
+	if key == "pgdown" || key == "pgup" {
+		m.scroll = m.viewOffset()
+		step := max(1, m.height-4)
+		if key == "pgup" {
+			step = -step
+		}
+		m.scroll = max(0, m.scroll+step)
+		m.manualScroll = true
+		return m, nil
+	}
+	m.manualScroll = false
 	if !m.loaded {
 		if key == "q" || key == "ctrl+c" {
 			return m, tea.Quit
@@ -140,6 +175,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			m.unsaved = false
 			m.draft = clone(m.saved)
 			m.removed = nil
+			m.syncOutput()
 			return m.leave()
 		case "esc":
 			m.unsaved = false
@@ -194,6 +230,12 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		return m.startSave()
 	}
 	if key == "tab" || key == "enter" {
+		if key == "enter" && m.page == 2 && m.globalOutput && m.cursor == 2 {
+			m.editingPath = true
+			m.originalPath = m.outputPath
+			m.pathCursor = len([]rune(m.outputPath))
+			return m, nil
+		}
 		if m.wizard && m.page < 4 {
 			return m.navigate(m.page + 1)
 		}
@@ -205,6 +247,12 @@ func (m model) navigate(target int) (tea.Model, tea.Cmd) {
 	if m.wizard && m.page == 0 && target > 0 && len(m.draft.Providers) == 0 {
 		m.err = "Select at least one LLM provider before continuing."
 		return m, nil
+	}
+	if m.wizard && m.page == 2 && target > 2 {
+		if _, err := m.validateOutput(); err != nil {
+			m.err = err.Error()
+			return m, nil
+		}
 	}
 	m.err = ""
 	m.target, m.depart = target, true
@@ -225,13 +273,18 @@ func (m model) leave() (tea.Model, tea.Cmd) {
 }
 
 func (m model) startSave() (tea.Model, tea.Cmd) {
-	if err := m.validate(); err != nil {
+	missing, err := m.validate()
+	if err != nil {
 		m.err = err.Error()
 		m.depart = false
 		return m, nil
 	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
+	m.createOutput = missing
 	m.applyArgs = m.draft.arguments(m.removed)
+	if m.createOutput {
+		m.applyArgs = append(m.applyArgs, "--create-output-directory")
+	}
 	args := append([]string(nil), m.applyArgs...)
 	return m, func() tea.Msg { r, err := m.backend.run("preview", args); return resultMsg{"preview", r, err} }
 }
@@ -255,6 +308,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
+	m.syncOutput()
 	m.status = msg.response
 	m.removed, m.preview, m.applyArgs = nil, response{}, nil
 	m.notice = "Settings saved."
@@ -275,27 +329,42 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 	if m.preview.Confirmation {
 		args = append(args, "--confirm-removals")
 	}
-	return m, func() tea.Msg { r, err := m.backend.run("apply", args); return resultMsg{"apply", r, err} }
+	return m, func() tea.Msg {
+		missing, err := m.validateOutput()
+		if err != nil {
+			return resultMsg{action: "apply", err: err}
+		}
+		if missing && !m.createOutput {
+			return resultMsg{action: "apply", err: fmt.Errorf("output directory disappeared; preview again to confirm creation")}
+		}
+		r, err := m.backend.run("apply", args)
+		return resultMsg{"apply", r, err}
+	}
 }
 
 func (m model) confirmations() []dialog {
-	return m.selectionConfirmations()
+	dialogs := m.selectionConfirmations()
+	if m.createOutput {
+		dialogs = append([]dialog{{"Create the Markdown output directory?\n" + m.draft.Output + "\n[y/N]"}}, dialogs...)
+	}
+	return dialogs
 }
 
-func (m model) validate() error {
+func (m model) validate() (bool, error) {
 	if m.wizard && len(m.draft.Providers) == 0 {
-		return fmt.Errorf("select at least one LLM provider on Page 1")
+		return false, fmt.Errorf("select at least one LLM provider on Page 1")
 	}
-	return nil
+	return m.validateOutput()
 }
 
 func (m model) edit(key string) (tea.Model, tea.Cmd) {
 	m.editSelection(key)
+	m.editSettings(key)
 	return m, nil
 }
 
-func (m model) View() tea.View {
-	lines := []string{"agent-toolkit · setup and settings", ""}
+func (m model) viewLines() []string {
+	lines := []string{}
 	if !m.loaded {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
@@ -307,6 +376,11 @@ func (m model) View() tea.View {
 			lines = append(lines, fmt.Sprintf("%d. %s", m.page+1, pageNames[m.page]), "")
 			lines = append(lines, m.pageLines()...)
 		}
+		for _, message := range []string{m.status.Native.Message, m.notice, m.err} {
+			if message != "" {
+				lines = append(lines, "", message)
+			}
+		}
 		if m.unsaved {
 			lines = append(lines, "", unsavedPrompt, "Esc cancels")
 		}
@@ -315,11 +389,8 @@ func (m model) View() tea.View {
 			lines = append(lines, m.operationLines()...)
 			lines = append(lines, m.dialogs[0].text, "Enter/No/Esc cancels; y confirms")
 		}
-		lines = append(lines, "", m.notice, m.err, m.status.Native.Message, "↑/↓ move · space toggle · tab next · s save · esc back · q quit")
 	}
-	v := tea.NewView(strings.Join(lines, "\n"))
-	v.AltScreen = true
-	return v
+	return lines
 }
 
 func row(focused bool, text string) string {
@@ -344,7 +415,7 @@ func (m model) pageLines() []string {
 		return m.selectionLines()
 	}
 	if m.page == 4 {
-		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.draft.Output, m.draft.Concise)}
+		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise)}
 	}
-	return []string{"Page options are being prepared. Tab continues; s saves."}
+	return m.settingsLines()
 }

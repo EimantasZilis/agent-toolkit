@@ -23,6 +23,14 @@ transaction_begin() {
   trap 'exit 143' TERM
 }
 
+transaction_record_directory() {
+  backup_paths[$backup_count]=$1
+  backup_slots[$backup_count]=''
+  backup_modes[$backup_count]=directory
+  backup_states[$backup_count]=absent
+  backup_count=$((backup_count + 1))
+}
+
 backup_path() {
   local path=$1 mode=${2:-move} slot="$transaction_root/$backup_count"
   backup_paths[$backup_count]=$path
@@ -50,6 +58,12 @@ rollback_transaction() {
     mode=${backup_modes[$i]}
     state=${backup_states[$i]}
     [[ "$state" == pending ]] && continue
+    if [[ "$mode" == directory ]]; then
+      # Never recursively remove a newly created output directory: another
+      # process may have written artifacts into it while apply was running.
+      if path_exists "$path" && ! rmdir -- "$path"; then restore_failed=yes; fi
+      continue
+    fi
     if [[ "$state" == present ]]; then
       if ! path_exists "$slot" || ! remove_path "$path"; then
         restore_failed=yes

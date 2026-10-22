@@ -90,7 +90,7 @@ func TestDirtyDeparture(t *testing.T) {
 			m, _ := readyModel(t, false)
 			m.draft.Concise = true
 			m, cmd := press(m, key)
-			if !m.unsaved || cmd != nil || !strings.Contains(m.View().Content, unsavedPrompt) {
+			if !m.unsaved || cmd != nil || !strings.Contains(strings.ReplaceAll(m.View().Content, "\n", ""), unsavedPrompt) {
 				t.Fatal("missing exact unsaved prompt")
 			}
 			canceled, cmd := press(m, "esc")

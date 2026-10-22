@@ -166,6 +166,7 @@ func backendFixture(t *testing.T) (model, string) {
 		t.Setenv(key, "")
 	}
 	t.Setenv("AGENT_TOOLKIT_HOME", toolkit)
+	t.Setenv("HOME", root)
 	t.Setenv("AGENT_TOOLKIT_ENV_FILE", filepath.Join(root, "absent.env"))
 	t.Setenv("AGENTS_HOME", filepath.Join(root, "agents"))
 	t.Setenv("CODEX_HOME", filepath.Join(root, "codex"))
@@ -176,6 +177,8 @@ func backendFixture(t *testing.T) (model, string) {
 	if m.err != "" {
 		t.Fatal(m.err)
 	}
+	// Selection integration uses repo-local output; output creation has its own tests.
+	m.globalOutput, m.draft.Output = false, ""
 	return m, root
 }
 

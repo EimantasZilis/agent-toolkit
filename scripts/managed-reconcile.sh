@@ -1,5 +1,29 @@
 # Plan safe filesystem operations and apply them under one state transaction.
 
+managed_output_parent() {
+  local path=$managed_output
+  [[ -n "$path" ]] || { printf 'Error: directory creation requires a global output path.\n' >&2; return 2; }
+  while ! path_exists "$path"; do path=$(dirname "$path"); done
+  [[ -d "$path" && -w "$path" && -x "$path" ]] || {
+    printf 'Error: output path needs a writable, searchable directory: %s\n' "$path" >&2
+    return 2
+  }
+}
+
+managed_create_output_directory() {
+  local path=$managed_output i
+  local missing=()
+  managed_output_parent
+  while ! path_exists "$path"; do
+    missing[${#missing[@]}]=$path
+    path=$(dirname "$path")
+  done
+  for ((i = ${#missing[@]} - 1; i >= 0; i--)); do
+    mkdir -- "${missing[$i]}"
+    transaction_record_directory "${missing[$i]}"
+  done
+}
+
 managed_fingerprint_path() {
   local path=$1 item target
   printf 'PATH %s\n' "$path"
@@ -226,6 +250,7 @@ managed_apply() {
   fi
   backup_path "$managed_settings_file" copy
   backup_path "$managed_inventory_file" copy
+  if [[ "$managed_create_output" == true ]]; then managed_create_output_directory; fi
   for provider in codex claude; do
     LLM_PROVIDER=$provider
     SKILLS_DEST=$(provider_skills_dest)
