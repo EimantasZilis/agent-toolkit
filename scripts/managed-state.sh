@@ -70,7 +70,7 @@ managed_observed_skills() (
       [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || continue
       if [[ -L "$path" ]]; then
         source="$(skill_source "$name" 2>/dev/null || true)"
-        [[ -n "$source" && "$(resolved_path "$path" 2>/dev/null)" == "$source" ]] || continue
+        [[ -n "$source" ]] && link_points_to "$path" "$source" || continue
       else
         is_owned_dir "$path" || continue
       fi

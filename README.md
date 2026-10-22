@@ -148,6 +148,14 @@ settings; unspecified settings use saved values or defaults. `--list` and
 
 ### Configuration
 
+For explicit reconciliation across providers, use `scripts/managed.sh preview`
+with repeated `--provider` and `--skill` arguments. Apply the same selection with
+`scripts/managed.sh apply --revision REVISION`, using the revision from preview.
+Removals require `--confirm-removals`; conflicts stop the whole apply.
+`--no-providers` removes owned installations, and `--remove-skill NAME` removes
+an unused skill or helper. Required helpers cannot be removed while selected
+skills need them. Native plugins and user-owned files are preserved.
+
 The installer saves successful choices to `.env` and reuses them next time.
 Older configurations without selection or guidance settings retain `all` and
 enabled guidance.

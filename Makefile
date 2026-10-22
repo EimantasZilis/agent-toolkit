@@ -17,3 +17,4 @@ test:
 	./tests/installer_test.sh
 	bash ./tests/selection_test.sh
 	bash ./tests/managed_state_test.sh
+	bash ./tests/managed_reconcile_test.sh

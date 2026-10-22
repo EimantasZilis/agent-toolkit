@@ -50,8 +50,8 @@ render_skill_manifest() {
   ' "$source/SKILL.md"
 }
 
-append_skill_output_policy() {
-  local source=$1 destination=$2
+print_skill_output_policy() {
+  local source=$1
   # Only workflows that produce or discover Markdown need these task-local rules.
   case "${source##*/}" in
     developer-highlights|next-commit|next-phase|plan-writing-conventions|plan-execution-conventions|plan-review|requirements-to-tickets|review-branch|test-cases|ticket-context|ticket-to-plan|to-markdown) ;;
@@ -69,7 +69,11 @@ append_skill_output_policy() {
       printf 'No centralized output root is configured for this installation.\n'
     fi
     printf 'These rules apply only while performing this skill.\n'
-  } >> "$destination"
+  }
+}
+
+append_skill_output_policy() {
+  print_skill_output_policy "$1" >> "$2"
 }
 
 render_skill() {
