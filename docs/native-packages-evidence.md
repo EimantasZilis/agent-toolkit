@@ -3,6 +3,11 @@
 Date: 2026-10-22. Branch: `task/native-packages`. Test release version: `0.1.0`.
 This records local development checks, not public release or approval.
 
+The installation commands below predate the package naming change. New builds
+use skill names directly, such as `ticket-to-plan@agent-toolkit`, and bundles
+such as `bundle-starter@agent-toolkit`. The earlier CLI results do not establish
+runtime acceptance of the renamed packages.
+
 ## Structural evidence
 
 - `python3 -m unittest discover -s tests -p 'test_native_*.py'`: 11 passing renderer and
@@ -57,3 +62,37 @@ runtime success.
 Before claiming runtime compatibility, run the standalone, planning/helper,
 Rails/Ruby, and overlapping-helper session checks in both clients and record the
 results here. No public-directory submission or approval was attempted.
+
+## Runtime acceptance recheck
+
+On 2026-10-22, resuming phase 1 found the implementation commits already
+present. The following checks were repeated:
+
+```bash
+codex --version
+command -v claude
+CODEX_HOME=/private/tmp/agent-toolkit-native-smoke-20261022/codex-home codex login status
+python3 scripts/package_native.py validate /private/tmp/agent-toolkit-native-20261022
+```
+
+Codex reported `codex-cli 0.163.0`. Claude was still unavailable. The isolated
+Codex home reported `Not logged in` and exited 1, so no model-backed smoke
+session was started. Offline release validation passed. Runtime acceptance
+requires an authenticated isolated Codex home and an available Claude client
+with model access; standalone, helper, explicit-only, and duplicate-helper
+behavior remain unverified. No implementation commit was repeated.
+
+The resumed `make verify` passed all 11 native tests, catalog and adapter
+validation, installer and selective installation tests, and temporary managed
+installation checks for both providers. `git diff --check` also passed.
+
+## Package naming change
+
+On 2026-10-22, package generation switched to skill names directly and
+`bundle-<selection>` for bundles, retaining the `agent-toolkit` marketplace.
+On branch `task/managed-reconciliation`, `make verify` passed all 12 native
+tests and the repository validation and installation suites. The added test
+checks unprefixed manifest identities and ZIP filenames for standalone skills
+and starter/all/category bundles in both providers. Ruff formatting,
+lint/complexity checks, function-size checks, and `git diff --check` passed.
+Provider model-session acceptance remains pending.
