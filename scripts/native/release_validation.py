@@ -131,7 +131,7 @@ def validate_package(root: Path, record: dict, release: dict) -> None:
     provider, name = record["provider"], record["name"]
     require(provider in PROVIDERS, f"Unknown provider: {provider}")
     require(
-        bool(re.fullmatch(r"agent-toolkit-[a-z0-9]+(-[a-z0-9]+)*", name)),
+        bool(re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name)),
         f"Invalid package name: {name}",
     )
     package = root / provider / "plugins" / name

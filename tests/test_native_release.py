@@ -70,6 +70,31 @@ class NativeReleaseTests(unittest.TestCase):
 
         self.assertEqual(file_inventory(second), file_inventory(self.release))
 
+    def test_plugins_use_skill_and_bundle_names_in_both_providers(self) -> None:
+        """GIVEN a release WHEN inspected THEN plugins use unprefixed identifiers."""
+        names = (
+            "ticket-to-plan",
+            "commit-message",
+            "bundle-starter",
+            "bundle-all",
+            "bundle-coding",
+        )
+
+        for provider in ("codex", "claude"):
+            for name in names:
+                with self.subTest(provider=provider, name=name):
+                    package = self.release / provider / "plugins" / name
+                    manifest = json.loads(
+                        (package / f".{provider}-plugin/plugin.json").read_text()
+                    )
+                    archive = self.release / provider / "zips" / f"{name}.zip"
+
+                    self.assertEqual(manifest["name"], name)
+                    self.assertTrue(archive.is_file())
+            self.assertFalse(
+                list((self.release / provider / "plugins").glob("agent-toolkit-*"))
+            )
+
     def test_existing_output_is_preserved(self) -> None:
         """GIVEN existing output WHEN rebuilding THEN no files are overwritten."""
         before = (self.release / "release.json").read_bytes()
@@ -99,11 +124,11 @@ class NativeReleaseTests(unittest.TestCase):
 
     def corrupt(self, root: Path, boundary: str) -> None:
         """Change one independently validated release boundary."""
-        plugin = root / "codex/plugins/agent-toolkit-ticket-to-plan"
+        plugin = root / "codex/plugins/ticket-to-plan"
         if boundary == "resource":
             (plugin / "skills/plan-review/SKILL.md").write_text("corrupt\n")
         elif boundary == "archive":
-            archive = root / "codex/zips/agent-toolkit-ticket-to-plan.zip"
+            archive = root / "codex/zips/ticket-to-plan.zip"
             archive.write_bytes(b"corrupt")
         elif boundary == "marketplace":
             path = root / "claude/.claude-plugin/marketplace.json"
@@ -122,7 +147,7 @@ class NativeReleaseTests(unittest.TestCase):
         """GIVEN a ZIP traversal member WHEN validated THEN it is never extracted."""
         destination = self.root / "traversal"
         shutil.copytree(self.release, destination)
-        archive = destination / "codex/zips/agent-toolkit-commit-message.zip"
+        archive = destination / "codex/zips/commit-message.zip"
         with zipfile.ZipFile(archive, "a") as bundle:
             bundle.writestr("../../escaped", "untrusted")
         metadata = json.loads((destination / "release.json").read_text())

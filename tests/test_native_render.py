@@ -80,9 +80,7 @@ class NativeRenderTests(unittest.TestCase):
         package = self.root / "standalone"
         selected = self.catalog.select("ticket-to-plan")
 
-        Renderer(self.catalog, "claude", "agent-toolkit-ticket-to-plan").render(
-            package, selected
-        )
+        Renderer(self.catalog, "claude", "ticket-to-plan").render(package, selected)
 
         validate_tree(package, (self.source,))
         self.assertEqual(selected, ["plan-review", "ticket-to-plan"])
