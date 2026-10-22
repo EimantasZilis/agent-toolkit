@@ -62,75 +62,12 @@ while IFS= read -r source; do
   fi
 done < <(selected_sources)
 
-transaction_root="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-install.XXXXXX")"
-transaction_active=yes
-backup_count=0
-backup_paths=()
-backup_slots=()
-backup_modes=()
-backup_states=()
-
-path_exists() { [[ -e "$1" || -L "$1" ]]; }
-remove_path() {
-  if [[ -d "$1" && ! -L "$1" ]]; then
-    rm -rf "$1"
-  else
-    rm -f "$1"
-  fi
-}
-backup_path() {
-  local path=$1 mode=${2:-move} slot="$transaction_root/$backup_count"
-  backup_paths[$backup_count]="$path"
-  backup_slots[$backup_count]="$slot"
-  backup_modes[$backup_count]="$mode"
-  backup_states[$backup_count]=pending
-  if path_exists "$path"; then
-    if [[ "$mode" == copy ]]; then
-      cp -p "$path" "$slot"
-    else
-      mv "$path" "$slot"
-    fi
-    backup_states[$backup_count]=present
-  else
-    backup_states[$backup_count]=absent
-  fi
-  backup_count=$((backup_count + 1))
-}
-rollback_transaction() {
-  local status=$? restore_failed=no
-  [[ "${transaction_active:-no}" == yes ]] || return 0
-  transaction_active=no
-  local i path slot mode state
-  for ((i = backup_count - 1; i >= 0; i--)); do
-    path="${backup_paths[$i]}"
-    slot="${backup_slots[$i]}"
-    mode="${backup_modes[$i]}"
-    state="${backup_states[$i]}"
-    [[ "$state" == pending ]] && continue
-    if [[ "$state" == present ]]; then
-      if ! path_exists "$slot" || ! remove_path "$path"; then
-        restore_failed=yes
-        continue
-      fi
-      if [[ "$mode" == copy ]]; then
-        cp -p "$slot" "$path" || restore_failed=yes
-      else
-        mv "$slot" "$path" || restore_failed=yes
-      fi
-    else
-      remove_path "$path" || restore_failed=yes
-    fi
-  done
-  if [[ "$restore_failed" == yes ]]; then
-    printf 'Error: rollback incomplete; recovery backups retained at %s\n' "$transaction_root" >&2
-    [[ "$status" -ne 0 ]] || status=1
-  else
-    rm -rf -- "$transaction_root" || status=1
-  fi
-  return "$status"
-}
-trap rollback_transaction EXIT
-trap 'exit 130' INT TERM
+managed_state_paths
+transaction_begin
+managed_lock
+managed_load
+backup_path "$managed_settings_file" copy
+backup_path "$managed_inventory_file" copy
 
 if [[ "$GLOBAL_GUIDANCE" == true ]]; then
   mkdir -p "$(dirname "$GUIDANCE_DEST")"
@@ -161,8 +98,7 @@ done < <(selected_sources)
 mkdir -p -- "$(dirname "$AGENT_TOOLKIT_ENV_FILE")"
 backup_path "$AGENT_TOOLKIT_ENV_FILE" copy
 save_installation_settings
+managed_save_legacy
 
-trap - EXIT INT TERM
-transaction_active=no
-rm -rf "$transaction_root"
+transaction_commit
 printf 'Installed %s %s skills in %s.\n' "$skill_count" "$LLM_PROVIDER" "$SKILLS_DEST"

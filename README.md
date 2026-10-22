@@ -152,6 +152,12 @@ The installer saves successful choices to `.env` and reuses them next time.
 Older configurations without selection or guidance settings retain `all` and
 enabled guidance.
 
+Successful installs also record shared preferences in `config/settings.env` and
+actual installed skills for each provider in `config/inventory.json`. These
+ignored files stay under this toolkit clone, regardless of the caller's working
+directory. Existing installations are imported without removing skills; provider
+ownership markers still determine which files the toolkit may change.
+
 | Setting | Values | Purpose |
 | --- | --- | --- |
 | `LLM_PROVIDER` | `codex`, `claude` | Installation provider |
