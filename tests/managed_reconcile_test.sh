@@ -19,7 +19,7 @@ fixture() {
   claude_skills="$CLAUDE_HOME/skills"
 }
 backend() { "$AGENT_TOOLKIT_HOME/scripts/managed.sh" "$@"; }
-preview_revision() { backend preview "$@" | sed -n 's/^Revision: //p'; }
+preview_revision() { backend preview "$@" | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])'; }
 apply_current() {
   local revision
   revision=$(preview_revision "$@")
@@ -158,8 +158,8 @@ fixture 'symlinked toolkit'
 ln -s "$AGENT_TOOLKIT_HOME" "$case_root/toolkit alias"
 export AGENT_TOOLKIT_HOME="$case_root/toolkit alias"
 apply_current --provider codex --provider claude --skill ruby-rails-standards
-preview=$(backend preview)
-[[ "$preview" == *'Conflicts: 0'* ]] || fail 'equivalent resource paths conflicted'
+conflicts=$(backend preview | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["conflicts"]))')
+[[ "$conflicts" == 0 ]] || fail 'equivalent resource paths conflicted'
 apply_current --no-providers
 [[ ! -e "$codex_skills/ruby-rails-standards" && ! -e "$claude_skills/ruby-standards" ]] || fail 'aliased toolkit removal'
 
@@ -172,8 +172,8 @@ ln -s "$AGENT_TOOLKIT_HOME/.agents/skills/review/plan-review" "$claude_skills/ag
 ln -s "$AGENT_TOOLKIT_HOME/.agents/global/instructions.md" "$CODEX_HOME/AGENTS.md"
 cp "$AGENT_TOOLKIT_HOME/.agents/skills/productivity/pr-comment/SKILL.md" "$case_root/foreign/SKILL.md"
 ln -s "$case_root/foreign" "$codex_skills/pr-comment"
-preview=$(backend preview)
-[[ "$preview" == *'Requested: commit-message plan-review'* ]] || fail 'legacy source links were not imported'
+requested=$(backend preview | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)["desired"]["requested_skills"]))')
+[[ "$requested" == 'commit-message plan-review' ]] || fail 'legacy source links were not imported'
 apply_current --no-providers
 [[ ! -L "$codex_skills/commit-message" && ! -L "$claude_skills/agent-toolkit/plan-review" ]] || fail 'legacy source links survived'
 [[ ! -L "$CODEX_HOME/AGENTS.md" ]] || fail 'legacy guidance link survived'

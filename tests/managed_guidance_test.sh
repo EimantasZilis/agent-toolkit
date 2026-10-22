@@ -18,7 +18,7 @@ fixture() {
   printf 'User Claude instructions\n' > "$CLAUDE_HOME/CLAUDE.md"
 }
 backend() { "$AGENT_TOOLKIT_HOME/scripts/managed.sh" "$@"; }
-preview_revision() { backend preview "$@" | sed -n 's/^Revision: //p'; }
+preview_revision() { backend preview "$@" | python3 -c 'import json,sys; print(json.load(sys.stdin)["revision"])'; }
 apply_current() {
   local revision
   revision=$(preview_revision "$@")

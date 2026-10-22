@@ -86,8 +86,9 @@ managed_resolve_selection() {
   done
   MARKDOWN_OUTPUT_PATH=${MARKDOWN_OUTPUT_PATH-$managed_output}
   [[ "$managed_output_set" == no ]] || MARKDOWN_OUTPUT_PATH=$managed_output
-  [[ -z "$MARKDOWN_OUTPUT_PATH" || "$MARKDOWN_OUTPUT_PATH" == /* ]] || {
-    printf 'Error: output override must be absolute or blank.\n' >&2
+  [[ ( -z "$MARKDOWN_OUTPUT_PATH" || "$MARKDOWN_OUTPUT_PATH" == /* ) &&
+    "$MARKDOWN_OUTPUT_PATH" != *$'\n'* && "$MARKDOWN_OUTPUT_PATH" != *$'\r'* ]] || {
+    printf 'Error: output override must be absolute and single-line, or blank.\n' >&2
     return 2
   }
 }

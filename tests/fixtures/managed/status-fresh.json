@@ -1,0 +1,23 @@
+{
+  "protocol_version": 1,
+  "ok": true,
+  "kind": "status",
+  "revision": "<revision>",
+  "desired": {
+    "providers": [],
+    "requested_skills": [],
+    "retained_helpers": [],
+    "output_path": "",
+    "concise_output": false,
+    "full_template": false
+  },
+  "effective_output_path": "",
+  "applied": {"codex": [], "claude": []},
+  "observed": {"codex": [], "claude": []},
+  "native_overlap": {
+    "status": "unknown",
+    "skills": [],
+    "overlaps": [],
+    "message": "Native plugins are managed separately; overlapping skills may appear more than once."
+  }
+}

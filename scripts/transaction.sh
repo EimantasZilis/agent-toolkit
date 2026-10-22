@@ -84,10 +84,15 @@ transaction_cleanup() {
       [[ "$status" -ne 0 ]] || status=1
     fi
   fi
+  if declare -F managed_protocol_failure >/dev/null; then managed_protocol_failure "$status"; fi
   return "$status"
 }
 
 transaction_commit() {
   transaction_active=no
   rm -rf -- "$transaction_root"
+  if [[ "${managed_lock_held:-no}" == yes ]]; then
+    rmdir -- "$managed_state_dir/apply.lock"
+    managed_lock_held=no
+  fi
 }

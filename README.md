@@ -155,6 +155,8 @@ Removals require `--confirm-removals`; conflicts stop the whole apply.
 `--no-providers` removes owned installations, and `--remove-skill NAME` removes
 an unused skill or helper. Required helpers cannot be removed while selected
 skills need them. Native plugins and user-owned files are preserved.
+The [versioned backend contract](docs/managed-backend.md) describes its JSON
+responses, read-only status/catalog commands, revisions, and errors.
 
 Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
 and `--concise true|false` for shared output and automatic-loading preferences.

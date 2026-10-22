@@ -44,6 +44,9 @@ managed_revision() (
       "$AGENT_TOOLKIT_HOME/.agents" "$AGENT_TOOLKIT_HOME/scripts"; do
       managed_fingerprint_path "$root" || exit 1
     done
+    if [[ -n "${managed_native_inventory:-}" ]]; then
+      managed_fingerprint_path "$managed_native_inventory" || exit 1
+    fi
     for provider in codex claude; do
       LLM_PROVIDER=$provider
       for root in "$(provider_skills_dest)" "$(provider_legacy_skills_dest)" \
@@ -184,18 +187,6 @@ managed_plan() {
   done
 }
 
-managed_print_preview() {
-  local i
-  printf 'Revision: %s\n' "$managed_state_revision"
-  printf 'Providers: %s\nRequested: %s\nRetained helpers: %s\n' \
-    "$managed_providers" "$managed_requested" "$managed_retained"
-  for ((i = 0; i < ${#operation_actions[@]}; i++)); do
-    printf '%s %s %s -> %s\n' "${operation_providers[$i]}" "${operation_actions[$i]}" \
-      "${operation_names[$i]}" "${operation_paths[$i]}"
-  done
-  printf 'Conflicts: %s\nConfirm removals: %s\n' "$managed_conflicts" "$managed_removals"
-}
-
 managed_apply_operation() {
   local action=$1 name=$2 path=$3 source key
   case "$action" in
@@ -218,9 +209,7 @@ managed_apply_operation() {
 managed_apply() {
   local provider i
   [[ -n "$managed_expected_revision" ]] || { printf 'Error: apply requires --revision from preview.\n' >&2; return 2; }
-  transaction_begin
-  managed_lock
-  if [[ "$managed_expected_revision" != "$(managed_revision)" ]]; then
+  if [[ "$managed_expected_revision" != "$managed_state_revision" ]]; then
     printf 'Error: stale preview; request a new preview.\n' >&2
     return 3
   fi
@@ -228,6 +217,12 @@ managed_apply() {
   if [[ "$managed_removals" == true && "$managed_confirm" != true ]]; then
     printf 'Error: removals require --confirm-removals.\n' >&2
     return 2
+  fi
+  transaction_begin
+  managed_lock
+  if [[ "$managed_expected_revision" != "$(managed_revision)" ]]; then
+    printf 'Error: stale preview; request a new preview.\n' >&2
+    return 3
   fi
   backup_path "$managed_settings_file" copy
   backup_path "$managed_inventory_file" copy
@@ -249,5 +244,4 @@ managed_apply() {
   inventory_claude=$(managed_words "$(managed_observed_skills claude)")
   managed_save
   transaction_commit
-  printf 'Applied managed settings.\n'
 }

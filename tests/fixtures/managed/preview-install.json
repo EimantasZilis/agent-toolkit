@@ -1,0 +1,31 @@
+{
+  "protocol_version": 1,
+  "ok": true,
+  "kind": "preview",
+  "revision": "<revision>",
+  "desired": {
+    "providers": ["codex"],
+    "requested_skills": ["commit-message"],
+    "retained_helpers": [],
+    "output_path": "",
+    "concise_output": false,
+    "full_template": false
+  },
+  "effective_output_path": "",
+  "selection": [{"name": "commit-message", "role": "requested"}],
+  "operations": [{
+    "provider": "codex",
+    "action": "install",
+    "name": "commit-message",
+    "role": "requested",
+    "path": "<root>/agents/skills/agent-toolkit/commit-message"
+  }],
+  "conflicts": [],
+  "confirmation_required": false,
+  "native_overlap": {
+    "status": "unknown",
+    "skills": [],
+    "overlaps": [],
+    "message": "Native plugins are managed separately; overlapping skills may appear more than once."
+  }
+}
