@@ -164,6 +164,13 @@ recommends a broader `security-review` without automatically starting it.
 
 ## Installation instructions
 
+For provider-native plugins that work without the source clone, see
+[native package generation and installation](docs/native-packages.md). Build
+individual skills, starter/all selections, and category bundles for both
+providers with `python3 scripts/package_native.py build --version 0.1.0 --output
+dist/native/0.1.0`. Native plugins are managed by the provider; the repository
+installer below continues to manage its own installations.
+
 ### Installation
 
 Install and verify:
