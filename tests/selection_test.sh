@@ -51,22 +51,17 @@ test_fresh_starter() {
     fail 'starter gained unrelated standing instructions'
 }
 
-test_custom_dependencies_and_saved_choices() {
+test_standalone_pr_skills_and_saved_choices() {
   local provider=$1 root="$TEST_ROOT/custom $1" skills output
   output="$(install_at "$root" --provider "$provider" --skill pr-description --skill pr-comment --skill pr-description)"
   skills="$(skills_at "$root" "$provider")"
-  assert_skill_count "$skills" 3
-  assert_file "$skills/to-clipboard/SKILL.md"
-  [[ "$output" == *'to-clipboard (dependency; install/update)'* ]] || fail 'preview omitted helper'
-  if [[ "$provider" == claude ]]; then
-    assert_contains 'invoke `/to-clipboard`' "$skills/pr-description/SKILL.md"
-  else
-    assert_contains 'invoke `$to-clipboard`' "$skills/pr-description/SKILL.md"
-  fi
+  assert_skill_count "$skills" 2
+  assert_absent "$skills/to-clipboard"
+  [[ "$output" != *'(dependency;'* ]] || fail 'PR skills installed an unexpected helper'
   install_at "$root" >/dev/null
-  assert_skill_count "$skills" 3
+  assert_skill_count "$skills" 2
   install_at "$root" --skill commit-message >/dev/null
-  assert_skill_count "$skills" 4
+  assert_skill_count "$skills" 3
   assert_file "$skills/pr-description/SKILL.md"
   assert_contains 'SKILL_SELECTION=commit-message' "$root/settings.env"
 }
@@ -124,13 +119,58 @@ test_guidance_opt_in_and_preservation() {
   [[ "$(cat "$root/user.md")" == 'user instructions' ]] || fail 'disabled guidance target changed'
 }
 
-test_dependency_closure() {
-  local root="$TEST_ROOT/closure" output
-  output="$(install_at "$root" --provider codex --skill next-phase --dry-run)"
-  [[ "$output" == *'plan-conventions (dependency;'* && "$output" == *'security-review (dependency;'* &&
-    "$output" == *'ruby-rails-standards (dependency;'* ]] || fail 'missing transitive or conditional dependency'
-  [[ "$output" != *'review-branch ('* && "$output" != *'pr-description ('* ]] || fail 'installed a suggested next step'
-  assert_absent "$root"
+test_standalone_optional_integrations() {
+  local provider=$1 name root skills output
+  for name in developer-highlights next-commit next-phase review-branch security-check ruby-standards \
+    plan-writing-conventions plan-execution-conventions; do
+    root="$TEST_ROOT/standalone $provider $name"
+    output="$(install_at "$root" --provider "$provider" --skill "$name")"
+    skills="$(skills_at "$root" "$provider")"
+    assert_skill_count "$skills" 1
+    assert_file "$skills/$name/SKILL.md"
+    [[ "$output" != *'(dependency;'* ]] || fail "$name installed an optional dependency"
+  done
+}
+
+test_required_ruby_dependency() {
+  local provider=$1 root="$TEST_ROOT/rails $1" skills output
+  output="$(install_at "$root" --provider "$provider" --skill ruby-rails-standards)"
+  skills="$(skills_at "$root" "$provider")"
+  assert_skill_count "$skills" 2
+  assert_file "$skills/ruby-standards/SKILL.md"
+  assert_contains "](<$skills/ruby-standards/SKILL.md>)" "$skills/ruby-rails-standards/SKILL.md"
+  [[ "$output" == *'ruby-standards (dependency; install/update)'* ]] || fail 'missing Ruby baseline'
+  install_at "$root" --skill ruby-standards --skill ruby-rails-standards >/dev/null
+  assert_skill_count "$skills" 2
+}
+
+test_optional_coinstallation_and_legacy_preservation() {
+  local provider=$1 root="$TEST_ROOT/optional $1" skills output name
+  skills="$(skills_at "$root" "$provider")"
+  mkdir -p "$skills/plan-conventions"
+  printf 'previously installed conventions\n' > "$skills/plan-conventions/SKILL.md"
+
+  output="$(install_at "$root" --provider "$provider" --skill next-phase \
+    --skill plan-execution-conventions --skill plan-writing-conventions --skill python-standards)"
+  assert_skill_count "$skills" 5
+  [[ "$output" != *'(dependency;'* ]] || fail 'optional integration became required'
+  [[ "$(cat "$skills/plan-conventions/SKILL.md")" == 'previously installed conventions' ]] ||
+    fail 'renaming conventions removed or changed the old installation'
+
+  for name in plan-writing-conventions plan-execution-conventions; do
+    assert_contains 'Markdown artifact discovery' "$skills/$name/SKILL.md"
+    assert_contains 'No centralized output root is configured' "$skills/$name/SKILL.md"
+  done
+  if [[ "$provider" == claude ]]; then
+    assert_contains 'disable-model-invocation: true' "$skills/plan-writing-conventions/SKILL.md"
+    if grep -q '^disable-model-invocation:' "$skills/plan-execution-conventions/SKILL.md"; then
+      fail 'new execution conventions unexpectedly became explicit-only'
+    fi
+  else
+    assert_contains 'allow_implicit_invocation: false' "$skills/plan-writing-conventions/agents/openai.yaml"
+  fi
+  install_at "$root" --skill next-phase >/dev/null
+  assert_skill_count "$skills" 5
 }
 
 test_read_only_options_and_validation() {
@@ -182,11 +222,11 @@ test_selective_rollback() {
 test_user_owned_dependency() {
   local root="$TEST_ROOT/user-owned" skills output
   skills="$(skills_at "$root" claude)"
-  mkdir -p "$skills/to-clipboard"
-  printf 'user helper\n' > "$skills/to-clipboard/SKILL.md"
-  output="$(install_at "$root" --provider claude --skill pr-description 2>/dev/null)"
-  [[ "$output" == *'to-clipboard (dependency; skip: user-owned)'* ]] || fail 'preview missed ownership conflict'
-  [[ "$(cat "$skills/to-clipboard/SKILL.md")" == 'user helper' ]] || fail 'user helper overwritten'
+  mkdir -p "$skills/ruby-standards"
+  printf 'user baseline\n' > "$skills/ruby-standards/SKILL.md"
+  output="$(install_at "$root" --provider claude --skill ruby-rails-standards 2>/dev/null)"
+  [[ "$output" == *'ruby-standards (dependency; skip: user-owned)'* ]] || fail 'preview missed ownership conflict'
+  [[ "$(cat "$skills/ruby-standards/SKILL.md")" == 'user baseline' ]] || fail 'user baseline overwritten'
 }
 
 test_failed_settings_save_rolls_back_installation() {
@@ -204,22 +244,24 @@ EOF
   if PATH="$root/bin:$PATH" \
     AGENT_TOOLKIT_ENV_FILE="$root/settings.env" AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/codex" CLAUDE_HOME="$root/claude" \
-    "$REPO_ROOT/scripts/install.sh" --skill pr-description > "$root/error" 2>&1; then
+    "$REPO_ROOT/scripts/install.sh" --skill ticket-to-plan > "$root/error" 2>&1; then
     fail 'expected settings save failure'
   fi
   [[ "$(cat "$root/settings.env")" == "$original" ]] || fail 'settings save failure lost original settings'
-  assert_absent "$skills/pr-description"
-  assert_absent "$skills/to-clipboard"
+  assert_absent "$skills/ticket-to-plan"
+  assert_absent "$skills/plan-review"
   assert_file "$skills/commit-message/SKILL.md"
 }
 
 for provider in codex claude; do
   test_fresh_starter "$provider"
-  test_custom_dependencies_and_saved_choices "$provider"
+  test_standalone_pr_skills_and_saved_choices "$provider"
   test_standalone_planning_and_metadata "$provider"
   test_guidance_opt_in_and_preservation "$provider"
+  test_standalone_optional_integrations "$provider"
+  test_required_ruby_dependency "$provider"
+  test_optional_coinstallation_and_legacy_preservation "$provider"
 done
-test_dependency_closure
 test_read_only_options_and_validation
 test_selective_rollback
 test_user_owned_dependency

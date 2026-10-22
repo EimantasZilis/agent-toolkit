@@ -33,11 +33,25 @@ installation. Select the provider in `.env` or pass `--provider codex` or
 to their source file; rendering resolves cross-skill links for the installed
 layout.
 
-Declare required in-session skill loads and invocations in
-`.agents/dependencies.txt`, including conditional standards and security gates.
-Do not include entry-point routing or recommendations for later workflows.
-Dependencies are installed transitively; conditional cycles such as Ruby/Rails
-are deduplicated. Keep this registry synchronized when changing a workflow.
+Declare only required in-session skill loads and invocations in
+`.agents/dependencies.txt`: ticket planning requires plan review, and Rails
+standards require the Ruby baseline. Dependencies are installed transitively
+and deduplicated. Keep this registry synchronized when changing a workflow.
+Do not include optional integrations, entry-point routing, or recommendations
+for later workflows. The detailed optional-integration policy lives in
+`.agents/global/instructions.md`. Each skill with optional integrations must
+include one compact, self-contained rule covering all of them, so standalone
+installation does not require global guidance. Keep only skill names and
+task-specific fallback behaviour at individual use sites; do not repeat the
+general policy for every integration. Explicit repository requirements and
+mandatory helpers remain binding.
+
+`plan-writing-conventions` owns plan authoring, while
+`plan-execution-conventions` owns interpreting plans and tracking execution.
+Keep creation and execution skills usable without those optional conventions.
+Maintain compatibility through the plan format and artifact discovery rules,
+not a required installation of the plan's producer skill.
+
 Markdown-producing or discovery workflows also need task-local output rules;
 maintain the consumer list in `scripts/skills.sh` when adding one. Validate
 selective and full-catalog installation for both providers with `make verify`.

@@ -2,7 +2,7 @@ coding/define-coding-standards
 implementation/next-commit
 implementation/next-phase
 other/developer-highlights
-scoping/plan-conventions
+scoping/plan-writing-conventions
 review/plan-review
 scoping/quick-plan
 scoping/requirements-to-tickets

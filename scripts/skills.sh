@@ -54,7 +54,7 @@ append_skill_output_policy() {
   local source=$1 destination=$2
   # Only workflows that produce or discover Markdown need these task-local rules.
   case "${source##*/}" in
-    developer-highlights|next-commit|next-phase|plan-conventions|plan-review|requirements-to-tickets|review-branch|test-cases|ticket-context|ticket-to-plan|to-markdown) ;;
+    developer-highlights|next-commit|next-phase|plan-writing-conventions|plan-execution-conventions|plan-review|requirements-to-tickets|review-branch|test-cases|ticket-context|ticket-to-plan|to-markdown) ;;
     *) return 0 ;;
   esac
   {

@@ -21,6 +21,5 @@ it concise; use bullets or a small table only when they make the response
 clearer. Preserve uncertainty when it affects the answer.
 
 Output only the reply in Markdown to the terminal; do not explain the drafting
-process or add a wrapper. After outputting it, invoke `$to-clipboard` so that
-the exact same Markdown is also copied to the clipboard.
+process or add a wrapper.
 

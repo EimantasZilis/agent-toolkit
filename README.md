@@ -68,6 +68,7 @@ workflow from feature brief to PR description.
 | coding | [ruby-standards](.agents/skills/coding/ruby-standards/SKILL.md) | Routed Ruby engineering guidance. |
 | coding | [ruby-rails-standards](.agents/skills/coding/ruby-rails-standards/SKILL.md) | Routed Ruby on Rails engineering guidance. |
 | coding | [typescript-standards](.agents/skills/coding/typescript-standards/SKILL.md) | Routed TypeScript engineering guidance. |
+| implementation | [plan-execution-conventions](.agents/skills/implementation/plan-execution-conventions/SKILL.md) | Interpret existing plans, validate completion, and track execution progress. |
 | implementation | [next-commit](.agents/skills/implementation/next-commit/SKILL.md) | Implement one planned unit without committing. |
 | implementation | [next-phase](.agents/skills/implementation/next-phase/SKILL.md) | Validate and commit each implementation unit locally; keep planning progress uncommitted unless requested. |
 | other | [developer-highlights](.agents/skills/other/developer-highlights/SKILL.md) | Evidence-based career narrative from git history. |
@@ -80,7 +81,7 @@ workflow from feature brief to PR description.
 | review | [plan-review](.agents/skills/review/plan-review/SKILL.md) | Gate plans before implementation. |
 | review | [annotate](.agents/skills/review/annotate/SKILL.md) | Explain branch changes in terminal output without modifying files. |
 | review | [review-branch](.agents/skills/review/review-branch/SKILL.md) | Evidence-based review of committed branch changes. |
-| scoping | [plan-conventions](.agents/skills/scoping/plan-conventions/SKILL.md) | Shared planning and progress rules; exclude planning Markdown from implementation commits unless requested. |
+| scoping | [plan-writing-conventions](.agents/skills/scoping/plan-writing-conventions/SKILL.md) | Define plan structure, atomic scope, validation, and risks. |
 | scoping | [quick-plan](.agents/skills/scoping/quick-plan/SKILL.md) | Investigate feasibility and give one recommendation without implementation or a commit plan. |
 | scoping | [requirements-to-tickets](.agents/skills/scoping/requirements-to-tickets/SKILL.md) | Turn feature briefs into small, self-contained backlog tickets. |
 | scoping | [ticket-context](.agents/skills/scoping/ticket-context/SKILL.md) | Build a repository-backed context brief for a ticket. |
@@ -147,6 +148,20 @@ Use `next-commit` for one unit or `next-phase` for a full phase. Apply relevant
 coding standards and add security review where needed. Commit implementation
 changes before `review-branch`, which reviews committed changes only.
 
+Plan creation and execution conventions are separate optional skills.
+Global guidance contains the detailed optional-integration policy; each relevant
+skill also carries one compact rule so it works without global configuration.
+ - `ticket-to-plan` uses installed `plan-writing-conventions`; `next-commit` and
+`next-phase` use installed `plan-execution-conventions`. Without them, each
+workflow silently uses its local plan-format and execution defaults. Execution
+and branch review similarly use installed language standards when available,
+otherwise follow repository guidance and existing checks. Explicit repository
+requirements remain binding. Plans remain usable without their producer skill.
+
+PR-writing skills return copy-ready Markdown without changing the clipboard;
+request `to-clipboard` separately when needed. An inconclusive `security-check`
+recommends a broader `security-review` without automatically starting it.
+
 ## Installation instructions
 
 ### Installation
@@ -160,9 +175,10 @@ make verify
 
 Choose `starter`, `all`, or space-separated skill names when prompted. Required
 helpers are included automatically; suggestions for a subsequent workflow are
-not. Implementation and review skills also include the language standards they
-may need. The preview distinguishes requested skills, dependencies, and skipped
-user-owned skills.
+not. Required helpers are `plan-review` for `ticket-to-plan` and `ruby-standards`
+for `ruby-rails-standards`. Optional conventions and language standards are not
+installed automatically. Ruby alone does not install Rails guidance. The preview
+distinguishes requested skills, dependencies, and skipped user-owned skills.
 
 For explicit, non-interactive selection, use the script directly:
 
@@ -171,7 +187,7 @@ For explicit, non-interactive selection, use the script directly:
 ./scripts/install.sh --list
 ./scripts/install.sh --provider codex --bundle starter --no-global-guidance --dry-run
 
-# Install one skill and its to-clipboard helper for Claude.
+# Install one standalone skill for Claude.
 ./scripts/install.sh --provider claude --skill pr-description --no-global-guidance
 
 # Install several skills for Codex, leaving global guidance untouched.
@@ -272,6 +288,11 @@ Saved choices become the prompt defaults. To update without prompts, run
 `./scripts/install.sh --provider codex` (or `claude`). Selection is additive:
 choosing fewer skills does not remove earlier installations. Disabling guidance
 also leaves existing guidance in place; use uninstall to remove managed content.
+
+The former `plan-conventions` skill is now `plan-writing-conventions`, with
+execution guidance in `plan-execution-conventions`. Previously installed
+`plan-conventions` and former required helpers are left in place; this update
+does not automatically remove them.
 
 ### Troubleshooting
 

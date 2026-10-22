@@ -5,6 +5,11 @@ description: Apply provider-neutral Ruby engineering guidance to Ruby edits and 
 
 # Ruby standards
 
+For optional integrations, use installed skills and their required references;
+otherwise silently follow local defaults, repository conventions, and configured
+checks. Do not warn about unavailable optional skills or request their
+installation. Explicit repository requirements remain binding.
+
 Load the references needed for the change before editing. Always load
 [core](references/core.md) and [linting](references/linting.md); add only the
 context-specific guidance below.
@@ -17,8 +22,10 @@ context-specific guidance below.
 | Logs, metrics, tracing, or audit events | [logging](references/logging.md) |
 | Public APIs, executable behavior, comments, or library documentation | [documentation](references/documentation.md) |
 
-For Rails applications, load [ruby-rails-standards](../ruby-rails-standards/SKILL.md)
-in addition to this baseline. Apply repository-local rules when they are
+This baseline does not invoke `ruby-rails-standards`. For Rails applications,
+recommend that pack for a separately requested framework-specific pass when
+available. Otherwise use this baseline and the application's existing Rails
+conventions and checks. Apply repository-local rules when they are
 stricter or more relevant. The precedence is: repository-local rules and
 configuration; official Ruby documentation; then established Ruby community
 guidance. This pack applies to both implementation and review.

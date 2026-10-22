@@ -42,7 +42,7 @@ include_skill() {
   local -a items
   grep -Fxq -- "$name" <<< "$selected_names" && return 0
   skill_source "$name" >/dev/null || return 1
-  # Mark before descending: conditional Ruby/Rails dependencies form a cycle.
+  # Mark before descending to deduplicate dependencies and guard against cycles.
   selected_names+="$name"$'\n'
   dependencies="$(awk -v name="$name" '$1 == name { $1 = ""; print }' "$AGENT_TOOLKIT_HOME/.agents/dependencies.txt")"
   [[ -n "$dependencies" ]] || return 0

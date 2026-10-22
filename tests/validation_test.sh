@@ -73,8 +73,8 @@ test_unknown_dependency() {
 test_duplicate_dependency_entry() {
   local root
   root="$(fixture duplicate-dependency)"
-  printf '\npr-description to-clipboard\n' >> "$root/.agents/dependencies.txt"
-  assert_invalid "$root" 'duplicate dependency entry: pr-description'
+  printf '\nticket-to-plan plan-review\n' >> "$root/.agents/dependencies.txt"
+  assert_invalid "$root" 'duplicate dependency entry: ticket-to-plan'
 }
 
 test_optional_codex_adapter

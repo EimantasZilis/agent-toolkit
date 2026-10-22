@@ -5,6 +5,11 @@ description: Convert a ticket from a file, chat, or Jira body into an implementa
 
 # Ticket roadmap
 
+For optional integrations, use installed skills and their required references;
+otherwise silently follow local defaults, repository conventions, and configured
+checks. Do not warn about unavailable optional skills or request their
+installation. Explicit repository requirements remain binding.
+
 A ticket is required. Accept a local ticket, pasted body, or chat task; if none
 exists, route to [requirements-to-tickets](../requirements-to-tickets/SKILL.md).
 Investigation-only work routes to [quick-plan](../quick-plan/SKILL.md).
@@ -14,6 +19,13 @@ risks, and suggested commits. Preserve suggested order where useful, expand each
 unit with concrete scope and validation, and default to one phase unless
 independent mergeable boundaries justify more. In hotfix mode use one phase and
 at most two commits.
+
+Use `plan-writing-conventions` when available. Otherwise use a README index with
+Goal, Context, Out of scope, Assumptions, Phases, and Risks, plus one file per phase
+with scoped atomic commits, acceptance criteria, concrete validation, and
+phase exit checks. Use [ ] for pending, [-] for active, and [x] for complete;
+make the next phase unambiguous. Record compatibility, rollback, and security
+assessment needs in the risks.
 
 Keep the resulting plan sized for one focused, self-contained PR. Each phase
 must deliver one coherent outcome and include only the smallest necessary

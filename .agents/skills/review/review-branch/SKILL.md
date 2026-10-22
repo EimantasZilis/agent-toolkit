@@ -8,6 +8,11 @@ description: >-
 
 # Review a branch
 
+For optional integrations, use installed skills and their required references;
+otherwise silently follow local defaults, repository conventions, and configured
+checks. Do not warn about unavailable optional skills or request their
+installation. Explicit repository requirements remain binding.
+
 Work as the final engineering checkpoint before a branch is merged. Produce
 an issues-only review of committed changes.
 
@@ -108,11 +113,9 @@ Report only actionable concerns. Check, as applicable:
 - permissions, boundary, compatibility, deployment, or test risks;
 - language-specific convention problems visible in the changed code.
 
-For Python diffs, load [python-standards](../../coding/python-standards/SKILL.md)
-before reviewing code. Always follow its core and linting guidance, then load
-only the references relevant to the changed paths, such as tests, frameworks,
-migrations, imports, errors, docstrings, or logging. Report only violations
-that are visible in this diff, not hypothetical cleanup.
+Before reviewing code, apply relevant language standards. Optional integrations
+do not authorize running checks during this static review. Report only violations
+visible in this diff, not hypothetical cleanup.
 
 ## Findings format
 
