@@ -99,21 +99,10 @@ for a full example.
 
 ## Installation instructions
 
-<<<<<<< HEAD
-For provider-native plugins that work without the source clone, see
-[native package generation and installation](docs/native-packages.md). Build
-individual skills, starter/all selections, and category bundles for both
-providers with `python3 scripts/package_native.py build --version 0.1.0 --output
-dist/native/0.1.0`. Native plugins are managed by the provider; the repository
-installer below continues to manage its own installations. Plugin identifiers
-use skill names directly, for example `ticket-to-plan@agent-toolkit`; bundles
-use names such as `bundle-starter@agent-toolkit`.
-=======
 | Option | Best for | Updates managed by |
 | --- | --- | --- |
 | Repository installer | Selected skills and optional global guidance; requires this clone | `make install` |
 | [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
->>>>>>> f4b8a5fd324458dbc78f984a8898abfabc872223
 
 ### Select skills
 

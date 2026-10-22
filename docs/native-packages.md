@@ -12,10 +12,13 @@ leave its settings and global guidance unchanged.
 
 | Package | Includes |
 | --- | --- |
-| `agent-toolkit-<skill>` | One skill and its required helpers |
-| `agent-toolkit-bundle-starter` | `concise-output` and `commit-message` |
-| `agent-toolkit-bundle-<category>` | All skills in a catalog category |
-| `agent-toolkit-bundle-all` | The full catalog |
+| `<skill>` | One skill and its required helpers |
+| `bundle-starter` | `concise-output` and `commit-message` |
+| `bundle-<category>` | All skills in a source category directory |
+| `bundle-all` | The full catalog |
+
+Each skill's plugin uses the skill name, such as `ticket-to-plan`.
+Each package includes a required helper only once, even if several skills need it.
 
 Markdown output defaults to `<repo-root>/<branch-slug>/<skill-name>/...`.
 An explicit path or output policy in user guidance takes precedence.
@@ -30,35 +33,28 @@ python3 scripts/package_native.py build --version 0.1.0 --output dist/native/0.1
 python3 scripts/package_native.py validate dist/native/0.1.0
 ```
 
-The release contains Claude and Codex marketplaces, plugin folders, ZIP archives,
-and a `release.json` inventory with checksums. Validation checks package contents,
-required helpers, links, metadata, and archives. It works without the source
-clone or a provider client.
-
-## Install and use
+Each provider's release directory contains:
 
 - `plugins/<package>/`: self-contained package roots, each with the MIT license.
 - `zips/<package>.zip`: archives whose root is the package root.
 - A native marketplace: Claude uses `.claude-plugin/marketplace.json`; Codex uses
   `.agents/plugins/marketplace.json`.
 
-Top-level `release.json` records the version, catalog identities, direct required
-helpers, bundle membership, invocation policies, package member hashes, and ZIP
-checksums. Validation checks helper closure, local Markdown links, containment,
-provider metadata, member inventory, and archive bytes without extracting
-untrusted archives. It needs neither the source catalog nor a provider client.
-These checks detect corruption; the inventory is not a publisher signature.
-
-Each source skill uses its own name as the plugin identifier, such as
-`ticket-to-plan`. Bundles use `bundle-starter`, `bundle-all`, and
-`bundle-<category>`. Category membership follows source directories.
-The starter remains concise-output plus commit-message. A package contains each
-required helper once, even when selected both directly and transitively.
+The release's top-level `release.json` records the version, skills, required
+helpers, bundle contents, invocation rules, and file and ZIP checksums.
+Validation checks that required helpers are included, local Markdown links
+resolve, paths stay within the package, and metadata, files, and archives match
+the inventory. It checks ZIP files without extracting them and needs neither
+the source clone nor a provider client.
 
 ## Install and invoke
 
-For Claude Code, validate and register the generated marketplace, then install a
-selection:
+Use `plugin-name@marketplace-name` to select a package: for example,
+`ticket-to-plan@agent-toolkit` or `bundle-starter@agent-toolkit`.
+
+### Claude Code
+
+Validate and register the generated marketplace, then install a package:
 
 ```bash
 claude plugin validate ./dist/native/0.1.0/claude
@@ -78,10 +74,6 @@ codex plugin marketplace add ./dist/native/0.1.0/codex
 codex plugin add ticket-to-plan@agent-toolkit
 codex plugin list --marketplace agent-toolkit --json
 ```
-
-Both clients use `plugin-name@marketplace-name` for these installation commands:
-`ticket-to-plan` is the plugin, and `agent-toolkit` is the marketplace. For
-example, install the starter bundle as `bundle-starter@agent-toolkit`.
 
 Start a new session and choose the skill in the picker, or use `$ticket-to-plan`.
 If multiple packages contain the same helper, choose the intended package in
