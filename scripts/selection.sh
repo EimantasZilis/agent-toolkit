@@ -53,26 +53,20 @@ include_skill() {
 }
 
 resolve_selection() {
-  local source name
+  local name
   local -a names
   requested_names=''
   selected_names=''
-  case "$SKILL_SELECTION" in
-    starter) requested_names=$'concise-output\ncommit-message\n' ;;
-    all)
-      while IFS= read -r source; do
-        requested_names+="${source##*/}"$'\n'
-      done <<< "$SKILL_CATALOG"
-      ;;
-    *)
-      read -r -a names <<< "$SKILL_SELECTION"
-      [[ "${#names[@]}" -gt 0 ]] || { printf 'Error: select at least one skill.\n' >&2; return 1; }
-      for name in "${names[@]}"; do
-        skill_source "$name" >/dev/null || return 1
-        requested_names+="$name"$'\n'
-      done
-      ;;
-  esac
+  if bundle_names | grep -Fxq -- "$SKILL_SELECTION"; then
+    requested_names="$(bundle_members "$SKILL_SELECTION")"
+  else
+    read -r -a names <<< "$SKILL_SELECTION"
+    [[ "${#names[@]}" -gt 0 ]] || { printf 'Error: select at least one skill.\n' >&2; return 1; }
+    for name in "${names[@]}"; do
+      skill_source "$name" >/dev/null || return 1
+      requested_names+="$name"$'\n'
+    done
+  fi
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     include_skill "$name" || return 1

@@ -180,6 +180,17 @@ for `ruby-rails-standards`. Optional conventions and language standards are not
 installed automatically. Ruby alone does not install Rails guidance. The preview
 distinguishes requested skills, dependencies, and skipped user-owned skills.
 
+Category names from the catalog (for example, `coding` or `review`) also select
+bundles, through the prompt or `--bundle coding`. Categories and `all` follow
+the source tree; `.agents/bundles.txt` defines the stable starter selection.
+`scripts/catalog.sh` exposes tab-separated name/category/source-key records,
+bundle names, and requested membership. `resolve_selection` in
+`scripts/selection.sh` adds the deduplicated transitive dependency closure from
+`.agents/dependencies.txt`. Skill directory basenames are stable identities;
+duplicate identities and invalid bundle entries fail `make validate`. These
+contracts are shared by packaging and the future managed backend. Native build
+output is separate from installed provider state and saved installer settings.
+
 For explicit, non-interactive selection, use the script directly:
 
 ```bash

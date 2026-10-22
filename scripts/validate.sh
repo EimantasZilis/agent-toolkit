@@ -69,6 +69,7 @@ done < <(find "$AGENT_TOOLKIT_HOME/.agents/skills" -mindepth 3 -maxdepth 3 -type
 [[ $skill_count -gt 0 ]] || fail "no skills found in .agents/skills"
 skill_keys="$(while IFS= read -r source; do skill_key "$source"; done < <(source_skills))"
 SKILL_CATALOG="$(source_skills)"
+validate_catalog || fail 'invalid skill catalog or bundles'
 validate_dependencies || fail 'invalid skill dependency registry'
 check_adapters
 [[ -f "$AGENT_TOOLKIT_HOME/.env.template" ]] || fail "missing .env.template"
