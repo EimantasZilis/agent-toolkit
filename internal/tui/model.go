@@ -42,6 +42,7 @@ type model struct {
 	depart                      bool
 	err                         string
 	notice                      string
+	expanded                    map[string]bool
 }
 
 // Run starts the TUI. root must contain the toolkit's scripts and source skills.
@@ -57,7 +58,7 @@ func Run(root string) error {
 }
 
 func newModel(b backend, root string) model {
-	return model{backend: b, root: root, page: -1, width: 80, height: 24}
+	return model{backend: b, root: root, page: -1, width: 80, height: 24, expanded: map[string]bool{}}
 }
 
 func (m model) Init() tea.Cmd {
@@ -94,6 +95,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.wizard = !msg.installed && len(m.saved.Providers) == 0
 		if m.wizard {
 			m.page = 0
+			for _, b := range m.catalog.Bundles {
+				if b.Name == "starter" {
+					m.draft.Requested = append([]string(nil), b.Skills...)
+				}
+			}
 		}
 		return m, nil
 	case resultMsg:
@@ -196,6 +202,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) navigate(target int) (tea.Model, tea.Cmd) {
+	if m.wizard && m.page == 0 && target > 0 && len(m.draft.Providers) == 0 {
+		m.err = "Select at least one LLM provider before continuing."
+		return m, nil
+	}
+	m.err = ""
 	m.target, m.depart = target, true
 	if m.dirty() && (!m.wizard || target < 0) {
 		m.unsaved = true
@@ -268,14 +279,20 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 }
 
 func (m model) confirmations() []dialog {
-	if m.preview.Confirmation {
-		return []dialog{{"Uninstall the items listed in this preview? [y/N]"}, {"Apply the reviewed changes? [y/N]"}}
-	}
-	return []dialog{{"Apply the reviewed changes? [y/N]"}}
+	return m.selectionConfirmations()
 }
 
-func (m model) validate() error                      { return nil }
-func (m model) edit(key string) (tea.Model, tea.Cmd) { return m, nil }
+func (m model) validate() error {
+	if m.wizard && len(m.draft.Providers) == 0 {
+		return fmt.Errorf("select at least one LLM provider on Page 1")
+	}
+	return nil
+}
+
+func (m model) edit(key string) (tea.Model, tea.Cmd) {
+	m.editSelection(key)
+	return m, nil
+}
 
 func (m model) View() tea.View {
 	lines := []string{"agent-toolkit · setup and settings", ""}
@@ -323,6 +340,9 @@ func (m model) operationLines() []string {
 }
 
 func (m model) pageLines() []string {
+	if m.page < 2 {
+		return m.selectionLines()
+	}
 	if m.page == 4 {
 		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.draft.Output, m.draft.Concise)}
 	}
