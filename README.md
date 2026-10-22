@@ -169,7 +169,9 @@ For provider-native plugins that work without the source clone, see
 individual skills, starter/all selections, and category bundles for both
 providers with `python3 scripts/package_native.py build --version 0.1.0 --output
 dist/native/0.1.0`. Native plugins are managed by the provider; the repository
-installer below continues to manage its own installations.
+installer below continues to manage its own installations. Plugin identifiers
+use skill names directly, for example `ticket-to-plan@agent-toolkit`; bundles
+use names such as `bundle-starter@agent-toolkit`.
 
 ### Installation
 

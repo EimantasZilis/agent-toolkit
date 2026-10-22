@@ -34,16 +34,14 @@ def file_inventory(root: Path) -> dict[str, str]:
 
 
 def package_name(selection: str, bundles: list[str]) -> str:
-    """Return the stable plugin identifier for a skill or named bundle."""
+    """Use the skill name directly and prefix named bundles with bundle-."""
     infix = "bundle-" if selection in bundles else ""
-    return f"agent-toolkit-{infix}{selection}"
+    return f"{infix}{selection}"
 
 
 def plugin_manifest(name: str, version: str, provider: str) -> dict[str, object]:
     """Build provider metadata without claiming a verified publishing identity."""
-    description = (
-        f"Portable agent-toolkit skills: {name.removeprefix('agent-toolkit-')}."
-    )
+    description = f"Portable agent-toolkit skills: {name}."
     manifest: dict[str, object] = {
         "name": name,
         "version": version,
@@ -53,7 +51,7 @@ def plugin_manifest(name: str, version: str, provider: str) -> dict[str, object]
     if provider == "codex":
         manifest["skills"] = "./skills/"
         manifest["interface"] = {
-            "displayName": name.removeprefix("agent-toolkit-")[:30],
+            "displayName": name[:30],
             "shortDescription": "Portable engineering skills",
             "longDescription": description,
             "developerName": PUBLISHER,

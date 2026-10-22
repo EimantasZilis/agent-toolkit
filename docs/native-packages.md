@@ -36,9 +36,9 @@ provider metadata, member inventory, and archive bytes without extracting
 untrusted archives. It needs neither the source catalog nor a provider client.
 These checks detect corruption; the inventory is not a publisher signature.
 
-Each source skill gets `agent-toolkit-<skill>`. Bundles use
-`agent-toolkit-bundle-starter`, `agent-toolkit-bundle-all`, and
-`agent-toolkit-bundle-<category>`. Category membership follows source directories.
+Each source skill uses its own name as the plugin identifier, such as
+`ticket-to-plan`. Bundles use `bundle-starter`, `bundle-all`, and
+`bundle-<category>`. Category membership follows source directories.
 The starter remains concise-output plus commit-message. A package contains each
 required helper once, even when selected both directly and transitively.
 
@@ -50,11 +50,11 @@ selection:
 ```bash
 claude plugin validate ./dist/native/0.1.0/claude
 claude plugin marketplace add ./dist/native/0.1.0/claude
-claude plugin install agent-toolkit-ticket-to-plan@agent-toolkit
+claude plugin install ticket-to-plan@agent-toolkit
 ```
 
-Invoke `/agent-toolkit-ticket-to-plan:ticket-to-plan`. The package also contains
-plan-review at `/agent-toolkit-ticket-to-plan:plan-review`. References to bundled
+Invoke `/ticket-to-plan:ticket-to-plan`. The package also contains
+plan-review at `/ticket-to-plan:plan-review`. References to bundled
 helpers resolve within the same package. Required explicit invocation policies
 are retained. See the [Claude manifest reference](https://code.claude.com/docs/en/plugins-reference)
 and [marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces).
@@ -63,11 +63,15 @@ For Codex CLI versions supporting native plugin commands:
 
 ```bash
 codex plugin marketplace add ./dist/native/0.1.0/codex
-codex plugin add agent-toolkit-ticket-to-plan@agent-toolkit
+codex plugin add ticket-to-plan@agent-toolkit
 codex plugin list --marketplace agent-toolkit --json
 ```
 
-Start a new session and select the installed skill from the skill picker, or
+Both clients use `plugin-name@marketplace-name` for these installation commands:
+`ticket-to-plan` is the plugin, and `agent-toolkit` is the marketplace. For
+example, install the starter bundle as `bundle-starter@agent-toolkit`.
+
+Start a new Codex session and select the installed skill from the skill picker, or
 reference `$ticket-to-plan`. Plugin names identify packages; source skill names
 stay unchanged. When several packages expose the same helper name, choose its
 package in the picker and follow the package-relative helper link. Codex
@@ -104,6 +108,10 @@ Remove native installations through provider management: `claude plugin uninstal
 provider's plugin UI. See the [Claude command reference](https://code.claude.com/docs/en/plugins/cli-reference)
 for command and scope details. Keep generated marketplace files available while using a
 local marketplace. Do not delete provider caches manually.
+
+Earlier development builds used an `agent-toolkit-` prefix on plugin names.
+Those are different identifiers: remove the old plugin through provider
+management before installing its renamed replacement to avoid duplicate skills.
 
 ## Validation evidence and release preparation
 
