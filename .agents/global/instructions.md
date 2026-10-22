@@ -6,6 +6,15 @@ and configured checks.
 
 Repository-specific guidance wins.
 
+## Documentation
+
+- Describe what something does, what it provides, and why it matters.
+- Include how-to steps only when readers need them to use it or request them.
+- Use plain English, familiar words, and short, human-readable sentences.
+- Keep only useful detail. State each point once; avoid overexplaining.
+- Use lists for steps or related points, tables for comparisons, and Mermaid
+  diagrams for flows or relationships when they make the message clearer.
+
 ## Optional skill integrations
 
 For optional integrations, use only skills available in the active environment's

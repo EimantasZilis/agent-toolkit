@@ -1,0 +1,2 @@
+# Named selections. Categories and all are derived from the source tree.
+starter concise-output commit-message

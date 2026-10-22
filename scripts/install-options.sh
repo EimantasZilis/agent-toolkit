@@ -4,7 +4,7 @@ installation_usage() {
   cat <<'EOF'
 Usage: scripts/install.sh [options]
   --provider codex|claude        Select the target provider
-  --bundle starter|all           Select a bundle
+  --bundle NAME                  Select starter, all, or a category bundle
   --skill NAME                   Select one skill (repeatable; excludes --bundle)
   --global-guidance              Update global guidance
   --no-global-guidance           Leave global guidance untouched
@@ -58,10 +58,10 @@ parse_install_options() {
   done
   if [[ -n "$bundle_option" ]]; then
     [[ -z "$selection_option" ]] || { printf 'Error: --skill and --bundle cannot be combined.\n' >&2; return 1; }
-    case "$bundle_option" in
-      starter|all) selection_option=$bundle_option ;;
-      *) printf 'Error: unknown bundle: %s\n' "$bundle_option" >&2; return 1 ;;
-    esac
+    bundle_names | grep -Fxq -- "$bundle_option" || {
+      printf 'Error: unknown bundle: %s\n' "$bundle_option" >&2; return 1;
+    }
+    selection_option=$bundle_option
   fi
 }
 
