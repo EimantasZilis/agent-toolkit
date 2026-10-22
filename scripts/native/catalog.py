@@ -7,23 +7,6 @@ import subprocess
 from pathlib import Path
 
 
-BACKEND_QUERY = """
-source "$1/scripts/shared.sh"
-SKILL_CATALOG=$(source_skills)
-validate_catalog
-validate_dependencies
-GLOBAL_GUIDANCE=false
-CONCISE_OUTPUT=false
-SKILL_SELECTION=$3
-if [[ "$2" == resolve_selection ]]; then
-  resolve_selection
-  printf '%s' "$selected_names"
-else
-  "$2" "$3"
-fi
-"""
-
-
 class Catalog:
     """Resolve source identities and helper closures through the Bash backend."""
 
@@ -49,11 +32,7 @@ class Catalog:
         result = subprocess.run(
             [
                 "bash",
-                "-euo",
-                "pipefail",
-                "-c",
-                BACKEND_QUERY,
-                "catalog",
+                str(Path(__file__).with_suffix(".sh")),
                 str(self.root),
                 operation,
                 selection,
