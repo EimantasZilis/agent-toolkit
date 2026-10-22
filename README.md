@@ -191,6 +191,14 @@ duplicate identities and invalid bundle entries fail `make validate`. These
 contracts are shared by packaging and the future managed backend. Native build
 output is separate from installed provider state and saved installer settings.
 
+The portable renderer in `scripts/native/` copies each selected skill's resources
+and provider adapter, rewrites helper links within the package, and preserves
+fallback instructions for absent optional integrations. Native Markdown workflows
+honor explicit user output guidance and otherwise use repo-local output. Native
+rendering and its tests require Python 3.9 or newer; managed Bash installation
+continues to work without Python. Tests use the Python standard library to keep
+verification free of third-party dependencies.
+
 For explicit, non-interactive selection, use the script directly:
 
 ```bash
