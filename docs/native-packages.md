@@ -1,28 +1,41 @@
 # Native skill packages
 
-Native packages copy skills, references, scripts, required helpers, and provider
-adapters. They work independently of the source clone after generation. The
-[repository installer](../README.md#installation-instructions) remains available:
-its supporting resources link to the clone, and it owns its own settings and
-provider files. Native packages never load `.env` or modify global guidance.
+Native packages install agent-toolkit skills as Claude or Codex plugins.
+They include the skills, supporting files, and required helpers, so the source
+clone is no longer needed after building.
 
-## Build and validate
+The [repository installer](../README.md#installation-instructions) is an
+alternative that keeps supporting files linked to the clone. Native packages
+leave its settings and global guidance unchanged.
 
-Use Bash and Python 3.9 or newer. Generate both providers from one version:
+## Available packages
+
+| Package | Includes |
+| --- | --- |
+| `agent-toolkit-<skill>` | One skill and its required helpers |
+| `agent-toolkit-bundle-starter` | `concise-output` and `commit-message` |
+| `agent-toolkit-bundle-<category>` | All skills in a catalog category |
+| `agent-toolkit-bundle-all` | The full catalog |
+
+Markdown output defaults to `<repo-root>/<branch-slug>/<skill-name>/...`.
+An explicit path or output policy in user guidance takes precedence.
+
+## Build
+
+Requires Bash and Python 3.9 or newer. Replace `0.1.0` with your release version
+and choose a new output directory:
 
 ```bash
 python3 scripts/package_native.py build --version 0.1.0 --output dist/native/0.1.0
 python3 scripts/package_native.py validate dist/native/0.1.0
-make verify
 ```
 
-Choose the real release version; `0.1.0` is an example. Output must be a new
-directory. An existing output directory is preserved. Failed builds clean up
-staging files and leave no partial release. ZIPs use sorted members, fixed
-1980 timestamps, and normalized file modes. Identical inputs under the same
-Python/zlib toolchain produce identical bytes. Generated output is ignored by Git.
+The release contains Claude and Codex marketplaces, plugin folders, ZIP archives,
+and a `release.json` inventory with checksums. Validation checks package contents,
+required helpers, links, metadata, and archives. It works without the source
+clone or a provider client.
 
-Each provider directory contains:
+## Install and use
 
 - `plugins/<package>/`: self-contained package roots, each with the MIT license.
 - `zips/<package>.zip`: archives whose root is the package root.
@@ -53,13 +66,12 @@ claude plugin marketplace add ./dist/native/0.1.0/claude
 claude plugin install ticket-to-plan@agent-toolkit
 ```
 
-Invoke `/ticket-to-plan:ticket-to-plan`. The package also contains
-plan-review at `/ticket-to-plan:plan-review`. References to bundled
-helpers resolve within the same package. Required explicit invocation policies
-are retained. See the [Claude manifest reference](https://code.claude.com/docs/en/plugins-reference)
-and [marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces).
+Invoke `/ticket-to-plan:ticket-to-plan`. Its required helper is
+included as `/ticket-to-plan:plan-review`.
 
-For Codex CLI versions supporting native plugin commands:
+### Codex
+
+For Codex CLI versions with native plugin commands:
 
 ```bash
 codex plugin marketplace add ./dist/native/0.1.0/codex
@@ -71,79 +83,38 @@ Both clients use `plugin-name@marketplace-name` for these installation commands:
 `ticket-to-plan` is the plugin, and `agent-toolkit` is the marketplace. For
 example, install the starter bundle as `bundle-starter@agent-toolkit`.
 
-Start a new Codex session and select the installed skill from the skill picker, or
-reference `$ticket-to-plan`. Plugin names identify packages; source skill names
-stay unchanged. When several packages expose the same helper name, choose its
-package in the picker and follow the package-relative helper link. Codex
-archives include `.codex-plugin/plugin.json`, the skills directory declaration,
-author metadata, and interface metadata. See [official OpenAI packaging guidance](https://developers.openai.com/plugins/build/plugins)
-and the [ZIP submission reference](https://developers.openai.com/plugins/deploy/submission).
+Start a new session and choose the skill in the picker, or use `$ticket-to-plan`.
+If multiple packages contain the same helper, choose the intended package in
+the picker. Prefer one installation route per skill to avoid duplicates.
 
-Standalone and bundle installations can overlap, including duplicate helpers
-across packages. Installing Ruby and Rails packages together is supported at the
-package level, but runtime selection of duplicate helpers still needs the
-manual checks below. Prefer one route for a given skill. Native installation
-does not remove managed installs, and the repository uninstaller does not manage
-native plugins.
+## Update or remove
 
-## Output, updates, and removal
+Keep local marketplace files available while using the plugins.
 
-Markdown workflows honor explicit user guidance configuring an output location.
-Without it, they use `<repo-root>/<branch-slug>/<skill-name>/...`. A centralized
-root can be specified in user guidance; packages do not embed a machine-specific
-installer setting. Optional integrations absent from a package remain named
-optional integrations, with the source workflow's fallback instructions intact.
+| Action | Claude Code | Codex |
+| --- | --- | --- |
+| Update | Register the new release and run `claude plugin update <package>@agent-toolkit` | Remove the old marketplace registration with `codex plugin marketplace remove agent-toolkit`, register the new release, and add the package again |
+| Remove | `claude plugin uninstall <package>@agent-toolkit` | `codex plugin remove <package>@agent-toolkit` |
+| Roll back | Register a retained release and reinstall | Register a retained release and reinstall |
 
-For an update, generate a new version, validate it, and register or refresh its
-marketplace through the provider. Retain the previous release for rollback.
-Use `claude plugin update <package>@agent-toolkit` or the installed client's
-plugin management UI; for a local Codex marketplace, remove its old registration with
-`codex plugin marketplace remove agent-toolkit`, register the new release
-location, and reinstall the selected package using `codex plugin add`. Restart the
-session after changing packages. To roll back, point the provider to the retained
-release and reinstall through the provider.
+Validate each new release and restart the session after changing packages.
+The repository's `make uninstall` does not remove native plugins.
 
-Remove native installations through provider management: `claude plugin uninstall
-<package>@agent-toolkit`, `codex plugin remove <package>@agent-toolkit`, or the
-provider's plugin UI. See the [Claude command reference](https://code.claude.com/docs/en/plugins/cli-reference)
-for command and scope details. Keep generated marketplace files available while using a
-local marketplace. Do not delete provider caches manually.
+## Release checks
 
-Earlier development builds used an `agent-toolkit-` prefix on plugin names.
-Those are different identifiers: remove the old plugin through provider
-management before installing its renamed replacement to avoid duplicate skills.
+- Run `make verify` for package and installer checks.
+- Validate each generated Claude plugin with `claude plugin validate <package-root>`.
+- Test a standalone skill, ticket-to-plan with plan-review, Rails with Ruby
+  guidance, and selection when packages contain duplicate helpers.
+- Record client versions and observed results outside the source clone.
+  [Recorded evidence](native-packages-evidence.md) shows what has been checked.
 
-## Validation evidence and release preparation
+Package validation checks file integrity; it does not prove runtime behavior
+or verify the publisher. Public submission still requires publisher details,
+listing materials, and provider review.
 
-Structural tests are part of `make verify`. They relocate and extract every
-artifact with the source fixture unavailable, compare all resources, rebuild for
-byte equality, and reject broken links, source paths, symlinks, corrupt metadata,
-incomplete helper sets, modified ZIPs, and traversal members. Standard-library
-unittest avoids introducing a packaging/test dependency.
-
-Run `claude plugin validate <package-root>` for every generated Claude package
-when Claude Code is installed. A runtime smoke test must separately confirm one
-standalone skill, ticket-to-plan loading its packaged plan-review, and Rails
-loading its packaged Ruby guidance. Also install overlapping helper packages and
-confirm the intended copy is selected. Use isolated provider settings, outside
-the source clone, and record the client version, commands, and observed behavior.
-[Recorded evidence](native-packages-evidence.md) distinguishes installation from
-actual skill invocation. Missing runtime evidence prevents a runtime-success
-claim; structural validation alone does not establish model behavior.
-
-The generated author label names project contributors; it is not a verified
-publisher identity. Before public submission, choose the real publisher, provide
-any required listing assets and policies, and complete provider review materials
-and runtime checks. No publisher credentials, account IDs, approval status,
-submission, or publication are generated by this workflow.
-
-## Backend handoff
-
-Source skills and `.agents/dependencies.txt` remain authoritative.
-`catalog_records`, `bundle_names`, and `bundle_members` in `scripts/catalog.sh`
-expose identities and requested selections; `resolve_selection` adds required
-helpers. `Catalog` in `scripts/native/catalog.py` is a read-only bridge to those
-same Bash operations. `Renderer` stages a selected tree; `ReleaseBuilder` adds
-native manifests, marketplaces, and archives. `validate_release` works offline
-from the release snapshot. `scripts/package_native.py` provides explicit build
-and validate commands. Managed state and reconciliation are outside this API.
+Provider references: [Claude plugins](https://code.claude.com/docs/en/plugins-reference),
+[Claude marketplaces](https://code.claude.com/docs/en/plugin-marketplaces),
+[Claude commands](https://code.claude.com/docs/en/plugins/cli-reference),
+[Codex packaging](https://developers.openai.com/plugins/build/plugins), and
+[ZIP submissions](https://developers.openai.com/plugins/deploy/submission).
