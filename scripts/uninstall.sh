@@ -3,6 +3,7 @@
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
+source "$SCRIPT_DIR/managed-guidance.sh"
 remove_skill() {
   local dest=$1 item
   is_owned_dir "$dest" || return 0
@@ -41,7 +42,21 @@ for LLM_PROVIDER in codex claude; do
   fi
 
   marker="$(owned_marker "$(dirname "$GUIDANCE_DEST")")"
-  if [[ -f "$marker" ]] && grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker"; then
+  if [[ -f "$marker" ]] && grep -q '^GUIDANCE_BLOCK ' "$marker"; then
+    expected_hash=$(awk '$1 == "GUIDANCE_BLOCK" { print $2 }' "$marker")
+    guidance_hash=''
+    if [[ -f "$GUIDANCE_DEST" && ! -L "$GUIDANCE_DEST" && ! -L "$marker" ]]; then
+      guidance_hash=$(managed_guidance_block "$GUIDANCE_DEST" | shasum -a 256 | awk '{print $1}')
+    fi
+    if grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker" && [[ -n "$guidance_hash" && "$guidance_hash" == "$expected_hash" ]] &&
+      managed_validate_guidance "$GUIDANCE_DEST"; then
+      strip_guidance_blocks "$GUIDANCE_DEST"
+      rm -f -- "$marker"
+      echo "Removed agent-toolkit guidance from $GUIDANCE_DEST"
+    else
+      printf 'Warning: preserving modified or foreign guidance: %s\n' "$GUIDANCE_DEST" >&2
+    fi
+  elif [[ -f "$marker" ]] && grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker"; then
     guidance_hash="$(file_hash "$GUIDANCE_DEST" 2>/dev/null || true)"
     expected_hash="$(awk '$1 == "GUIDANCE.md" { print $2 }' "$marker")"
     [[ -n "$guidance_hash" && "$guidance_hash" == "$expected_hash" ]] && rm -f "$GUIDANCE_DEST"

@@ -17,6 +17,7 @@ main() {
   managed_load
   managed_previous_output=$managed_output
   managed_previous_concise=$managed_concise
+  managed_previous_full_template=$managed_full_template
   managed_parse_options "$@"
   managed_resolve_selection
   managed_plan

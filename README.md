@@ -156,6 +156,13 @@ Removals require `--confirm-removals`; conflicts stop the whole apply.
 an unused skill or helper. Required helpers cannot be removed while selected
 skills need them. Native plugins and user-owned files are preserved.
 
+Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
+and `--concise true|false` for shared output and automatic-loading preferences.
+Disabling concise loading keeps the skill installed. These controls update only
+the toolkit's guidance block and preserve surrounding instructions. The full
+global template remains an explicit CLI choice through `--full-template true`
+or the legacy installer's `--global-guidance` option.
+
 The installer saves successful choices to `.env` and reuses them next time.
 Older configurations without selection or guidance settings retain `all` and
 enabled guidance.

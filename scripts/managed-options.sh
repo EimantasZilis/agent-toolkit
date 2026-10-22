@@ -15,7 +15,7 @@ managed_parse_options() {
   managed_output_set=no
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --provider|--skill|--remove-skill|--output-path|--revision)
+      --provider|--skill|--remove-skill|--output-path|--revision|--concise|--full-template)
         [[ $# -ge 2 ]] || { printf 'Error: %s requires a value.\n' "$1" >&2; return 2; }
         case "$1" in
           --provider)
@@ -35,6 +35,8 @@ managed_parse_options() {
             managed_removed=$(managed_words "$managed_removed" "$2")
             ;;
           --output-path) managed_output=$2; managed_output_set=yes ;;
+          --concise) managed_concise=$(boolean_setting CONCISE_OUTPUT "$2") ;;
+          --full-template) managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$2") ;;
           --revision)
             [[ "$2" =~ ^[a-f0-9]{64}$ ]] || { printf 'Error: invalid revision.\n' >&2; return 2; }
             managed_expected_revision=$2
@@ -67,10 +69,15 @@ managed_resolve_selection() {
     fi
   done
   requested_names=$(printf '%s\n' "$managed_requested" | tr ' ' '\n')
+  if [[ "$managed_previous_concise" == true ]] && managed_contains "$installed" concise-output &&
+    ! managed_contains "$managed_removed" concise-output; then
+    managed_retained=$(managed_words "$managed_retained" concise-output)
+  fi
   selected_names=''
   for name in $managed_requested $managed_retained; do
     include_skill "$name" || return 2
   done
+  if [[ "$managed_concise" == true ]]; then include_skill concise-output || return 2; fi
   for name in $managed_removed; do
     if grep -Fxq -- "$name" <<< "$selected_names"; then
       printf 'Error: selected skills require %s; remove its parents first.\n' "$name" >&2

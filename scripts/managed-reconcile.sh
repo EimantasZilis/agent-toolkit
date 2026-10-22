@@ -211,7 +211,7 @@ managed_apply_operation() {
       backup_path "$path"
       if [[ "$action" != remove ]]; then render_skill "$source" "$path" "$key"; fi
       ;;
-    remove-guidance|strip-guidance) managed_apply_guidance "$action" "$path" ;;
+    write-guidance|remove-guidance|strip-guidance) managed_apply_guidance "$action" "$path" ;;
   esac
 }
 

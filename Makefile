@@ -18,3 +18,4 @@ test:
 	bash ./tests/selection_test.sh
 	bash ./tests/managed_state_test.sh
 	bash ./tests/managed_reconcile_test.sh
+	bash ./tests/managed_guidance_test.sh
