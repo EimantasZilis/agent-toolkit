@@ -25,7 +25,9 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 ## Highlights
 
 The [managed setup TUI](docs/tui.md) is available as a local Go development
-build. The Bash installer remains available through `make install`.
+build. A [verified binary launcher](docs/tui-releases.md#verified-launcher) is
+implemented but awaits a published release pin. The Bash installer remains
+available through `make install`.
 
 - **Clear writing:** concise answers, PR descriptions, and commit messages.
 - **Coding standards:** guidance for Python, JavaScript, TypeScript, Go,

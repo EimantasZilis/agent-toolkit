@@ -11,6 +11,7 @@ verify: test
 	./scripts/verify.sh
 
 test:
+	python3 -m unittest discover -s tests -p 'test_tui_*.py'
 	python3 -m unittest discover -s tests -p 'test_native_*.py'
 	python3 -m unittest discover -s tests -p 'test_managed_*.py'
 	bash ./tests/catalog_test.sh
