@@ -30,6 +30,7 @@ without reading saved settings.
 | `--no-skills` | Clear requested skills; required and retained helpers still apply |
 | `--remove-skill NAME` | Explicitly remove a skill or unused helper; reject removal while it is required |
 | `--output-path PATH` | Save an absolute Markdown output root; an empty argument selects repo-local output |
+| `--create-output-directory` | After explicit user confirmation, create a missing output root during apply; preview only checks its nearest existing parent |
 | `--concise BOOL` | Set `true` or `false` to control concise-output loading independently of the full template |
 | `--full-template BOOL` | Set `true` or `false` to control the full global guidance template |
 | `--confirm-removals` | Authorize the removals shown in the preview |
@@ -67,6 +68,13 @@ clients must also resend the reviewed options unchanged. Conflicts stop the whol
 apply. Failed or interrupted applies restore provider files and saved settings
 together; incomplete restoration reports retained recovery backups on stderr.
 Success is emitted only after state persistence and lock release.
+
+The TUI requests output-directory creation only after a default-No confirmation.
+Creation runs inside the same Bash transaction. Failed applies remove empty
+directories created by that transaction; directories that acquired artifacts are
+preserved and reported with incomplete rollback diagnostics. Changing output
+mode never moves or deletes existing artifacts. The creation flag requires a
+nonblank output path and a writable, searchable existing directory or ancestor.
 
 Portable response examples are maintained in
 [`tests/fixtures/managed/`](../tests/fixtures/managed/). Their `<root>` and

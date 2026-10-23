@@ -13,6 +13,7 @@ managed_parse_options() {
   managed_confirm=false
   managed_removed=''
   managed_output_set=no
+  managed_create_output=false
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --provider|--skill|--remove-skill|--output-path|--revision|--concise|--full-template)
@@ -47,6 +48,7 @@ managed_parse_options() {
       --no-providers) managed_providers=''; providers_set=yes; shift ;;
       --no-skills) managed_requested=''; skills_set=yes; shift ;;
       --confirm-removals) managed_confirm=true; shift ;;
+      --create-output-directory) managed_create_output=true; shift ;;
       *) printf 'Error: unknown managed option: %s\n' "$1" >&2; return 2 ;;
     esac
   done
@@ -55,6 +57,7 @@ managed_parse_options() {
     managed_retained=$(managed_words "$(managed_remove_word "$managed_retained" "$name")")
   done
   managed_validate_settings
+  if [[ "$managed_create_output" == true ]]; then managed_output_parent; fi
 }
 
 managed_resolve_selection() {

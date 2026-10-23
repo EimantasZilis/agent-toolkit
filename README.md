@@ -24,6 +24,9 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 
 ## Highlights
 
+The [managed setup TUI](docs/tui.md) is available as a local Go development
+build. The Bash installer remains available through `make install`.
+
 - **Clear writing:** concise answers, PR descriptions, and commit messages.
 - **Coding standards:** guidance for Python, JavaScript, TypeScript, Go,
   Ruby/Rails, and Bash.
@@ -160,6 +163,8 @@ responses, read-only status/catalog commands, revisions, and errors.
 
 Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
 and `--concise true|false` for shared output and automatic-loading preferences.
+The [setup and settings TUI](docs/tui.md) exposes these controls with explicit
+page saves, final setup review, and confirmations for removals and directory creation.
 Disabling concise loading keeps the skill installed. These controls update only
 the toolkit's guidance block and preserve surrounding instructions. The full
 global template remains an explicit CLI choice through `--full-template true`
