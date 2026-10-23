@@ -49,6 +49,31 @@ type model struct {
 	createOutput                bool
 	scroll                      int
 	manualScroll                bool
+	themeIndex                  int
+}
+
+type uiTheme struct {
+	name                                    string
+	accent, heading, selectedFG, selectedBG string
+	error, notice, warning, muted           string
+}
+
+var uiThemes = []uiTheme{
+	{
+		name: "Midnight", accent: "#89DDFF", heading: "#C792EA",
+		selectedFG: "#F8F8F2", selectedBG: "#34495E", error: "#FF6B6B",
+		notice: "#A6E3A1", warning: "#F9C74F", muted: "#7F849C",
+	},
+	{
+		name: "Ocean", accent: "#80CBC4", heading: "#82AAFF",
+		selectedFG: "#102A43", selectedBG: "#B2DFDB", error: "#C62828",
+		notice: "#2E7D32", warning: "#8D6E00", muted: "#52606D",
+	},
+	{
+		name: "Daylight", accent: "#005F87", heading: "#7F3FBF",
+		selectedFG: "#17212B", selectedBG: "#D9E9F2", error: "#B42318",
+		notice: "#207547", warning: "#8B5E00", muted: "#5D6873",
+	},
 }
 
 // Run starts the TUI. root must contain the toolkit's scripts and source skills.
@@ -135,6 +160,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) key(key string) (tea.Model, tea.Cmd) {
 	if m.busy {
+		return m, nil
+	}
+	if key == "t" || key == "T" {
+		step := 1
+		if key == "T" {
+			step = -1
+		}
+		m.themeIndex = (m.themeIndex + step + len(uiThemes)) % len(uiThemes)
+		m.notice = "Theme: " + uiThemes[m.themeIndex].name
 		return m, nil
 	}
 	if m.editingPath {

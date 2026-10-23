@@ -46,8 +46,14 @@ are preserved; use the CLI to change them. Provider and skill removals also
 require default-No confirmation after Save. Enter, `n`, and Escape decline these
 confirmations and keep the draft.
 
-The view follows the selected row and wraps within the current terminal size.
+The view is framed with a title bar and a separated command footer. The view
+follows the selected row and wraps within the current terminal size.
 Use Page Up/Page Down to inspect long pages, previews, errors, and confirmation
 lists. Very small terminals can require scrolling to read the full prompt;
 resize at any point. Backend ownership conflicts and rollback diagnostics remain
 visible for review and retry.
+
+Press `t` to cycle the Midnight, Ocean, and Daylight palettes; `T` cycles
+backwards. The selection is for the current run and does not change saved
+installation settings. [Lip Gloss](https://github.com/charmbracelet/lipgloss)
+renders the palettes and adapts colors to the terminal's color profile.
