@@ -1,5 +1,8 @@
 install:
-	./scripts/install.sh
+	bash ./scripts/setup.sh
+
+install-cli:
+	bash ./scripts/install.sh
 
 uninstall:
 	./scripts/uninstall.sh

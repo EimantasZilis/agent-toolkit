@@ -14,8 +14,13 @@ cd agent-toolkit
 make install
 ```
 
-Choose `codex` or `claude` when prompted. Fresh defaults install the starter
-bundle (`concise-output` and `commit-message`), keep Markdown output in the
+With a published release pin, terminal `make install` opens the managed setup
+TUI without Go; it requires Python 3.9 or later and HTTPS access for the first
+download. This checkout has no published pin yet, so `make install` uses the
+Bash installer. Use `make install-cli` to choose Bash explicitly at any time.
+
+In Bash, choose `codex` or `claude` when prompted. Fresh defaults install the
+starter bundle (`concise-output` and `commit-message`), keep Markdown output in the
 repository, and leave global guidance unchanged. The installer previews changes
 before writing files. Keep this clone: supporting files link back to it.
 
@@ -26,8 +31,8 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 
 The [managed setup TUI](docs/tui.md) is available as a local Go development
 build. A [verified binary launcher](docs/tui-releases.md#verified-launcher) is
-implemented but awaits a published release pin. The Bash installer remains
-available through `make install`.
+available through terminal `make install` once a published release is pinned.
+Until then, `make install` uses Bash; `make install-cli` always uses Bash.
 
 - **Clear writing:** concise answers, PR descriptions, and commit messages.
 - **Coding standards:** guidance for Python, JavaScript, TypeScript, Go,
@@ -111,7 +116,7 @@ for a full example.
 
 ### Select skills
 
-Run `make install` and choose a bundle or space-separated skill names:
+Run `make install-cli` and choose a bundle or space-separated skill names:
 
 | Selection | Includes |
 | --- | --- |
@@ -131,6 +136,15 @@ For non-interactive installation:
 ./scripts/install.sh --provider claude --skill pr-description --no-global-guidance
 ./scripts/install.sh --provider codex --bundle all --global-guidance
 ```
+
+Terminal `make install` uses the [managed TUI](docs/tui.md) when a release pin
+exists. Without a pin it keeps the Bash flow above. Non-terminal `make install`
+and explicit `scripts/setup.sh` arguments always use Bash without downloading;
+set the existing environment/configuration values for automation. Direct
+`scripts/install.sh` calls and `make install-cli` bypass the TUI even in a
+terminal. An invalid pin, failed download, or incompatible backend stops the
+launcher without starting a Bash installation automatically. Use the explicit
+Bash route to recover; see [cache and release details](docs/tui-releases.md).
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
 settings; unspecified settings use saved values or defaults. `--list` and
@@ -172,7 +186,7 @@ the toolkit's guidance block and preserve surrounding instructions. The full
 global template remains an explicit CLI choice through `--full-template true`
 or the legacy installer's `--global-guidance` option.
 
-The installer saves successful choices to `.env` and reuses them next time.
+The Bash installer saves successful choices to `.env` and reuses them next time.
 Older configurations without selection or guidance settings retain `all` and
 enabled guidance.
 
@@ -212,7 +226,7 @@ Skills look for earlier workflow output in this order:
 
 ### Update
 
-Pull changes, then reinstall for each provider:
+Pull changes, then run setup again:
 
 ```bash
 git pull --ff-only
@@ -222,7 +236,8 @@ make install
 For saved settings without prompts, use `./scripts/install.sh --provider codex`
 (or `claude`). Restart the client session afterward.
 
-Choosing fewer skills does not remove earlier installs. The former
+The Bash installer is additive: choosing fewer skills keeps earlier installs.
+The managed TUI supports removals with confirmation. The former
 `plan-conventions` skill also remains installed; its replacements are
 `plan-writing-conventions` and `plan-execution-conventions`.
 

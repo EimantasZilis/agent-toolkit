@@ -35,15 +35,23 @@ routing. Do not describe a locally built version as publicly available.
 `python3 scripts/launch_tui.py` launches a published binary without Go. It needs
 Python 3.9 or later, HTTPS access on the first run, and the Bash backend's normal
 prerequisites. It always uses the backend in this checkout. There is currently
-no published release pin, so this command reports the Bash fallback. `make
-install` continues using Bash until a published pin is validated and interactive
-routing is enabled separately.
+no published release pin, so this command reports the Bash fallback. Terminal
+`make install` uses Bash until a published pin is installed. Once a pin exists,
+the entrypoint runs the launcher; its protocol, archive, and executable checks
+must pass before the TUI starts. Failed checks stop setup without falling
+through to a Bash installation. `make install-cli`, direct `scripts/install.sh`
+calls, explicit `scripts/setup.sh` arguments, and non-terminal `make install`
+always use Bash without downloading.
 
 After publication, review the downloaded archives against the locally generated
 hashes, then copy the reviewed `release.json` to `scripts/tui-release.json` in a
-source change. The pin must name all four targets and include archive and binary
-hashes. The launcher downloads only the pinned version from this repository's
-GitHub Releases; it never resolves a latest version or builds from source.
+source change. This activates terminal routing; no separate toggle is needed.
+Validate fresh and cached terminal `make install`, non-terminal setup, and
+`make install-cli` against the published assets before recording release
+activation complete. The pin must name all four targets and include archive
+and binary hashes. The launcher downloads only the pinned version from this
+repository's GitHub Releases; it never resolves a latest version or builds
+from source.
 
 Verified executables are cached under
 `${XDG_CACHE_HOME:-$HOME/.cache}/agent-toolkit-tui/<version>-<target>/`.
@@ -57,5 +65,7 @@ Use `python3 scripts/launch_tui.py --version` to verify a host launch. If a cach
 is corrupt, remove only that version/target directory while no launcher is
 running, then retry. On download, compatibility, or platform failure, use
 `bash scripts/install.sh` with the existing CLI options. Launcher failures do
-not apply installation changes. Publication and interactive routing remain
-separate from launcher fixture validation.
+not apply installation changes. Removing the pin restores terminal Bash routing;
+pinning a prior compatible release rolls back the TUI version. Neither changes
+the installed skill selection by itself. Publication and verification against
+public assets remain separate from local fixture validation.
