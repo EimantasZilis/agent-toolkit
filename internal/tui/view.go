@@ -11,7 +11,7 @@ import (
 
 func (m model) wrappedLines() []string {
 	lines := []string{}
-	width := max(1, m.width-4)
+	width, _ := m.viewportSize()
 
 	for _, line := range m.viewLines() {
 		lines = append(lines, strings.Split(ansi.Hardwrap(ansi.Strip(line), width, true), "\n")...)
@@ -20,9 +20,17 @@ func (m model) wrappedLines() []string {
 	return lines
 }
 
+func (m model) viewportSize() (width, height int) {
+	// Omit the frame when it would leave no room for content.
+	if m.width < 5 || m.height < 6 {
+		return max(1, m.width), max(1, m.height)
+	}
+	return m.width - 4, m.height - 5
+}
+
 func (m model) viewOffset() int {
 	lines := m.wrappedLines()
-	height := max(1, m.height-5)
+	_, height := m.viewportSize()
 	limit := max(0, len(lines)-height)
 	if m.manualScroll {
 		return min(m.scroll, limit)
@@ -45,9 +53,15 @@ func (m model) viewOffset() int {
 
 func (m model) View() tea.View {
 	lines := m.wrappedLines()
-	height := max(1, m.height-5)
+	_, height := m.viewportSize()
 	start := m.viewOffset()
 	end := min(len(lines), start+height)
+	if m.width < 5 || m.height < 6 {
+		v := tea.NewView(strings.Join(m.styleLines(lines[start:end]), "\n"))
+		v.AltScreen = true
+		return v
+	}
+
 	footer := "↑/↓ move · space toggle · tab next · s save · esc back · q quit"
 	if m.editingPath {
 		footer = "Enter accepts path · Esc restores · Ctrl+u clears"

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type fakeBackend struct {
@@ -90,7 +91,11 @@ func TestDirtyDeparture(t *testing.T) {
 			m, _ := readyModel(t, false)
 			m.draft.Concise = true
 			m, cmd := press(m, key)
-			if !m.unsaved || cmd != nil || !strings.Contains(strings.ReplaceAll(m.View().Content, "\n", ""), unsavedPrompt) {
+			// Ignore frame characters and wrapping when checking visible wording.
+			visible := strings.ReplaceAll(ansi.Strip(m.View().Content), "│", "")
+			visible = strings.Join(strings.Fields(visible), "")
+			prompt := strings.Join(strings.Fields(unsavedPrompt), "")
+			if !m.unsaved || cmd != nil || !strings.Contains(visible, prompt) {
 				t.Fatal("missing exact unsaved prompt")
 			}
 			canceled, cmd := press(m, "esc")

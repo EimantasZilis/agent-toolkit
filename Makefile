@@ -20,3 +20,7 @@ test:
 	bash ./tests/managed_state_test.sh
 	bash ./tests/managed_reconcile_test.sh
 	bash ./tests/managed_guidance_test.sh
+
+# Example: make release-tui VERSION=v0.1.0
+release-tui:
+	python3 scripts/build_tui.py --version "$(VERSION)" --output "dist/tui/$(VERSION)"

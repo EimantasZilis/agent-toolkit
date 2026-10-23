@@ -312,7 +312,7 @@ func TestViewportResizeLongListsAndDialogs(t *testing.T) {
 		m.expanded[s.Category] = true
 	}
 	m.cursor = len(m.skillRows()) - 1
-	for _, size := range [][2]int{{80, 24}, {30, 8}, {12, 6}, {1, 1}} {
+	for _, size := range [][2]int{{80, 24}, {30, 8}, {12, 6}, {5, 6}, {4, 24}, {80, 5}, {4, 5}, {1, 1}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		m = next.(model)
 		lines := strings.Split(m.View().Content, "\n")
