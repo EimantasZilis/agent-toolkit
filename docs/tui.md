@@ -1,17 +1,17 @@
 # Managed setup and settings TUI
 
-Terminal `make install` opens this TUI when the checkout contains a reviewed
-release pin. The launcher requires Python 3.9 or later, the Bash installer
-prerequisites, and HTTPS access on the first run; users do not need Go. Verified
-cached launches work offline. This checkout has no published release pin yet,
-so `make install` currently uses Bash. Use `make install-cli` or
-`bash scripts/install.sh` for an explicit Bash installation. Non-terminal setup
-and explicit CLI flags also use Bash without downloading. See
-[release and cache recovery](tui-releases.md#verified-launcher).
+The TUI manages skills installed from this clone and their saved settings.
+Keep the clone for the installer and supporting files.
+[Native plugins](native-packages.md) are managed separately by each provider.
 
-The TUI manages repository installations and their saved settings.
-[Native plugins](native-packages.md) use the provider's plugin manager and
-remain under its control; retain this clone for managed installations.
+This checkout has no pinned release, so `make install` currently uses Bash.
+After a release is pinned, it opens the TUI in a terminal using Python 3.9 or
+later and the Bash installer prerequisites. The first download needs HTTPS;
+cached launches work offline. Go is needed only for development.
+
+Use `make install-cli` to run Bash directly. Non-terminal setup and
+`scripts/setup.sh` with arguments also use Bash. See
+[launcher and cache recovery](tui-releases.md#verified-launcher).
 
 Development requires Go 1.27.3 or later and the existing Bash installer
 prerequisites. From this source clone:

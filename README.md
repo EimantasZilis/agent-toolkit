@@ -14,10 +14,10 @@ cd agent-toolkit
 make install
 ```
 
-With a published release pin, terminal `make install` opens the managed setup
-TUI without Go; it requires Python 3.9 or later and HTTPS access for the first
-download. This checkout has no published pin yet, so `make install` uses the
-Bash installer. Use `make install-cli` to choose Bash explicitly at any time.
+This checkout uses the Bash installer. Once a published TUI release is pinned,
+`make install` will open the [setup TUI](docs/tui.md) in a terminal. It will need
+Python 3.9 or later and HTTPS access for the first download. Go is not required.
+Use `make install-cli` to run Bash at any time.
 
 In Bash, choose `codex` or `claude` when prompted. Fresh defaults install the
 starter bundle (`concise-output` and `commit-message`), keep Markdown output in the
@@ -28,11 +28,6 @@ Start a new session and try `$concise-output` in Codex or `/concise-output` in
 Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 
 ## Highlights
-
-The [managed setup TUI](docs/tui.md) is available as a local Go development
-build. A [verified binary launcher](docs/tui-releases.md#verified-launcher) is
-available through terminal `make install` once a published release is pinned.
-Until then, `make install` uses Bash; `make install-cli` always uses Bash.
 
 - **Clear writing:** concise answers, PR descriptions, and commit messages.
 - **Coding standards:** guidance for Python, JavaScript, TypeScript, Go,
@@ -137,14 +132,10 @@ For non-interactive installation:
 ./scripts/install.sh --provider codex --bundle all --global-guidance
 ```
 
-Terminal `make install` uses the [managed TUI](docs/tui.md) when a release pin
-exists. Without a pin it keeps the Bash flow above. Non-terminal `make install`
-and explicit `scripts/setup.sh` arguments always use Bash without downloading;
-set the existing environment/configuration values for automation. Direct
-`scripts/install.sh` calls and `make install-cli` bypass the TUI even in a
-terminal. An invalid pin, failed download, or incompatible backend stops the
-launcher without starting a Bash installation automatically. Use the explicit
-Bash route to recover; see [cache and release details](docs/tui-releases.md).
+Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
+without downloading. If the TUI launcher fails, setup stops; use
+`make install-cli` to continue with Bash. See
+[launcher and cache details](docs/tui-releases.md#verified-launcher).
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
 settings; unspecified settings use saved values or defaults. `--list` and
