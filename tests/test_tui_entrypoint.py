@@ -18,29 +18,6 @@ from scripts.launch_tui import TARGETS, host_target
 
 ROOT = Path(__file__).resolve().parents[1]
 
-NETWORK_FIXTURE = '''"""Substitute the HTTPS response boundary for subprocess tests."""
-import os
-import sys
-from pathlib import Path
-from typing import BinaryIO
-from unittest.mock import patch
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts import launch_tui
-
-def response(url: str, timeout: int) -> BinaryIO:
-    """Return local release bytes or simulate an unavailable release."""
-    with Path("downloads").open("a") as output:
-        output.write("request\\n")
-    if os.environ.get("FIXTURE_DOWNLOAD_FAILURE"):
-        raise OSError("release unavailable")
-    return Path("release.zip").open("rb")
-
-with patch("urllib.request.OpenerDirector.open", side_effect=response):
-    with patch("platform.system", return_value=os.environ["FIXTURE_SYSTEM"]):
-        sys.exit(launch_tui.main())
-'''
-
 
 class EntrypointTests(unittest.TestCase):
     """Run Make and Bash with real terminal descriptors in an isolated checkout."""
@@ -91,8 +68,8 @@ class EntrypointTests(unittest.TestCase):
 
     def install_network_fixture(self, scripts: Path) -> None:
         """Keep the production launcher real while replacing the HTTPS response."""
-        runner = scripts / "network_fixture.py"
-        runner.write_text(NETWORK_FIXTURE)
+        runner = scripts / "tui_network_runner.py"
+        shutil.copyfile(ROOT / "tests/helpers/tui_network_runner.py", runner)
         commands = self.root / "bin"
         commands.mkdir()
         python = commands / "python3"
