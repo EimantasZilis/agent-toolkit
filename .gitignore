@@ -2,3 +2,4 @@
 __pycache__/
 dist/native/
 /config/
+dist/tui/

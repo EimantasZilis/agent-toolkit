@@ -9,12 +9,14 @@ import (
 	"github.com/EimantasZilis/agent-toolkit/internal/tui"
 )
 
+var version = "development"
+
 func main() {
 	root := flag.String("root", ".", "toolkit source repository")
-	version := flag.Bool("version", false, "print application and backend protocol versions")
+	showVersion := flag.Bool("version", false, "print application and backend protocol versions")
 	flag.Parse()
-	if *version {
-		fmt.Println("agent-toolkit development; managed protocol 1")
+	if *showVersion {
+		fmt.Printf("agent-toolkit %s; managed protocol 1\n", version)
 		return
 	}
 	if err := tui.Run(*root); err != nil {
