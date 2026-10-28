@@ -29,7 +29,8 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 
 ## Highlights
 
-- **Clear writing:** concise answers, PR descriptions, and commit messages.
+- **Clear writing:** plain English answers and documentation, with details
+  introduced gradually.
 - **Coding standards:** guidance for Python, JavaScript, TypeScript, Go,
   Ruby/Rails, and Bash.
 - **Planning:** feasibility checks, tickets, and implementation plans.
@@ -53,7 +54,7 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 | implementation | [next-phase](.agents/skills/implementation/next-phase/SKILL.md) | Validate and commit each implementation unit locally; keep planning progress uncommitted unless requested. |
 | other | [developer-highlights](.agents/skills/other/developer-highlights/SKILL.md) | Evidence-based career narrative from git history. |
 | productivity | [commit-message](.agents/skills/productivity/commit-message/SKILL.md) | Short commit message from staged changes and available conversation context. |
-| productivity | [concise-output](.agents/skills/productivity/concise-output/SKILL.md) | Direct, complete reader-facing prose. |
+| productivity | [concise-output](.agents/skills/productivity/concise-output/SKILL.md) | Readable, concise prose that explains the outcome before the details. |
 | productivity | [pr-description](.agents/skills/productivity/pr-description/SKILL.md) | Copy-ready pull-request description. |
 | productivity | [pr-comment](.agents/skills/productivity/pr-comment/SKILL.md) | Concise, human response to pull-request feedback. |
 | productivity | [to-clipboard](.agents/skills/productivity/to-clipboard/SKILL.md) | Copy the previous response to the clipboard as Markdown. |
@@ -149,8 +150,9 @@ settings; unspecified settings use saved values or defaults. `--list` and
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
 - Skills have a generated `SKILL.md`; supporting files link to this clone.
-- Optional global guidance covers coding, plain English documentation, and
-  Markdown output. Its source is [instructions.md](.agents/global/instructions.md).
+- Optional global guidance covers coding and Markdown output. Its writing rules
+  apply to all documentation, whether created by a skill or edited directly.
+  See [instructions.md](.agents/global/instructions.md).
 - Existing user content is preserved. Edited skills and guidance become
   user-owned and are preserved on later installs.
 - Disabling global guidance leaves any previously installed guidance in place.

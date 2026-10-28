@@ -8,12 +8,27 @@ Repository-specific guidance wins.
 
 ## Documentation
 
-- Describe what something does, what it provides, and why it matters.
-- Include how-to steps only when readers need them to use it or request them.
-- Use plain English, familiar words, and short, human-readable sentences.
-- Keep only useful detail. State each point once; avoid overexplaining.
-- Use lists for steps or related points, tables for comparisons, and Mermaid
-  diagrams for flows or relationships when they make the message clearer.
+Apply these rules whenever creating or editing documentation and other Markdown,
+whether through a skill or an ordinary request. Preserve any structure required
+by the task or skill.
+
+- Start with what something does and why it matters. Establish the purpose
+  before introducing technical detail.
+- Introduce detail gradually. Put technical requirements and exceptions in the
+  section where the reader needs them.
+- Use plain English and familiar words. Give each sentence one main idea.
+- Use bullet points for distinct items instead of comma-separated lists. Use
+  numbered lists for ordered steps.
+- Give each section one purpose. State each point once and keep only useful
+  detail.
+- Include implementation details and how-to steps when readers need them for
+  the task.
+- Preserve important requirements when simplifying. Move supporting details
+  into the relevant section.
+- Prefer readability over brevity. Use enough sentences to explain the point
+  without packing several ideas together.
+- Use tables for comparisons and Mermaid diagrams for flows or relationships
+  when they make the explanation clearer.
 
 ## Optional skill integrations
 
