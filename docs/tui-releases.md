@@ -108,3 +108,64 @@ version/target directory, and retry.
 
 Remove the release pin to restore Bash routing, or pin a prior compatible
 release to roll back the TUI. Neither action changes the installed skills.
+
+## CI candidates
+
+The **TUI release candidate** Actions workflow builds and retains a checked
+candidate without publishing a release or changing the launcher pin. Dispatch
+it from the repository's default branch after this workflow is merged there.
+Supply a version such as `v0.1.0`. Leave `source_ref` empty to use the dispatch
+SHA, or supply a commit/ref reachable from the default branch. Preflight rejects
+invalid versions and untrusted sources before Go setup or build output.
+
+The workflow requires repository Actions access to these native runners:
+
+| Target | Runner |
+| --- | --- |
+| linux-amd64 | ubuntu-24.04 |
+| linux-arm64 | ubuntu-24.04-arm |
+| darwin-amd64 | macos-15-intel |
+| darwin-arm64 | macos-15 |
+
+Runner availability and repository Actions permissions must be confirmed by a
+hosted run. A queued, missing, cancelled, or failed runner cannot supply passing
+runtime evidence. Runtime jobs download the original payload by artifact ID;
+they do not rebuild it. Each checks the native host, exact version output,
+loaded screen, clean quit, and absence of managed writes. PTY failures are
+failures. Only an explicitly documented unsupported capability can be recorded
+as a PTY skip; the current harness does not automatically skip any checks.
+Native version checks always have to pass. Visual review remains manual.
+
+Open the run's **aggregate** summary and retain its artifact IDs. Download
+`tui-result-<attempt>` first. Only `candidate-result.json` with `status` set to
+`approved` is usable by the later publication stage. It contains the source and
+workflow SHAs, original payload run/attempt and ID, six SHA-256 digests, report
+artifact IDs, current verification attempt, required-job results, per-target
+outcomes, and explicit PTY skips. Failure artifacts are diagnostics only.
+
+Retrieve the payload using that exact `payload_id`, rather than choosing an
+artifact named “latest”. The Actions REST endpoint is
+`GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip`. Extract the
+six files into an empty directory and independently run the release validator.
+Keep `candidate-result.json` separately and compare all six file digests with
+its `hashes` before any later publication. The evidence is not a seventh release
+asset or a launcher manifest extension.
+
+All artifacts expire after 30 days. An expired candidate requires a new run.
+A partial retry preserves the original payload identity, but approval requires
+all four reports from the current verification attempt. If a partial retry
+cannot supply all reports, rerun all jobs to create and check a new candidate;
+do not substitute old reports or rebuild under an existing payload ID.
+Per-version concurrency prevents overlapping candidate runs. No release tags,
+release assets, activation pins, or PRs are written by this workflow.
+
+For a local native runtime check after building all four targets:
+
+```sh
+python3 scripts/smoke_tui_release.py --version v0.1.0 \
+  --target darwin-arm64 --directory dist/tui/v0.1.0 \
+  --checkout . --report /tmp/tui-runtime-report.json
+```
+
+Choose the target matching the actual host. This verifies only that target;
+it does not establish hosted runner availability or manual visual approval.

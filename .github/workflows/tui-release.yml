@@ -1,0 +1,203 @@
+name: TUI release candidate
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (v-prefixed)
+        required: true
+        type: string
+      source_ref:
+        description: Source ref (empty uses dispatch SHA)
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: tui-release-${{ inputs.version }}
+  cancel-in-progress: false
+jobs:
+  preflight:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      source_sha: ${{ steps.resolve.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - id: resolve
+        env:
+          VERSION: ${{ inputs.version }}
+          SOURCE_REF: ${{ inputs.source_ref || github.sha }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python3 tooling/scripts/tui_candidate.py preflight
+  build:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      run_attempt: ${{ github.run_attempt }}
+      payload_id: ${{ steps.payload.outputs.artifact-id }}
+      record_id: ${{ steps.record.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: source/go.mod
+          cache: false
+      - name: Required repository and Go checks
+        working-directory: source
+        run: |
+          make verify
+          go test ./...
+          go vet ./...
+      - name: Build once and validate
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 source/scripts/build_tui.py --version "$VERSION" --output payload
+          python3 tooling/scripts/validate_tui_release.py --version "$VERSION" --directory payload
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: payload
+        with:
+          name: tui-payload-${{ github.run_attempt }}
+          path: payload/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bind uploaded payload identity
+        env:
+          VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          PAYLOAD_ID: ${{ steps.payload.outputs.artifact-id }}
+        run: python3 tooling/scripts/tui_candidate.py record
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: record
+        with:
+          name: tui-candidate-${{ github.run_attempt }}
+          path: candidate.json
+          if-no-files-found: error
+          retention-days: 30
+  runtime:
+    needs: [preflight, build]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-amd64
+            runner: ubuntu-24.04
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+          - target: darwin-amd64
+            runner: macos-15-intel
+          - target: darwin-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.record_id }}
+          merge-multiple: true
+      - name: Check retained native executable
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+          PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+        run: python3 tooling/scripts/tui_candidate.py runtime
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: tui-report-${{ matrix.target }}-${{ github.run_attempt }}
+          path: report-${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 30
+  aggregate:
+    if: always()
+    needs: [preflight, build, runtime]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.build.result == 'success'
+        with:
+          artifact-ids: ${{ needs.build.outputs.record_id }}
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.build.result == 'success'
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - name: Resolve exact report artifact IDs
+        id: reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/tui_candidate.py reports
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ steps.reports.outputs.ids }}
+          path: reports
+          merge-multiple: true
+      - name: Require complete candidate evidence
+        if: always()
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          VERSION: ${{ inputs.version }}
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+          PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+          RECORD_ID: ${{ needs.build.outputs.record_id }}
+        run: python3 tooling/scripts/tui_candidate.py aggregate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: tui-result-${{ github.run_attempt }}
+          path: candidate-result.json
+          if-no-files-found: error
+          retention-days: 30
