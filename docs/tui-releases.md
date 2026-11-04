@@ -4,41 +4,55 @@ The release build produces binaries for macOS and Linux on amd64 and arm64.
 Users can run them without Go. Maintainers need Go 1.27.3 or later, Python 3.9
 or later, and the repository's usual tools.
 
-## Build and publish
+## Dispatch and review
 
-1. Run checks and build a version:
+The **TUI release candidate** workflow prepares one immutable candidate, verifies
+its native runtime, and can publish it and propose its launcher pin. Both
+`publish` and `propose_pin` default to false. Visual review and merge are manual.
+The workflow must be available on the trusted default branch before its first
+dispatch; a feature-branch copy cannot authorize release or proposal writes.
 
-   ```sh
-   go test ./...
-   go vet ./...
-   make verify
-   make release-tui VERSION=v0.1.0
-   ```
+Live publication is currently held by a source-controlled `false` condition.
+Keep that hold until hosted candidate checks and disposable-repository
+publication/proposal acceptance have been recorded. Enabling either dispatch
+option does not bypass it. Test the complete path and retries in a disposable
+copy before removing the production hold in a separately reviewed change.
 
-   Use a new output directory for each build. Builds use pinned Go modules,
-   `-mod=readonly`, and `CGO_ENABLED=0`; no C cross-compiler is needed.
+Once enabled:
 
-2. Inspect `dist/tui/v0.1.0/`. It contains four ZIPs, `SHA256SUMS`, and
-   `release.json`. Each ZIP contains `agent-toolkit` and `metadata.json`, which
-   records the version, target, and backend protocol. `release.json` also
-   records archive and executable hashes.
+1. Dispatch from the default branch with a new version such as `v0.1.0`.
+   Leave `source_ref` empty to use the dispatch SHA, or choose a commit reachable
+   from that branch. See [CI candidates](#ci-candidates) for required runners
+   and retained evidence.
+2. Select `publish` to publish exactly the checked six-file candidate. Review
+   the [publication report](#publish-a-checked-candidate) and its public hashes.
+3. Select `propose_pin` together with `publish` to test the published launcher
+   and create or reuse a [manifest-only proposal](#propose-a-verified-pin).
+   This combination is required; proposing without publication fails preflight.
+4. Inspect the linked run, artifacts, four native launcher results, and checked
+   base SHA. Confirm the PR changes only `scripts/tui-release.json`, whose bytes
+   must match the retained `release.json` exactly.
+5. Complete the unchecked UI checklist, ensure required PR checks have run, and
+   approve/merge manually. A successful workflow never approves, merges,
+   applies installation, or marks visual checks complete.
 
-3. Validate the complete release using the command below. On each available
-   target, run `agent-toolkit --version` and try the UI. Record which targets you ran.
-   Release builds print the requested version; development builds print `development`.
+## Build locally
 
-4. Publish the four ZIPs, checksums, and metadata to the matching GitHub release
-   tag. Download every uploaded archive and compare it with the local hashes.
-   Use the locally generated hashes as the expected values, not checksums
-   downloaded with the assets.
+Local builds are useful for development and independent integrity checks. They
+cannot establish that published assets are available or satisfy hosted acceptance.
 
-5. Copy the verified `release.json` to `scripts/tui-release.json` in a source
-   change. This pin must include all four targets and their archive and
-   executable hashes. It enables terminal `make install` to launch the TUI.
+```sh
+go test ./...
+go vet ./...
+make verify
+make release-tui VERSION=v0.1.0
+```
 
-6. Test fresh and cached terminal `make install`, non-terminal setup, and
-   `make install-cli` against the published release before marking it active.
-   Local builds and fixture tests do not verify published assets.
+Use a new output directory for each build. Builds use pinned Go modules,
+`-mod=readonly`, and `CGO_ENABLED=0`. `dist/tui/v0.1.0/` contains four ZIPs,
+`SHA256SUMS`, and `release.json`. Each ZIP contains `agent-toolkit` and
+`metadata.json`. Release builds print the requested version; development builds
+print `development`. The manifest records all four archive and executable hashes.
 
 ## Validate release files
 
@@ -158,8 +172,9 @@ all four reports from the current verification attempt. If a partial retry
 cannot supply all reports, rerun all jobs to create and check a new candidate;
 do not substitute old reports or rebuild under an existing payload ID.
 Per-version concurrency prevents overlapping candidate runs. With `publish`
-left false, no release tags or assets are written. Source pins and activation
-PRs are never changed by the candidate or publication stages.
+left false, no release tags or assets are written. Source pins are never changed
+by the candidate or publication stages.
+Only the separate proposal stage can create an activation PR.
 
 For a local native runtime check after building all four targets:
 
@@ -191,8 +206,10 @@ and workflow ancestry, and all seven retained evidence/payload artifact IDs.
 Every artifact must belong to that workflow run and remain available. The
 publication job repeats these checks before its first release write. It runs
 only trusted workflow tooling; it never executes release binaries or backend
-scripts from the release source. Only this job receives `contents: write`;
-artifact checks also need `actions: read`. Other jobs keep read-only access.
+scripts from the release source. The publication job receives `contents: write`;
+artifact checks also need `actions: read`. The separate proposal writer also
+receives `pull-requests: write`. Jobs that execute binaries or source code
+keep read-only access.
 
 The publication sequence is:
 
@@ -254,3 +271,67 @@ Before relying on publication, test a unique version in a disposable repository
 with trusted workflow code. Verify downloaded public bytes, the final tag SHA,
 identical-candidate retries, and the retained report. Local fake-API tests do
 not establish live publication or hosted runner availability.
+
+## Propose a verified pin
+
+The read-only pin preflight binds the successful publication to the exact
+candidate, original hashes, retained artifact IDs, and workflow identity. It
+resolves the current default-branch base. Four native jobs then test both the
+release source and that base, reusing results when the SHAs match.
+
+Each target starts with a private empty cache. It uses the real launcher HTTPS
+download, verifies the executable hash and native version, starts terminal
+`make install`, and safely quits/Discards. A repeat checks the version and
+terminal lifecycle with downloads disabled in the acceptance harness. There
+is no production offline flag. Disposable-repository runs override only the
+repository URL in that harness; production runs use the production URL.
+Reports identify the actual repository and URL. Local fixtures are labelled
+and cannot pass the proposal aggregate.
+
+Non-terminal setup, argument-bearing setup, and `make install-cli` are observed
+through installer-route instrumentation so no installation is applied. A
+separate real installer dry run verifies the Bash path. Reports distinguish
+these checks. Provider homes, settings, inventory, and checkout files must
+remain unchanged, apart from the temporary pin and expected private cache.
+The temporary pin is restored even after failure.
+
+The read-only aggregate requires every native job and every source/base check
+to pass. Missing, failed, skipped, foreign-run, expired, or substituted evidence
+blocks the writer. The writer downloads exact artifact IDs and compares raw
+reports with the approved aggregate again. The proposal writer gets `contents: write` and
+`pull-requests: write`, with `actions: read` for artifact checks. It runs trusted
+workflow tooling and constructs the pin commit through the Git data API; it
+never executes proposal-branch code. Publication and proposal share the
+workflow's per-version concurrency lock.
+
+The branch is `tui-release/<version>`. New proposals contain exactly one commit
+and one regular file, `scripts/tui-release.json`, with byte-identical retained
+manifest content. The PR links the release, source/base SHAs, run and artifacts,
+six hashes, native launcher results, and an unchecked manual review checklist.
+Bot-created PRs may need a maintainer to start or approve required workflows;
+PR creation does not establish that those checks passed.
+
+Retries preserve existing state:
+
+- Reuse an identical open automation proposal without updating its branch or
+  body. If the base has moved, refresh native evidence and resolve the old
+  proposal explicitly; the helper never rebases or force-pushes.
+- Report an owned merged proposal as complete only while the default-branch
+  pin still matches. A deleted merged branch is allowed; immutable commit
+  history and bytes are still checked.
+- Stop for a closed unmerged PR, human-edited branch, different candidate,
+  extra file/commit, changed ownership, or conflicting manifest.
+- If repository settings deny PR creation, publication remains verified and
+  separate from activation. Restore PR permission, then retry with retained
+  evidence. An exact owned branch left by that attempt can be reused.
+- Partial retries must supply all four current-attempt launcher reports.
+  Missing reports fail; rerun the pin acceptance jobs together while the
+  original candidate/publication artifacts remain retained. Expired artifacts
+  require a new candidate/version, not fabricated or copied evidence.
+
+If a race or API failure occurs after a ref or PR was created, inspect the
+retained failure report and that version's branch/PR before retrying. The helper
+preserves external state rather than deleting or rewriting it automatically.
+Close an unmerged proposal to prevent activation. After merge, revert/remove
+the pin or restore a prior compatible pin to roll back routing. Installed skill
+files are unaffected.

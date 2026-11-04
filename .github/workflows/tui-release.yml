@@ -15,6 +15,11 @@ on:
         required: false
         type: boolean
         default: false
+      propose_pin:
+        description: Propose the verified pin for manual review (requires publish)
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -28,6 +33,11 @@ jobs:
     outputs:
       source_sha: ${{ steps.resolve.outputs.source_sha }}
     steps:
+      - name: Reject proposal without publication
+        if: inputs.propose_pin && !inputs.publish
+        run: |
+          echo "propose_pin requires publish=true" >&2
+          exit 1
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.workflow_sha }}
@@ -264,6 +274,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 tooling/scripts/tui_publication_gate.py check
   publication:
+    outputs:
+      report_id: ${{ steps.publication-report.outputs.artifact-id }}
+      publication_attempt: ${{ github.run_attempt }}
     # Remove this hold only after recording disposable-repository hosted acceptance.
     if: false && inputs.publish && needs.preflight.result == 'success' && needs.aggregate.result == 'success' && needs.publication-check.outputs.approved == 'true'
     needs: [preflight, build, aggregate, publication-check]
@@ -314,9 +327,279 @@ jobs:
         if: always()
         run: python3 tooling/scripts/tui_publication_gate.py summary
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: publication-report
         if: always()
         with:
           name: tui-publication-${{ github.run_attempt }}
           path: publication-report.json
+          if-no-files-found: error
+          retention-days: 30
+  pin-preflight:
+    if: inputs.propose_pin && needs.publication.result == 'success'
+    needs: [preflight, build, aggregate, publication]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      base_sha: ${{ steps.prepare.outputs.base_sha }}
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+      PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+      RECORD_ID: ${{ needs.build.outputs.record_id }}
+      RESULT_ID: ${{ needs.aggregate.outputs.result_id }}
+      VERIFICATION_ATTEMPT: ${{ needs.aggregate.outputs.verification_attempt }}
+      PUBLICATION_ID: ${{ needs.publication.outputs.report_id }}
+      PUBLICATION_ATTEMPT: ${{ needs.publication.outputs.publication_attempt }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      PROPOSE_PIN: ${{ inputs.propose_pin }}
+      PUBLISH: ${{ inputs.publish }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.aggregate.outputs.result_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.publication.outputs.report_id }}
+          path: .
+          merge-multiple: true
+      - name: Check verified publication and resolve current proposal base
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/tui_pin_gate.py prepare
+  launcher:
+    needs: [preflight, build, aggregate, publication, pin-preflight]
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-amd64
+            runner: ubuntu-24.04
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+          - target: darwin-amd64
+            runner: macos-15-intel
+          - target: darwin-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+      PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+      RECORD_ID: ${{ needs.build.outputs.record_id }}
+      RESULT_ID: ${{ needs.aggregate.outputs.result_id }}
+      VERIFICATION_ATTEMPT: ${{ needs.aggregate.outputs.verification_attempt }}
+      PUBLICATION_ID: ${{ needs.publication.outputs.report_id }}
+      PUBLICATION_ATTEMPT: ${{ needs.publication.outputs.publication_attempt }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      BASE_SHA: ${{ needs.pin-preflight.outputs.base_sha }}
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.pin-preflight.outputs.base_sha }}
+          path: proposal-base
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.aggregate.outputs.result_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.publication.outputs.report_id }}
+          path: .
+          merge-multiple: true
+      - name: Check published HTTPS assets and offline cache through real setup
+        run: python3 tooling/scripts/tui_pin_gate.py native
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: native-report
+        if: always()
+        with:
+          name: tui-pin-${{ matrix.target }}-${{ github.run_attempt }}
+          path: |
+            pin-${{ matrix.target }}.json
+            pin-failure.json
+          if-no-files-found: error
+          retention-days: 30
+  pin-aggregate:
+    if: always() && inputs.propose_pin
+    needs: [preflight, build, aggregate, publication, pin-preflight, launcher]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      result_id: ${{ steps.pin-result.outputs.artifact-id }}
+      report_ids: ${{ steps.reports.outputs.ids }}
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+      PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+      RECORD_ID: ${{ needs.build.outputs.record_id }}
+      RESULT_ID: ${{ needs.aggregate.outputs.result_id }}
+      VERIFICATION_ATTEMPT: ${{ needs.aggregate.outputs.verification_attempt }}
+      PUBLICATION_ID: ${{ needs.publication.outputs.report_id }}
+      PUBLICATION_ATTEMPT: ${{ needs.publication.outputs.publication_attempt }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      BASE_SHA: ${{ needs.pin-preflight.outputs.base_sha }}
+      PIN_NEEDS: ${{ toJSON(needs) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.aggregate.outputs.result_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.publication.outputs.report_id }}
+          path: .
+          merge-multiple: true
+      - name: Resolve exact current native pin reports
+        id: reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/tui_pin_gate.py reports
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ steps.reports.outputs.ids }}
+          path: pin-reports
+          merge-multiple: true
+      - name: Require complete matching publication and native pin evidence
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/tui_pin_gate.py aggregate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: pin-result
+        if: always()
+        with:
+          name: tui-pin-result-${{ github.run_attempt }}
+          path: |
+            pin-result.json
+            pin-failure.json
+          if-no-files-found: error
+          retention-days: 30
+  proposal:
+    if: inputs.propose_pin && needs.publication.result == 'success' && needs.pin-aggregate.result == 'success'
+    needs: [preflight, build, aggregate, publication, pin-preflight, pin-aggregate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+      WORKFLOW_SHA: ${{ github.workflow_sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ needs.build.outputs.run_attempt }}
+      PAYLOAD_ID: ${{ needs.build.outputs.payload_id }}
+      RECORD_ID: ${{ needs.build.outputs.record_id }}
+      RESULT_ID: ${{ needs.aggregate.outputs.result_id }}
+      VERIFICATION_ATTEMPT: ${{ needs.aggregate.outputs.verification_attempt }}
+      PUBLICATION_ID: ${{ needs.publication.outputs.report_id }}
+      PUBLICATION_ATTEMPT: ${{ needs.publication.outputs.publication_attempt }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      PIN_RESULT_ID: ${{ needs.pin-aggregate.outputs.result_id }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.payload_id }}
+          path: payload
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.aggregate.outputs.result_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.publication.outputs.report_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pin-aggregate.outputs.result_id }}
+          path: .
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pin-aggregate.outputs.report_ids }}
+          path: pin-reports
+          merge-multiple: true
+      - name: Recheck retained evidence and create or reuse a manifest-only proposal
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tooling/scripts/tui_pin_gate.py write
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: proposal-report
+        if: always()
+        with:
+          name: tui-proposal-${{ github.run_attempt }}
+          path: |
+            proposal-report.json
+            pin-failure.json
           if-no-files-found: error
           retention-days: 30

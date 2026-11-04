@@ -136,7 +136,8 @@ For non-interactive installation:
 Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
 without downloading. If the TUI launcher fails, setup stops; use
 `make install-cli` to continue with Bash. See
-[launcher and cache details](docs/tui-releases.md#verified-launcher).
+[launcher and cache details](docs/tui-releases.md#verified-launcher) and
+[release dispatch and pin review](docs/tui-releases.md#dispatch-and-review).
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
 settings; unspecified settings use saved values or defaults. `--list` and
