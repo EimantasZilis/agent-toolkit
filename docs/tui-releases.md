@@ -23,8 +23,8 @@ or later, and the repository's usual tools.
    records the version, target, and backend protocol. `release.json` also
    records archive and executable hashes.
 
-3. Compare the archives with `SHA256SUMS`. On each available target, run
-   `agent-toolkit --version` and try the UI. Record which targets you ran.
+3. Validate the complete release using the command below. On each available
+   target, run `agent-toolkit --version` and try the UI. Record which targets you ran.
    Release builds print the requested version; development builds print `development`.
 
 4. Publish the four ZIPs, checksums, and metadata to the matching GitHub release
@@ -39,6 +39,40 @@ or later, and the repository's usual tools.
 6. Test fresh and cached terminal `make install`, non-terminal setup, and
    `make install-cli` against the published release before marking it active.
    Local builds and fixture tests do not verify published assets.
+
+## Validate release files
+
+Use the read-only validator to check all four archives, `SHA256SUMS`, and
+`release.json` together:
+
+```sh
+python3 scripts/validate_tui_release.py --version v0.1.0 --directory dist/tui/v0.1.0
+```
+
+The command checks archive and executable hashes, exact embedded metadata,
+member paths and permissions, and the complete target and checksum lists.
+It rejects duplicate JSON fields and ZIP members. Input files and ZIP members
+are limited to 64 MiB each. It never extracts or executes binaries, builds,
+downloads, or changes the supplied files. Unrelated files in the directory
+are ignored. A validation failure names the affected file or field and exits
+with a nonzero status.
+
+For a downloaded release, retain the original build's `release.json` separately
+and compare against those bytes:
+
+```sh
+python3 scripts/validate_tui_release.py --version v0.1.0 \
+  --directory /tmp/downloaded-release \
+  --expected-manifest /path/to/retained-build/release.json
+```
+
+Without `--expected-manifest`, success establishes internal consistency only.
+Someone who replaces the archives and both hash records can produce another
+internally consistent release. The optional argument requires an exact byte
+match with the separately retained manifest, then checks the archives against
+its hashes. Use trusted build evidence for that file; a manifest downloaded
+alongside the release provides no independent comparison. This command does
+not establish publication, provenance, runtime behavior, or visual approval.
 
 ## Verified launcher
 
