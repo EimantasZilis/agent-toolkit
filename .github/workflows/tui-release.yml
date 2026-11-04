@@ -11,7 +11,7 @@ on:
         required: false
         type: string
       publish:
-        description: Publish and verify the checked candidate
+        description: Check publication readiness (release writes disabled pending hosted validation)
         required: false
         type: boolean
         default: false
@@ -264,7 +264,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 tooling/scripts/tui_publication_gate.py check
   publication:
-    if: inputs.publish && needs.preflight.result == 'success' && needs.aggregate.result == 'success' && needs.publication-check.outputs.approved == 'true'
+    # Remove this hold only after recording disposable-repository hosted acceptance.
+    if: false && inputs.publish && needs.preflight.result == 'success' && needs.aggregate.result == 'success' && needs.publication-check.outputs.approved == 'true'
     needs: [preflight, build, aggregate, publication-check]
     runs-on: ubuntu-24.04
     timeout-minutes: 20

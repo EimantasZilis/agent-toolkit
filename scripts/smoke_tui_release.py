@@ -14,6 +14,7 @@ import platform
 import pty
 import re
 import select
+import selectors
 import signal
 import struct
 import subprocess
@@ -25,6 +26,8 @@ import zipfile
 from pathlib import Path
 
 import validate_tui_release as validator
+
+VERSION_OUTPUT_LIMIT = 4096
 
 
 def native_target() -> str:
@@ -143,11 +146,7 @@ def terminal_check(
         drive_terminal(process, master, timeout)
     finally:
         if process is not None:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass  # The entire session already exited.
-            process.wait()
+            stop_process(process)
         os.close(master)
         if slave != -1:
             os.close(slave)
@@ -166,23 +165,63 @@ def verified_binary(directory: Path, version: str, target: str) -> bytes:
         return validator.read_member(bundle, "agent-toolkit")
 
 
+def stop_process(process: subprocess.Popen[bytes]) -> None:
+    """Kill the process group, including descendants of an exited parent."""
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass  # The entire session already exited.
+    process.wait()
+
+
+def version_output(
+    process: subprocess.Popen[bytes], timeout: float
+) -> tuple[bytes, bytes]:
+    """Drain both pipes within one deadline and a 4 KiB limit per stream."""
+    deadline = time.monotonic() + timeout
+    streams = [bytearray(), bytearray()]
+    with selectors.DefaultSelector() as selector:
+        selector.register(process.stdout, selectors.EVENT_READ, 0)
+        selector.register(process.stderr, selectors.EVENT_READ, 1)
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ValueError("version timeout")
+            for key, _ in selector.select(min(0.05, remaining)):
+                output = streams[key.data]
+                data = os.read(key.fd, VERSION_OUTPUT_LIMIT + 1 - len(output))
+                if not data:
+                    selector.unregister(key.fileobj)
+                    continue
+                output.extend(data)
+                if len(output) > VERSION_OUTPUT_LIMIT:
+                    raise ValueError("version output exceeds 4 KiB per-stream limit")
+    process.wait(timeout=max(0, deadline - time.monotonic()))
+    if process.returncode != 0:
+        raise ValueError(f"version command exited with status {process.returncode}")
+    return bytes(streams[0]), bytes(streams[1])
+
+
 def version_check(
     binary: Path, environment: dict[str, str], version: str, timeout: float
 ) -> None:
-    """Require the exact protocol/version line from the native executable."""
-    result = subprocess.run(
+    """Require exact version output with bounded reads and process-group cleanup."""
+    with subprocess.Popen(
         [str(binary), "--version"],
         env=environment,
         cwd=environment["AGENT_TOOLKIT_HOME"],
-        capture_output=True,
-        timeout=timeout,
-        check=True,
-    )
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    ) as process:
+        try:
+            stdout, stderr = version_output(process, timeout)
+        finally:
+            stop_process(process)
     expected = f"agent-toolkit {version}; managed protocol 1\n".encode()
-    if result.stdout != expected or result.stderr:
-        raise ValueError(
-            f"version output mismatch: {result.stdout!r} {result.stderr!r}"
-        )
+    if stdout != expected or stderr:
+        raise ValueError(f"version output mismatch: {stdout!r} {stderr!r}")
 
 
 def runtime_checks(

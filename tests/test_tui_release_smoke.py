@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -141,6 +143,71 @@ class SmokeTests(unittest.TestCase):
         report = smoke.smoke(VERSION, other, self.directory, self.checkout)
 
         self.assertIn("host mismatch", report["error"])
+
+
+class VersionCheckTests(unittest.TestCase):
+    """Exercise real pipes and descendant cleanup for faulty version commands."""
+
+    def setUp(self) -> None:
+        """Create a disposable executable and working directory."""
+        temporary = tempfile.TemporaryDirectory(prefix="version checks ")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.binary = self.root / "fixture"
+        self.environment = {
+            "PATH": os.environ["PATH"],
+            "AGENT_TOOLKIT_HOME": str(self.root),
+        }
+
+    def program(self, body: str) -> None:
+        """Write a native shell fixture without changing the release builder."""
+        self.binary.write_text("#!/bin/bash\n" + body)
+        self.binary.chmod(0o755)
+
+    def test_each_output_stream_is_bounded(self) -> None:
+        """GIVEN endless stdout or stderr WHEN checked THEN fail on size before timeout."""
+        for stream in ("1", "2"):
+            with self.subTest(stream=stream):
+                self.program(f"while :; do printf '%4096s' x >&{stream}; done\n")
+
+                with self.assertRaisesRegex(ValueError, "output exceeds"):
+                    smoke.version_check(self.binary, self.environment, VERSION, 2)
+
+    def test_timeout_cleans_descendants_even_after_parent_exit(self) -> None:
+        """GIVEN inherited pipes WHEN a parent hangs or exits THEN kill descendants at timeout."""
+        for parent in ("wait", "exit 0"):
+            with self.subTest(parent=parent):
+                marker = self.root / "leaked"
+                ready = self.root / "child-ready"
+                ready.unlink(missing_ok=True)
+                self.program(
+                    "(echo ready > child-ready; sleep 1; touch leaked) &\n"
+                    + parent
+                    + "\n"
+                )
+                started = time.monotonic()
+
+                with self.assertRaisesRegex(ValueError, "version timeout"):
+                    smoke.version_check(self.binary, self.environment, VERSION, 0.3)
+
+                self.assertLess(time.monotonic() - started, 3)
+                self.assertEqual(ready.read_text(), "ready\n")
+                time.sleep(1.1)
+                self.assertFalse(marker.exists(), "descendant survived cleanup")
+
+    def test_closed_pipes_do_not_bypass_process_deadline(self) -> None:
+        """GIVEN closed stdout/stderr WHEN the process hangs THEN the same deadline applies."""
+        self.program("exec 1>&- 2>&-\nsleep 30\n")
+
+        with self.assertRaises(smoke.subprocess.TimeoutExpired):
+            smoke.version_check(self.binary, self.environment, VERSION, 0.3)
+
+    def test_nonzero_version_exit_is_rejected(self) -> None:
+        """GIVEN correct output but nonzero exit WHEN checked THEN fail the version check."""
+        self.program(f"echo 'agent-toolkit {VERSION}; managed protocol 1'\nexit 7\n")
+
+        with self.assertRaisesRegex(ValueError, "status 7"):
+            smoke.version_check(self.binary, self.environment, VERSION, 2)
 
 
 if __name__ == "__main__":

@@ -174,9 +174,17 @@ it does not establish hosted runner availability or manual visual approval.
 
 ## Publish a checked candidate
 
-Set the workflow's `publish` option to true to publish the candidate produced
-by that same run. It defaults to false. Publication does not rebuild binaries,
-change the launcher pin, or provide manual visual approval.
+Live publication is disabled pending hosted acceptance. Setting `publish=true`
+runs the read-only publication checks, but a source-controlled `false` condition
+keeps the publication job from receiving write credentials or creating releases.
+The option defaults to false.
+
+Enable publication in a separate reviewed change only after recording the
+four-target candidate checks and a successful disposable-repository publication
+and retry. The disposable test copy may remove the hold for that validation;
+keep it in the production workflow until the evidence is recorded. The sequence
+below describes the intended behavior once that hold is removed. Publication
+does not rebuild binaries, change the launcher pin, or provide visual approval.
 
 A read-only job checks the approved aggregate, original native reports, source
 and workflow ancestry, and all seven retained evidence/payload artifact IDs.
