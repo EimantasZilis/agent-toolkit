@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
@@ -237,6 +238,49 @@ class ReleaseTests(unittest.TestCase):
                 self.replace_member("agent-toolkit", b"bad", mode)
 
                 self.assert_rejected("permissions")
+
+    def set_compression_header(self, name: str, compression: int) -> None:
+        """Advertise a codec in both ZIP headers without invoking that codec."""
+        with zipfile.ZipFile(self.archive) as bundle:
+            members = bundle.infolist()
+
+        data = bytearray(self.archive.read_bytes())
+        central_offset = data.index(b"PK\x01\x02")
+        for member in members:
+            if member.filename == name:
+                struct.pack_into("<H", data, member.header_offset + 8, compression)
+                struct.pack_into("<H", data, central_offset + 10, compression)
+            central_offset += (
+                46
+                + len(member.filename.encode())
+                + len(member.extra)
+                + len(member.comment)
+            )
+
+        self.archive.write_bytes(data)
+        self.refresh_archive_hash()
+
+    def test_unsupported_compression_fails_before_any_member_opens(self) -> None:
+        """GIVEN unsupported ZIP codecs WHEN checked THEN no decompression starts."""
+        for name in ("agent-toolkit", "metadata.json"):
+            for compression in (
+                zipfile.ZIP_STORED,
+                zipfile.ZIP_BZIP2,
+                zipfile.ZIP_LZMA,
+                99,
+            ):
+                with self.subTest(name=name, compression=compression):
+                    build_tui.archive_binary(
+                        self.binary, self.archive, self.metadata(self.target)
+                    )
+                    self.set_compression_header(name, compression)
+
+                    with patch.object(
+                        zipfile.ZipFile,
+                        "open",
+                        side_effect=AssertionError("must not decompress"),
+                    ):
+                        self.assert_rejected(f"{name}: unsupported compression")
 
     def test_malformed_and_duplicate_json_fail(self) -> None:
         """GIVEN ambiguous or malformed JSON WHEN read THEN validation rejects it."""

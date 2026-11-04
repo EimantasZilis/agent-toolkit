@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import io
 import json
-import lzma
 import re
 import stat
 import sys
@@ -103,7 +102,7 @@ def validate_checksums(data: bytes, records: dict[str, dict[str, str]]) -> None:
 
 
 def validate_members(bundle: zipfile.ZipFile) -> None:
-    """Require two unique bounded regular members with builder permissions."""
+    """Require two bounded DEFLATE members with builder names and permissions."""
     members = bundle.infolist()
     modes = {"agent-toolkit": 0o755, "metadata.json": 0o644}
     if sorted(item.filename for item in members) != sorted(modes):
@@ -111,6 +110,11 @@ def validate_members(bundle: zipfile.ZipFile) -> None:
             "unsafe archive members; expected agent-toolkit, metadata.json"
         )
     for item in members:
+        # Other codecs may allocate unbounded output before read() applies its limit.
+        if item.compress_type != zipfile.ZIP_DEFLATED:
+            raise ValueError(
+                f"{item.filename}: unsupported compression; expected DEFLATE"
+            )
         mode = item.external_attr >> 16
         if not stat.S_ISREG(mode) or stat.S_IMODE(mode) != modes[item.filename]:
             raise ValueError(f"{item.filename}: unsafe member type or permissions")
@@ -155,7 +159,6 @@ INPUT_ERRORS = (
     RuntimeError,
     EOFError,
     zlib.error,
-    lzma.LZMAError,
 )
 
 

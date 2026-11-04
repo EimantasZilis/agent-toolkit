@@ -52,10 +52,11 @@ python3 scripts/validate_tui_release.py --version v0.1.0 --directory dist/tui/v0
 The command checks archive and executable hashes, exact embedded metadata,
 member paths and permissions, and the complete target and checksum lists.
 It rejects duplicate JSON fields and ZIP members. Input files and ZIP members
-are limited to 64 MiB each. It never extracts or executes binaries, builds,
-downloads, or changes the supplied files. Unrelated files in the directory
-are ignored. A validation failure names the affected file or field and exits
-with a nonzero status.
+are limited to 64 MiB each. ZIP members must use the builder's DEFLATE
+compression; other methods are rejected before decompression. The validator
+never extracts or executes binaries, builds, downloads, or changes the supplied
+files. Unrelated files in the directory are ignored. A validation failure
+names the affected file or field and exits with a nonzero status.
 
 For a downloaded release, retain the original build's `release.json` separately
 and compare against those bytes:
