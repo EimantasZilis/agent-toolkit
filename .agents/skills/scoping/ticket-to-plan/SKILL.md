@@ -27,6 +27,18 @@ phase exit checks. Use [ ] for pending, [-] for active, and [x] for complete;
 make the next phase unambiguous. Record compatibility, rollback, and security
 assessment needs in the risks.
 
+Context must explain existing behavior, the problem, and constraints that
+affect implementation choices. Exclude planning history, inspection logs,
+generic disclaimers, and repeated goals. Keep it brief when little background
+is needed.
+
+Check the plan's accuracy, links, structure, and dependencies. Record tests and
+builds as future implementation validation; do not run them merely to generate
+the plan or satisfy its review checkpoint. Run an executable check only for an
+explicit user request, a repository rule covering the changed files, or a
+concrete uncertainty that affects the plan. Explain that reason, choose the
+narrowest relevant check, and distinguish its results from proposed validation.
+
 Keep the resulting plan sized for one focused, self-contained PR. Each phase
 must deliver one coherent outcome and include only the smallest necessary
 implementation, tests, configuration, and documentation. Split a phase when
