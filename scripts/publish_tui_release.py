@@ -292,6 +292,7 @@ class Publisher:
             draft="not_reached",
             public="not_reached",
             steps=[],
+            publication_attempt=os.environ.get("GITHUB_RUN_ATTEMPT"),
         )
         self.created: dict[str, object] | None = None
 

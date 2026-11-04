@@ -111,9 +111,10 @@ release to roll back the TUI. Neither action changes the installed skills.
 
 ## CI candidates
 
-The **TUI release candidate** Actions workflow builds and retains a checked
-candidate without publishing a release or changing the launcher pin. Dispatch
-it from the repository's default branch after this workflow is merged there.
+By default, the **TUI release candidate** Actions workflow builds and retains a
+checked candidate without publishing a release or changing the launcher pin.
+Dispatch it from the repository's default branch after this workflow is merged
+there.
 Supply a version such as `v0.1.0`. Leave `source_ref` empty to use the dispatch
 SHA, or supply a commit/ref reachable from the default branch. Preflight rejects
 invalid versions and untrusted sources before Go setup or build output.
@@ -156,8 +157,9 @@ A partial retry preserves the original payload identity, but approval requires
 all four reports from the current verification attempt. If a partial retry
 cannot supply all reports, rerun all jobs to create and check a new candidate;
 do not substitute old reports or rebuild under an existing payload ID.
-Per-version concurrency prevents overlapping candidate runs. No release tags,
-release assets, activation pins, or PRs are written by this workflow.
+Per-version concurrency prevents overlapping candidate runs. With `publish`
+left false, no release tags or assets are written. Source pins and activation
+PRs are never changed by the candidate or publication stages.
 
 For a local native runtime check after building all four targets:
 
@@ -169,3 +171,78 @@ python3 scripts/smoke_tui_release.py --version v0.1.0 \
 
 Choose the target matching the actual host. This verifies only that target;
 it does not establish hosted runner availability or manual visual approval.
+
+## Publish a checked candidate
+
+Set the workflow's `publish` option to true to publish the candidate produced
+by that same run. It defaults to false. Publication does not rebuild binaries,
+change the launcher pin, or provide manual visual approval.
+
+A read-only job checks the approved aggregate, original native reports, source
+and workflow ancestry, and all seven retained evidence/payload artifact IDs.
+Every artifact must belong to that workflow run and remain available. The
+publication job repeats these checks before its first release write. It runs
+only trusted workflow tooling; it never executes release binaries or backend
+scripts from the release source. Only this job receives `contents: write`;
+artifact checks also need `actions: read`. Other jobs keep read-only access.
+
+The publication sequence is:
+
+1. Validate the retained six files and their candidate hashes. Require the
+   requested repository, version, source SHA, original run/attempt, payload ID,
+   report IDs, and verification attempt to match trusted workflow outputs.
+2. Require an existing lightweight or annotated tag to resolve to the checked
+   commit. Create a missing tag at that commit. Never move an existing tag.
+3. Create an unverified draft whose body records the exact candidate identity.
+   Upload only the four archives, `SHA256SUMS`, and `release.json`.
+4. Download all six draft assets through the authenticated API. Compare each
+   with retained hashes and validate against the retained manifest.
+5. Expose the release while keeping its unverified warning. Download all six
+   public URLs used by the launcher without credentials, then repeat hash and
+   manifest validation. Availability errors get at most three attempts per
+   file; a checksum mismatch fails immediately.
+6. Remove the warning only after public verification succeeds. Retain
+   `publication-report.json` in `tui-publication-<attempt>` for 30 days.
+
+Only a report with `status: verified`, passed draft/public checks, matching
+candidate identity, and six matching expected/actual hashes can be used by the
+later activation stage. The workflow's publication job must also succeed.
+The report includes release ID/tag/URL, completed steps, original candidate
+identity, current publication attempt, and failures. An unverified report or
+failed job blocks activation even if a tag or public release already exists.
+
+Existing releases are conflicts unless their ownership marker identifies the
+same candidate and their complete asset set matches retained bytes. Identical
+public retries reverify without uploads. A complete owned draft can finish
+publication after fresh checks. A partial upload, duplicate name, extra asset,
+different candidate, changed tag, or changed download fails without replacing
+assets or moving tags. A new run creates a new candidate and cannot silently
+adopt an old release, even when both candidates use the same source commit.
+
+The implementation follows GitHub's [release API](https://docs.github.com/en/rest/releases/releases)
+and [asset download API](https://docs.github.com/en/rest/releases/assets).
+Authenticated asset redirects strip credentials before contacting storage.
+All downloads require HTTPS and are bounded to 64 MiB each.
+
+## Recover an unverified publication
+
+Inspect the failed job summary and retained publication report first. Record
+the release ID, tag, candidate run/payload IDs, completed steps, and failed asset.
+A warning update can itself fail; an unverified report still blocks activation.
+
+- For a transient download failure with a complete owned draft/public release,
+  retry only publication while the original candidate and all evidence remain
+  retained. Original run/attempt and payload identity stay unchanged.
+- For a partial upload, stop and inspect ownership and tag/SHA agreement. A
+  maintainer may remove only that failed attempt's owned draft and its assets,
+  then retry publication of the original retained candidate. Leave the tag at
+  its checked commit. The helper does not delete releases/assets or repair
+  partial uploads automatically.
+- For a conflicting or unverified public release, do not overwrite assets or
+  move the tag. Resolve it manually or choose a new version and candidate.
+- If artifacts have expired, start a new candidate run with a new version.
+
+Before relying on publication, test a unique version in a disposable repository
+with trusted workflow code. Verify downloaded public bytes, the final tag SHA,
+identical-candidate retries, and the retained report. Local fake-API tests do
+not establish live publication or hosted runner availability.

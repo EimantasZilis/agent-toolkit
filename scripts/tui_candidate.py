@@ -77,6 +77,7 @@ def candidate(directory: Path) -> dict[str, object]:
     validate_identity(record)
     record["hashes"] = payload_hashes(directory, record["version"])
     record["retention_days"] = 30
+    record["repository"] = os.environ["GITHUB_REPOSITORY"]
     return record
 
 
