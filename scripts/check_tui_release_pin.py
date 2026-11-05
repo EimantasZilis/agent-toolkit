@@ -178,7 +178,7 @@ def launcher_cycle(
     expected = f"agent-toolkit {manifest['version']}; managed protocol 1\n".encode()
     if output != expected:
         raise ValueError("launcher native version mismatch")
-    terminal_command(["make", "install"], checkout, environment, 60)
+    terminal_command(["python3", "scripts/launch_tui.py"], checkout, environment, 60)
     binary = (
         Path(environment["XDG_CACHE_HOME"])
         / "agent-toolkit-tui"

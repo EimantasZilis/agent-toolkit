@@ -14,10 +14,12 @@ cd agent-toolkit
 make install
 ```
 
-This checkout uses the Bash installer. Once a published TUI release is pinned,
-`make install` will open the [setup TUI](docs/tui.md) in a terminal. It will need
-Python 3.9 or later and HTTPS access for the first download. Go is not required.
-Use `make install-cli` to run Bash at any time.
+Terminal `make install` opens the [setup TUI](docs/tui.md) from the current
+checkout. It also requires Go at the version declared in `go.mod` (currently
+1.27.3). The first launch may download modules and a compatible toolchain;
+subsequent launches use Go’s build cache and include source changes automatically.
+Use `make install-cli` for Bash setup without Go. Keep this clone for the
+backend and linked resources.
 
 In Bash, choose `codex` or `claude` when prompted. Fresh defaults install the
 starter bundle (`concise-output` and `commit-message`), keep Markdown output in the
@@ -134,10 +136,8 @@ For non-interactive installation:
 ```
 
 Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
-without downloading. If the TUI launcher fails, setup stops; use
-`make install-cli` to continue with Bash. See
-[launcher and cache details](docs/tui-releases.md#verified-launcher) and
-[release dispatch and pin review](docs/tui-releases.md#dispatch-and-review).
+without invoking Go. If source setup fails, diagnostics remain visible and
+setup stops; use `make install-cli` to continue with Bash.
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
 settings; unspecified settings use saved values or defaults. `--list` and
