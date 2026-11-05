@@ -76,3 +76,11 @@ grouped by category, with categories ordered alphabetically. Within each
 category, follow the workflow order where one exists; otherwise, order skills
 alphabetically by name. Put shared guidance before the workflow steps it
 supports, and order independent skills alphabetically.
+
+## Source application checks
+
+Go uses the version declared in `go.mod`. Run `go test ./...`, `go vet ./...`,
+and `make smoke-source` when changing setup or the TUI. The smoke check needs
+Python 3.9 or later and runs in an isolated spaced checkout. CI runs the source
+checks and `make verify` on macOS and Linux with read-only repository access.
+Native package builds are independent of application delivery.

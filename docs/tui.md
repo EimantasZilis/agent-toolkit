@@ -70,3 +70,18 @@ Press `t` to cycle the Midnight, Ocean, and Daylight palettes; `T` cycles
 backwards. The selection is for the current run and does not change saved
 installation settings. [Lip Gloss](https://github.com/charmbracelet/lipgloss)
 renders the palettes and adapts colors to the terminal's color profile.
+
+## Source verification and retired binary releases
+
+`make smoke-source` opens real setup twice in a disposable checkout with a space
+in its path. It quits without applying, checks provider files and saved settings,
+and verifies that a harmless source change appears on the second launch.
+Source CI runs this check on macOS and Linux alongside Go tests, vet, and
+`make verify`. Python 3.9 or later is a contributor prerequisite for these checks.
+
+The former binary-release workflow, launcher, pins, and download service are
+retired. Setup uses Go’s cache. Old toolkit executable caches are unused:
+`${XDG_CACHE_HOME:-$HOME/.cache}/agent-toolkit-tui`. You may remove that directory
+manually; setup does not delete it. Native plugin packaging remains supported.
+Historical Git commits and external planning/evidence artifacts may still name
+the retired release commands. They describe the old delivery process.
