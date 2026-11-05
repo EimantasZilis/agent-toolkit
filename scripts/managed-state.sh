@@ -50,6 +50,46 @@ managed_check_state_paths() {
   managed_regular_or_absent "$managed_inventory_file"
 }
 
+managed_validate_state_pair() {
+  local key
+  if [[ -f "$managed_settings_file" || -f "$managed_inventory_file" ]]; then
+    [[ -f "$managed_settings_file" && -f "$managed_inventory_file" ]] || {
+      printf 'Error: incomplete managed state; restore settings and inventory together.\n' >&2
+      return 1
+    }
+    for key in STATE_VERSION PROVIDERS REQUESTED_SKILLS RETAINED_HELPERS MARKDOWN_OUTPUT_PATH CONCISE_OUTPUT GLOBAL_GUIDANCE; do
+      [[ $(grep -c "^$key=" "$managed_settings_file") == 1 ]] || {
+        printf 'Error: managed settings require exactly one %s entry.\n' "$key" >&2
+        return 1
+      }
+    done
+  fi
+}
+
+managed_import_guidance() {
+  local provider destination marker hash expected
+  for provider in codex claude; do
+    destination=$(LLM_PROVIDER=$provider provider_guidance_dest)
+    marker=$(owned_marker "$(dirname "$destination")")
+    if link_points_to "$destination" "$(source_guidance)" ||
+      link_points_to "$destination" "$AGENT_TOOLKIT_HOME/.agents/global/AGENTS.md"; then
+      managed_providers=$(managed_words "$managed_providers" "$provider")
+      managed_full_template=true
+      continue
+    fi
+    [[ -f "$destination" && ! -L "$destination" && -f "$marker" && ! -L "$marker" ]] || continue
+    grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker" || continue
+    expected=$(awk '$1 == "GUIDANCE_BLOCK" { print $2 }' "$marker")
+    hash=$(awk -v start="$agent_toolkit_start" -v end="$agent_toolkit_end" '
+      $0 == start { inside = 1 } inside { print } $0 == end { inside = 0 }
+    ' "$destination" | shasum -a 256 | awk '{print $1}')
+    if ! is_managed_guidance "$destination" && [[ -z "$expected" || "$hash" != "$expected" ]]; then continue; fi
+    managed_providers=$(managed_words "$managed_providers" "$provider")
+    if grep -Fxq '# agent-toolkit guidance' "$destination"; then managed_full_template=true; fi
+    if has_concise_output_block "$destination"; then managed_concise=true; fi
+  done
+}
+
 managed_lock() {
   managed_check_state_paths
   mkdir -p -- "$managed_state_dir"
@@ -123,8 +163,9 @@ managed_read_inventory() {
 managed_load() {
   local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env} provider selection installed
   managed_state_paths
-  managed_check_state_paths
-  managed_read_inventory
+  managed_check_state_paths || return 1
+  managed_validate_state_pair || return 1
+  managed_read_inventory || return 1
   managed_providers=''
   managed_requested=''
   managed_retained=''
@@ -159,6 +200,8 @@ managed_load() {
     managed_output=$(config_value "$legacy" MARKDOWN_OUTPUT_PATH || true)
     managed_concise=$(boolean_setting CONCISE_OUTPUT "$(config_value "$legacy" CONCISE_OUTPUT || printf True)")
     managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$(config_value "$legacy" GLOBAL_GUIDANCE || printf True)")
+    # Legacy concise loading was gated by global guidance, unlike protocol v1.
+    [[ "$managed_full_template" == true ]] || managed_concise=false
   fi
   for provider in codex claude; do
     installed=$(managed_words "$(managed_observed_skills "$provider")")
@@ -170,6 +213,7 @@ managed_load() {
     managed_providers=$(managed_words "$managed_providers" "$provider")
     managed_requested=$(managed_words "$managed_requested" "$installed")
   done
+  managed_import_guidance
   managed_validate_settings
 }
 
@@ -215,6 +259,7 @@ managed_save_legacy() {
   managed_output=$configured_output
   managed_concise=$CONCISE_OUTPUT
   managed_full_template=$GLOBAL_GUIDANCE
+  [[ "$managed_full_template" == true ]] || managed_concise=false
   case "$provider" in
     codex) inventory_codex=$(managed_words "$(managed_observed_skills codex)") ;;
     claude) inventory_claude=$(managed_words "$(managed_observed_skills claude)") ;;

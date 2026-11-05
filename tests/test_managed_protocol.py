@@ -112,6 +112,106 @@ class ManagedProtocolTests(unittest.TestCase):
         self.assertEqual(stale["error"]["code"], "stale_revision")
         self.assertFalse((self.toolkit / "config/apply.lock").exists())
 
+    def test_canonical_state_ignores_changed_legacy_preferences(self) -> None:
+        """GIVEN applied state WHEN legacy data changes THEN saved choices win."""
+        arguments = (
+            "--provider",
+            "codex",
+            "--provider",
+            "claude",
+            "--skill",
+            "ticket-to-plan",
+            "--concise",
+            "true",
+            "--output-path",
+            str(self.root / "saved output"),
+        )
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+        (self.root / "legacy.env").write_text(
+            "LLM_PROVIDER=unknown\nSKILL_SELECTION=$(touch PWN)\n"
+            "CONCISE_OUTPUT=False\nMARKDOWN_OUTPUT_PATH=/wrong\n"
+        )
+
+        status = self.command("status")
+        unchanged = self.command("preview")
+
+        self.assertEqual(status["desired"], preview["desired"])
+        self.assertEqual(
+            unchanged["desired"],
+            dict(
+                preview["desired"], retained_helpers=["concise-output", "plan-review"]
+            ),
+        )
+        self.assertFalse(unchanged["confirmation_required"])
+        self.assertFalse((self.root / "PWN").exists())
+
+    def test_legacy_disabled_guidance_does_not_enable_concise_loading(self) -> None:
+        """GIVEN disabled legacy guidance WHEN imported THEN loading stays disabled."""
+        (self.root / "legacy.env").write_text(
+            "LLM_PROVIDER=codex\nSKILL_SELECTION=commit-message\n"
+            "CONCISE_OUTPUT=True\nGLOBAL_GUIDANCE=False\nMARKDOWN_OUTPUT_PATH=\n"
+        )
+
+        imported = self.command("preview")
+
+        self.assertFalse(imported["desired"]["concise_output"])
+        self.assertEqual(
+            [item["name"] for item in imported["operations"]], ["commit-message"]
+        )
+        self.assert_no_installation()
+
+    def test_partial_or_duplicate_canonical_state_is_rejected_read_only(self) -> None:
+        """GIVEN damaged canonical state WHEN loaded THEN no legacy fallback writes."""
+        arguments = ("--provider", "codex", "--skill", "commit-message")
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+        settings = self.toolkit / "config/settings.env"
+        inventory = self.toolkit / "config/inventory.json"
+        original = settings.read_bytes()
+        saved_inventory = inventory.read_bytes()
+
+        inventory.unlink()
+        self.command("status", expected=1)
+        self.assertEqual(settings.read_bytes(), original)
+        inventory.write_bytes(saved_inventory)
+        settings.write_bytes(original + b"PROVIDERS=claude\n")
+        self.command("preview", expected=1)
+
+        self.assertEqual(settings.read_bytes(), original + b"PROVIDERS=claude\n")
+        self.assertEqual(inventory.read_bytes(), saved_inventory)
+        self.assertFalse((self.toolkit / "config/apply.lock").exists())
+
+    def test_legacy_import_preserves_verified_guidance_and_both_providers(self) -> None:
+        """GIVEN observed installs WHEN state is imported THEN nothing is pruned."""
+        arguments = (
+            "--provider",
+            "codex",
+            "--provider",
+            "claude",
+            "--skill",
+            "ticket-to-plan",
+            "--full-template",
+            "true",
+            "--concise",
+            "true",
+        )
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+        shutil.rmtree(self.toolkit / "config")
+        (self.root / "legacy.env").write_text(
+            "LLM_PROVIDER=codex\nSKILL_SELECTION=starter\n"
+            "CONCISE_OUTPUT=False\nGLOBAL_GUIDANCE=False\nMARKDOWN_OUTPUT_PATH=\n"
+        )
+
+        imported = self.command("preview")
+
+        self.assertEqual(imported["desired"]["providers"], ["claude", "codex"])
+        self.assertTrue(imported["desired"]["full_template"])
+        self.assertTrue(imported["desired"]["concise_output"])
+        self.assertFalse(imported["confirmation_required"])
+        self.assertFalse((self.toolkit / "config").exists())
+
     def test_invalid_versions_and_arguments_fail_without_writes(self) -> None:
         """GIVEN unsupported or hostile input WHEN called THEN no shell code runs."""
         cases = (

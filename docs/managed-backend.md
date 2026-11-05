@@ -41,6 +41,18 @@ selected. Legacy `.env` choices and differing owned installations are imported
 without removal. Removing a parent retains installed helpers; disabling concise
 loading retains `concise-output`. Use explicit removal to discard an unused skill.
 
+Once `config/settings.env` and `config/inventory.json` exist, they are the
+canonical state. Later changes to the legacy import file do not change desired
+settings. Both canonical files must be present; missing files or duplicated
+required settings stop loading instead of silently importing defaults.
+
+The first import includes observed owned skills and verified owned guidance
+from both providers. Verified full-template and concise-loading blocks remain
+enabled even if an older `.env` disabled later writes while leaving those
+blocks installed. Preview remains read-only; explicit changes can then propose
+removals with confirmation. Legacy concise loading remains disabled when global
+guidance was disabled; importing a dormant preference does not enable it.
+
 `AGENTS_HOME`, `CODEX_HOME`, and `CLAUDE_HOME` retain their destination overrides.
 `AGENT_TOOLKIT_ENV_FILE` selects the legacy import file. `MARKDOWN_OUTPUT_PATH`
 overrides rendering for this invocation without changing saved preferences;
