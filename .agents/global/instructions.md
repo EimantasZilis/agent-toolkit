@@ -21,6 +21,10 @@ by the task or skill.
   numbered lists for ordered steps.
 - Give each section one purpose. State each point once and keep only useful
   detail.
+- Use Context for current behavior, the problem, and constraints the reader
+  needs to understand decisions. Exclude authoring history, inspection logs,
+  generic disclaimers, and repeated goals. Omit optional sections with no
+  useful content; keep required sections brief and factual.
 - Include implementation details and how-to steps when readers need them for
   the task.
 - Preserve important requirements when simplifying. Move supporting details

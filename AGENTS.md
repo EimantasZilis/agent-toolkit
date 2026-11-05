@@ -12,3 +12,6 @@ rules in [CONTRIBUTING.md](CONTRIBUTING.md). When adding or editing skills,
 keep [README.md](README.md) up to date with the skills and their summaries.
 
 Run `make verify` before reporting a structural change complete.
+This covers skills, tooling, provider adapters, and installation contracts.
+Generating plans or editing ordinary documentation does not trigger it; use
+artifact checks unless a specific claim needs an executable check.

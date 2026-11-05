@@ -10,11 +10,21 @@ supplied plan path first; otherwise search the current branch's managed
 `ticket-to-plan` output directory, requiring the user to choose if multiple
 plans exist, then fall back to legacy `docs/planning/`. Do not implement code.
 
+This is a static plan review. Validation commands in the plan describe future
+implementation checks; do not execute them to approve the plan. Run a check
+only for an explicit user request, a repository rule covering the changed
+files, or a concrete uncertainty affecting review. Explain the reason and use
+the narrowest relevant check.
+
 Check that the README is the entrypoint, one phase is active or clearly next,
 each phase has atomic commits and observable exit checks, dependencies are
 explicit, phases remain mergeable, and irreversible or security-sensitive work
 has rollback and risk treatment. Report issues only; if none remain, say Ready
 to implement.
+
+Check that Context contains background that affects implementation decisions,
+without planning history, inspection logs, generic disclaimers, or repeated
+goals.
 
 For up to three passes, fix Critical and Medium planning defects in place,
 asking before a change would alter intent. Low-risk tightening is optional.

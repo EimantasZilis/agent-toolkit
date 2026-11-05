@@ -59,12 +59,12 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
 | productivity | [pr-comment](.agents/skills/productivity/pr-comment/SKILL.md) | Concise, human response to pull-request feedback. |
 | productivity | [to-clipboard](.agents/skills/productivity/to-clipboard/SKILL.md) | Copy the previous response to the clipboard as Markdown. |
 | productivity | [to-markdown](.agents/skills/productivity/to-markdown/SKILL.md) | Save the previous response as a formatted Markdown file. |
-| review | [plan-review](.agents/skills/review/plan-review/SKILL.md) | Gate plans before implementation. |
+| review | [plan-review](.agents/skills/review/plan-review/SKILL.md) | Review plan readiness . |
 | review | [annotate](.agents/skills/review/annotate/SKILL.md) | Explain branch changes in terminal output without modifying files. |
 | review | [review-branch](.agents/skills/review/review-branch/SKILL.md) | Evidence-based review of committed branch changes. |
-| scoping | [plan-writing-conventions](.agents/skills/scoping/plan-writing-conventions/SKILL.md) | Define plan structure, atomic scope, validation, and risks. |
+| scoping | [plan-writing-conventions](.agents/skills/scoping/plan-writing-conventions/SKILL.md) | Define plan structure, scope, validation, and risks. |
 | scoping | [quick-plan](.agents/skills/scoping/quick-plan/SKILL.md) | Investigate feasibility and give one recommendation without implementation or a commit plan. |
-| scoping | [requirements-to-tickets](.agents/skills/scoping/requirements-to-tickets/SKILL.md) | Turn feature briefs into small, self-contained backlog tickets. |
+| scoping | [requirements-to-tickets](.agents/skills/scoping/requirements-to-tickets/SKILL.md) | Turn feature briefs into small, self-contained tickets. |
 | scoping | [ticket-context](.agents/skills/scoping/ticket-context/SKILL.md) | Build a repository-backed context brief for a ticket. |
 | scoping | [ticket-to-plan](.agents/skills/scoping/ticket-to-plan/SKILL.md) | Turn a file, chat, or Jira ticket into an implementation-ready planning folder. |
 | scoping | [test-cases](.agents/skills/scoping/test-cases/SKILL.md) | Create prioritized Markdown manual test cases for branch changes. |
@@ -136,7 +136,8 @@ For non-interactive installation:
 Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
 without downloading. If the TUI launcher fails, setup stops; use
 `make install-cli` to continue with Bash. See
-[launcher and cache details](docs/tui-releases.md#verified-launcher).
+[launcher and cache details](docs/tui-releases.md#verified-launcher) and
+[release dispatch and pin review](docs/tui-releases.md#dispatch-and-review).
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
 settings; unspecified settings use saved values or defaults. `--list` and

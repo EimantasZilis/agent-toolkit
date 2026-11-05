@@ -49,7 +49,9 @@ tracker-specific syntax.
 **So that** <high_level_outcome>
 
 ## Context
-Add a few sentences what this ticket is for and why it is needed in the wider context.
+Explain current behavior, the problem, and constraints that affect this work.
+Include only background needed to understand the ticket. Omit planning history,
+inspection logs, generic disclaimers, and restatements of Outcome.
 
 ## Details
 Cover what to build. Use numbered lists or bullet points for specifics. Cover:
