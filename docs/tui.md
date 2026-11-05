@@ -1,6 +1,7 @@
 # Managed setup and settings TUI
 
-The TUI manages skills installed from this clone and their saved settings.
+The TUI and Bash setup share one managed installation engine and canonical
+settings. Both reconcile the desired providers and skills from this clone.
 Keep the clone for the installer and supporting files.
 [Native plugins](native-packages.md) are managed separately by each provider.
 

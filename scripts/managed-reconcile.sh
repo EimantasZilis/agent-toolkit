@@ -267,6 +267,18 @@ managed_apply() {
   done
   inventory_codex=$(managed_words "$(managed_observed_skills codex)")
   inventory_claude=$(managed_words "$(managed_observed_skills claude)")
-  managed_save
+  if [[ "${managed_forget:-false}" == true ]]; then
+    local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}
+    managed_regular_or_absent "$legacy"
+    backup_path "$legacy" copy
+    rm -f -- "$managed_settings_file"
+    if [[ "${AGENT_TOOLKIT_FAIL_STATE:-}" == after-settings ]]; then
+      printf 'Error: unable to remove managed state.\n' >&2
+      return 1
+    fi
+    rm -f -- "$managed_inventory_file" "$legacy"
+  else
+    managed_save
+  fi
   transaction_commit
 }

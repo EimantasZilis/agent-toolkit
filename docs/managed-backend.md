@@ -128,5 +128,18 @@ on stderr. Clients must check both exit status and `ok`.
 | 5 | `unsupported_protocol` | Use a supported protocol version |
 | 130 or 143 | `interrupted` | Inspect rollback diagnostics before retrying |
 
-The existing `scripts/install.sh` remains an additive CLI with human-readable
-output. It never implicitly prunes unselected skills.
+`scripts/install.sh` is the human-readable frontend to this same planner and
+apply transaction. Its `--provider` and `--skill` flags map directly to managed
+options. `--bundle` expands to repeated `--skill`; guidance flags map to
+`--full-template` and `--concise`. Unspecified values retain canonical settings.
+It applies the exact preview revision after conflict checks and default-No
+terminal removal confirmation, or explicit `--confirm-removals` in automation.
+
+`--dry-run`, `--list`, and `--help` do not write. Provider and skill selections
+replace the corresponding desired sets. This replaces the former additive Bash
+behavior. Use a dry run to inspect migration before authorizing removals.
+
+Uninstall uses the same owned-path planning and rollback rules with no providers
+selected. It removes canonical state and legacy input inside the transaction.
+Conflicts abort the entire uninstall, preserving state for recovery. It does not
+remove native plugins or claim unowned paths.

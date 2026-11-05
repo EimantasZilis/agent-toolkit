@@ -99,9 +99,9 @@ fixture uninstall
 apply_current --provider codex --skill commit-message --concise true
 cp "$CODEX_HOME/AGENTS.md" "$case_root/clean-guidance"
 printf '\n<!-- agent-toolkit:concise-output:start -->\nUser-edited loading instructions\n<!-- agent-toolkit:concise-output:end -->\n' >> "$CODEX_HOME/AGENTS.md"
-"$AGENT_TOOLKIT_HOME/scripts/uninstall.sh" > /dev/null 2> "$case_root/warnings"
+expect_failure 4 "$AGENT_TOOLKIT_HOME/scripts/uninstall.sh"
 assert_contains 'User-edited loading instructions' "$CODEX_HOME/AGENTS.md"
-assert_contains 'preserving modified or foreign guidance' "$case_root/warnings"
+assert_contains 'resolve ownership conflicts' "$case_root/error"
 cp "$case_root/clean-guidance" "$CODEX_HOME/AGENTS.md"
 "$AGENT_TOOLKIT_HOME/scripts/uninstall.sh" >/dev/null
 assert_contains 'User Codex instructions' "$CODEX_HOME/AGENTS.md"

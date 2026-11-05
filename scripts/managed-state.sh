@@ -251,18 +251,3 @@ managed_save() {
     return 1
   fi
 }
-
-managed_save_legacy() {
-  local provider=$LLM_PROVIDER
-  managed_providers=$(managed_words "$managed_providers" "$provider")
-  managed_requested=$(managed_words "$managed_requested" "$requested_names")
-  managed_output=$configured_output
-  managed_concise=$CONCISE_OUTPUT
-  managed_full_template=$GLOBAL_GUIDANCE
-  [[ "$managed_full_template" == true ]] || managed_concise=false
-  case "$provider" in
-    codex) inventory_codex=$(managed_words "$(managed_observed_skills codex)") ;;
-    claude) inventory_claude=$(managed_words "$(managed_observed_skills claude)") ;;
-  esac
-  managed_save
-}

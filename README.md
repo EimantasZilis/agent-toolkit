@@ -140,8 +140,18 @@ without invoking Go. If source setup fails, diagnostics remain visible and
 setup stops; use `make install-cli` to continue with Bash.
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
-settings; unspecified settings use saved values or defaults. `--list` and
-`--dry-run` write nothing. Install separately for each provider.
+settings; unspecified settings retain saved values. Fresh Bash setup defaults to
+Codex and `starter`. `--list`, `--help`, and `--dry-run` write nothing. Repeat
+`--provider` to select both providers in one operation:
+
+```bash
+./scripts/install.sh --provider codex --provider claude --bundle starter --dry-run
+```
+
+Explicit providers and skills replace their saved selections. Selecting fewer
+can remove owned installations. Review `--dry-run` first. A terminal asks for
+removal confirmation with a default of No; automation must pass
+`--confirm-removals`. Decline or EOF changes nothing.
 
 ### Installed files and guidance
 
@@ -154,9 +164,10 @@ settings; unspecified settings use saved values or defaults. `--list` and
 - Optional global guidance covers coding and Markdown output. Its writing rules
   apply to all documentation, whether created by a skill or edited directly.
   See [instructions.md](.agents/global/instructions.md).
-- Existing user content is preserved. Edited skills and guidance become
-  user-owned and are preserved on later installs.
-- Disabling global guidance leaves any previously installed guidance in place.
+- Existing user content is preserved. Edited skills and managed guidance blocks cause ownership conflicts.
+  The whole operation stops before writes so user changes remain intact.
+- Disabling guidance proposes removal of its verified managed block and requires
+  confirmation. Surrounding user instructions remain intact.
 - Installing `concise-output` alone does not make it a standing instruction.
 
 ### Configuration
@@ -180,27 +191,31 @@ the toolkit's guidance block and preserve surrounding instructions. The full
 global template remains an explicit CLI choice through `--full-template true`
 or the legacy installer's `--global-guidance` option.
 
-The Bash installer saves successful choices to `.env` and reuses them next time.
-Older configurations without selection or guidance settings retain `all` and
-enabled guidance.
+Bash setup and the TUI use one managed planner and transaction. Successful
+applies save desired settings in `config/settings.env` and the observed inventory
+in `config/inventory.json`. Both ignored files belong to this clone, independent
+of the caller’s directory. Provider files and saved state roll back together.
 
-Successful installs also record shared preferences in `config/settings.env` and
-actual installed skills for each provider in `config/inventory.json`. These
-ignored files stay under this toolkit clone, regardless of the caller's working
-directory. Existing installations are imported without removing skills; provider
-ownership markers still determine which files the toolkit may change.
+Before canonical state exists, setup imports `.env` as data and preserves owned
+installations from both providers. After migration, canonical state takes
+precedence; editing `.env` no longer changes setup. `AGENT_TOOLKIT_ENV_FILE`
+selects an alternate legacy import file. Legacy input is retained for recovery.
 
 | Setting | Values | Purpose |
 | --- | --- | --- |
-| `LLM_PROVIDER` | `codex`, `claude` | Installation provider |
-| `SKILL_SELECTION` | Bundle or space-separated skill names | Requested skills |
-| `GLOBAL_GUIDANCE` | `True`, `False` | Update global guidance |
+| `PROVIDERS` | Space-separated `codex` and/or `claude` | Desired providers |
+| `REQUESTED_SKILLS` | Space-separated skill names | Desired skills; bundles expand when selected |
+| `RETAINED_HELPERS` | Skill names | Installed helpers retained after parent removal |
+| `GLOBAL_GUIDANCE` | `true`, `false` | Full global template |
+| `CONCISE_OUTPUT` | `true`, `false` | Concise loading independently of the full template |
 | `MARKDOWN_OUTPUT_PATH` | Blank or absolute path | Repository or central Markdown storage |
-| `CONCISE_OUTPUT` | `True`, `False` | Standing concise output with global guidance; includes the skill |
 
-Use `AGENT_TOOLKIT_ENV_FILE` for a different settings file, including separate
-provider selections. `MARKDOWN_OUTPUT_PATH` also accepts a temporary environment
-override without changing the saved setting.
+Use `--output-path PATH` to save an output root (`''` selects repo-local).
+`MARKDOWN_OUTPUT_PATH` remains a temporary rendering override; it does not
+replace the saved preference. An explicit `--output-path` takes precedence.
+Use `--concise` or `--full-template` for independent settings. The older
+`--global-guidance` enables both, and `--no-global-guidance` disables both.
+An output root can still require a minimal output-policy block.
 
 | Output mode | Artifact location |
 | --- | --- |
@@ -227,11 +242,11 @@ git pull --ff-only
 make install
 ```
 
-For saved settings without prompts, use `./scripts/install.sh --provider codex`
-(or `claude`). Restart the client session afterward.
+For saved settings without prompts, use `./scripts/install.sh` outside a
+terminal. Restart the client session afterward.
 
-The Bash installer is additive: choosing fewer skills keeps earlier installs.
-The managed TUI supports removals with confirmation. The former
+Bash and the TUI both reconcile the saved desired selection. Choosing fewer
+skills or providers requires confirmation before owned paths are removed. The former
 `plan-conventions` skill also remains installed; its replacements are
 `plan-writing-conventions` and `plan-execution-conventions`.
 
@@ -251,8 +266,10 @@ The managed TUI supports removals with confirmation. The former
 make uninstall
 ```
 
-Removes managed skills and guidance for both providers and the installer's
-settings file. User-owned skills and configuration are preserved.
+Removes verified managed skills, guidance, canonical settings, and the legacy
+import file in one transaction. Unrelated user files and native plugins remain.
+Ownership conflicts stop uninstall before writes; resolve those conflicts and
+retry. Failed uninstall restores provider files and saved state together.
 
 ## Contributing
 

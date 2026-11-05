@@ -32,7 +32,11 @@ check_installed_skill() {
 
 verify_provider() {
   local provider=$1 provider_root="$VERIFY_ROOT/$1" config_file="$VERIFY_ROOT/$1/.env"
-  mkdir -p "$provider_root"
+  mkdir -p "$provider_root/toolkit"
+  cp -R "$VERIFY_ROOT/toolkit/.agents" "$VERIFY_ROOT/toolkit/scripts" \
+    "$VERIFY_ROOT/toolkit/.env.template" "$provider_root/toolkit/"
+  local AGENT_TOOLKIT_HOME="$provider_root/toolkit"
+  export AGENT_TOOLKIT_HOME
   printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=\n' "$provider" > "$config_file"
 
   AGENT_TOOLKIT_ENV_FILE="$config_file" \

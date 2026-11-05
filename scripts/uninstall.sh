@@ -1,79 +1,29 @@
 #!/usr/bin/env bash
-# Remove managed installations while preserving user-owned content.
+# Remove reviewed owned installations and state in one managed transaction.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/shared.sh"
+source "$SCRIPT_DIR/install-options.sh"
+source "$SCRIPT_DIR/managed-options.sh"
 source "$SCRIPT_DIR/managed-guidance.sh"
-remove_skill() {
-  local dest=$1 item
-  is_owned_dir "$dest" || return 0
-  local skill_hash expected_hash
-  skill_hash="$(file_hash "$dest/SKILL.md" 2>/dev/null || true)"
-  expected_hash="$(awk '$1 == "SKILL.md" { print $2 }' "$(owned_marker "$dest")")"
-  [[ -n "$skill_hash" && "$skill_hash" == "$expected_hash" ]] && rm -f "$dest/SKILL.md"
-  while IFS= read -r item; do
-    [[ "$item" == "$(owned_marker "$dest")" ]] && continue
-    [[ -L "$item" ]] && rm -f "$item"
-  done < <(find "$dest" -type f -o -type l | sort -r)
-  rm -f "$(owned_marker "$dest")"
-  find "$dest" -type d -empty -delete
-  [[ -d "$dest" ]] && rmdir "$dest" 2>/dev/null || true
-  echo "Removed $dest"
-}
+source "$SCRIPT_DIR/managed-reconcile.sh"
+source "$SCRIPT_DIR/install-managed.sh"
 
-for LLM_PROVIDER in codex claude; do
-  SKILLS_DEST="$(provider_skills_dest)"
-  GUIDANCE_DEST="$(provider_guidance_dest)"
-
-  if [[ -d "$SKILLS_DEST" ]]; then
-    while IFS= read -r source; do
-      remove_skill "$SKILLS_DEST/$(basename "$source")"
-    done < <(source_skills)
-  fi
-
-  # Remove the pre-1.0 Claude layout as well. Only owned skill directories
-  # are removed, so user-created content under the legacy parent is preserved.
-  LEGACY_SKILLS_DEST="$(provider_legacy_skills_dest)"
-  if [[ -n "$LEGACY_SKILLS_DEST" && -d "$LEGACY_SKILLS_DEST" ]]; then
-    while IFS= read -r source; do
-      remove_skill "$LEGACY_SKILLS_DEST/$(basename "$source")"
-    done < <(source_skills)
-    rmdir "$LEGACY_SKILLS_DEST" 2>/dev/null || true
-  fi
-
-  marker="$(owned_marker "$(dirname "$GUIDANCE_DEST")")"
-  if [[ -f "$marker" ]] && grep -q '^GUIDANCE_BLOCK ' "$marker"; then
-    expected_hash=$(awk '$1 == "GUIDANCE_BLOCK" { print $2 }' "$marker")
-    guidance_hash=''
-    if [[ -f "$GUIDANCE_DEST" && ! -L "$GUIDANCE_DEST" && ! -L "$marker" ]]; then
-      guidance_hash=$(managed_guidance_block "$GUIDANCE_DEST" | shasum -a 256 | awk '{print $1}')
-    fi
-    if grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker" && [[ -n "$guidance_hash" && "$guidance_hash" == "$expected_hash" ]] &&
-      managed_validate_guidance "$GUIDANCE_DEST"; then
-      strip_guidance_blocks "$GUIDANCE_DEST"
-      rm -f -- "$marker"
-      echo "Removed agent-toolkit guidance from $GUIDANCE_DEST"
-    else
-      printf 'Warning: preserving modified or foreign guidance: %s\n' "$GUIDANCE_DEST" >&2
-    fi
-  elif [[ -f "$marker" ]] && grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker"; then
-    guidance_hash="$(file_hash "$GUIDANCE_DEST" 2>/dev/null || true)"
-    expected_hash="$(awk '$1 == "GUIDANCE.md" { print $2 }' "$marker")"
-    [[ -n "$guidance_hash" && "$guidance_hash" == "$expected_hash" ]] && rm -f "$GUIDANCE_DEST"
-    rm -f "$marker"
-    [[ ! -e "$GUIDANCE_DEST" ]] && echo "Removed $GUIDANCE_DEST"
-  elif [[ -f "$GUIDANCE_DEST" ]] && grep -Fxq "$agent_toolkit_start" "$GUIDANCE_DEST"; then
-    strip_guidance_blocks "$GUIDANCE_DEST"
-    echo "Removed agent-toolkit guidance from $GUIDANCE_DEST"
-  elif [[ -f "$GUIDANCE_DEST" ]] && has_concise_output_block "$GUIDANCE_DEST"; then
-    CONCISE_OUTPUT=false
-    update_concise_output_block "$GUIDANCE_DEST"
-    echo "Removed agent-toolkit concise-output guidance from $GUIDANCE_DEST"
-  fi
-done
-
-config_file="${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
-if [[ -f "$config_file" || -L "$config_file" ]]; then
-  rm -f -- "$config_file"
-  echo "Removed $config_file"
-fi
+[[ $# -eq 0 ]] || { printf 'Usage: scripts/uninstall.sh\n' >&2; exit 2; }
+SKILL_CATALOG=$(source_skills)
+validate_catalog
+validate_dependencies
+managed_load
+managed_previous_output=$managed_output
+managed_previous_concise=$managed_concise
+managed_previous_full_template=$managed_full_template
+managed_regular_or_absent "${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
+managed_parse_options --no-providers --no-skills --concise false --full-template false --output-path ''
+managed_resolve_selection
+managed_plan
+installation_preview
+managed_expected_revision=$managed_state_revision
+managed_confirm=true
+managed_forget=true
+managed_apply
+printf 'Removed owned installation and saved settings. User files and native plugins were preserved.\n'

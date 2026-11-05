@@ -148,7 +148,7 @@ fixture guidance
 mkdir -p "$CODEX_HOME"
 printf 'User guidance\n' > "$CODEX_HOME/AGENTS.md"
 "$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --global-guidance >/dev/null
-"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider claude --skill commit-message --global-guidance >/dev/null
+"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --provider claude --skill commit-message --global-guidance >/dev/null
 apply_current --no-providers
 grep -Fxq 'User guidance' "$CODEX_HOME/AGENTS.md" || fail 'user guidance lost'
 if grep -q 'agent-toolkit:start' "$CODEX_HOME/AGENTS.md"; then fail 'toolkit guidance survived removal'; fi
