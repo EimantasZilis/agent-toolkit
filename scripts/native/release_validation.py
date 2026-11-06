@@ -126,7 +126,9 @@ def validate_provider_policy(
         )
 
 
-def validate_package(root: Path, record: dict, release: dict) -> None:
+def validate_package(
+    root: Path, record: dict, release: dict, *, archives: bool = True
+) -> None:
     """Validate resource containment, helper closure, manifests, and hashes."""
     provider, name = record["provider"], record["name"]
     require(provider in PROVIDERS, f"Unknown provider: {provider}")
@@ -148,7 +150,8 @@ def validate_package(root: Path, record: dict, release: dict) -> None:
     require(actual == expected, f"Skill membership mismatch: {name}")
     for skill in expected:
         validate_provider_policy(package, provider, skill, release["catalog"][skill])
-    validate_archive(root / provider / "zips" / f"{name}.zip", package, record)
+    if archives:
+        validate_archive(root / provider / "zips" / f"{name}.zip", package, record)
 
 
 def validate_marketplace(root: Path, provider: str, names: list[str]) -> None:

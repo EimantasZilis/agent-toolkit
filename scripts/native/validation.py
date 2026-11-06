@@ -30,10 +30,26 @@ def validate_links(file: Path, root: Path) -> None:
             raise ValueError(f"Broken resource link in {file}: {reference}")
 
 
-def validate_tree(root: Path, forbidden_roots: tuple[Path, ...] = ()) -> None:
+def tree_members(
+    root: Path, ignored_root_names: frozenset[str] = frozenset()
+) -> list[Path]:
+    """List payload members while excluding explicitly allowed Git administration."""
+    return [
+        path
+        for path in sorted(root.rglob("*"))
+        if path.relative_to(root).parts[0] not in ignored_root_names
+    ]
+
+
+def validate_tree(
+    root: Path,
+    forbidden_roots: tuple[Path, ...] = (),
+    *,
+    ignored_root_names: frozenset[str] = frozenset(),
+) -> None:
     """Validate a relocated skill tree independently of its source catalog."""
     root = root.resolve()
-    for path in sorted(root.rglob("*")):
+    for path in tree_members(root, ignored_root_names):
         if path.is_symlink() or not (path.is_dir() or path.is_file()):
             raise ValueError(f"Unsupported package member: {path}")
         if not path.is_file():

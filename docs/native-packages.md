@@ -47,6 +47,38 @@ resolve, paths stay within the package, and metadata, files, and archives match
 the inventory. It checks ZIP files without extracting them and needs neither
 the source clone nor a provider client.
 
+## Combined Git marketplace snapshots
+
+Generate a new self-contained Git tree with both provider catalogs at its root:
+
+```bash
+python3 scripts/package_native.py snapshot --version 0.1.0 --output /tmp/native-snapshot-0.1.0
+python3 scripts/package_native.py validate-snapshot /tmp/native-snapshot-0.1.0
+```
+
+The snapshot has Codex `.agents/plugins/marketplace.json` and Claude
+`.claude-plugin/marketplace.json`. Their sources resolve to distinct
+`codex/plugins/<package>` and `claude/plugins/<package>` trees. ZIP archives
+remain available through `build`; the Git snapshot contains package trees.
+
+Commit the source inputs before generating. `.agents/`, `scripts/`, and `LICENSE`
+must match HEAD, including executable bits. Untracked inputs and ignored skill
+resources are rejected. Python bytecode in `__pycache__` directories under `scripts/` is excluded
+from source-input checks. Unrelated documentation or managed settings do not
+change the generated payload and need not be committed for generation.
+
+`snapshot.json` records the exact source commit, package version, every payload
+file checksum, and Git executable modes. `release.json` preserves catalog,
+bundle, helper, resource, and invocation-policy contracts. Validation rejects
+symlinks, escaping or cross-provider catalog paths, broken resources, missing
+licenses, changed bytes, and changed executable modes. Only the root `.git`
+administration entry is ignored, allowing validation in a publication checkout.
+The snapshot can be relocated and validated without its source tree.
+
+Checksums prove internal consistency, not publisher authenticity. Review the
+recorded source commit and the generated tree before any manual publication.
+Hosted registration and update acceptance require separate real client checks.
+
 ## Install and invoke
 
 Use `plugin-name@marketplace-name` to select a package: for example,
