@@ -112,6 +112,10 @@ for a full example.
 | Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
 | [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
 
+Generate [combined Git marketplace snapshots](docs/native-packages.md#combined-git-marketplace-snapshots)
+for [manual publication](docs/native-publication.md). Hosted client acceptance
+is separate from local package validation.
+
 ### Select skills
 
 Run `make install-cli` and choose a bundle or space-separated skill names:

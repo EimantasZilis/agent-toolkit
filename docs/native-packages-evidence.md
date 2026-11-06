@@ -163,3 +163,50 @@ temporary-cache warnings but completed their resource checks.
 The resumed `make verify` passed all 12 native tests, catalog and adapter
 validation, installer and selection suites, and temporary managed-installation
 verification for both providers. `git diff --check` also passed.
+
+
+## Git marketplace rehearsal
+
+Date: 2026-11-06. Platform: macOS arm64. This records local generation and Git
+history checks, not hosted publication or provider runtime acceptance.
+
+Source commit: `c25d5b927d8ac70cfcb17cd2442327c2ece7c65b`. The source checkout remained on
+`task/run-setup-from-source`. Snapshots `0.1.0` and `0.1.1` each contained
+76 packages across both providers. The first snapshot had
+695 files including its inventory document. Its `snapshot.json`
+SHA-256 was `dcc53d52f2e65ad10aadafe75a4d47040b1bab95471b52cfb78362a8b03e1d12`.
+
+Commands used the documented `snapshot --version VERSION --output PATH` and
+`validate-snapshot PATH` interfaces. Two independent `0.1.0` builds had identical
+inventory and release metadata; all file checksums and Git executable modes
+validated. Both root catalogs resolved to their separate provider trees.
+The seven automated snapshot tests also validated relocation with the fixture
+source unavailable, hostile paths, missing resources, symlinks, and bad provenance.
+All 19 native tests and `make verify` passed. The original archive CLI build and
+validate commands passed in a new temporary directory.
+
+A disposable source clone used an orphan `native-plugins` branch for initial
+publication. A second clone from the local bare fixture received `0.1.1`, then a
+new recovery commit restored the retained `0.1.0` payload:
+
+| Operation | Local fixture commit | Result |
+| --- | --- | --- |
+| First version | `1bf364cf67ba003cbd8160031540812025186cc9` | `native-v0.1.0` retained |
+| Second version | `dc5b57be98d8af74de3ac5d65def1310079d8ca3` | `native-v0.1.1` retained |
+| Restore first payload | `e00e0481b7cd2af005c27370db6c26a0162043ee` | New forward commit; original provenance preserved |
+
+The rehearsal checked a clean generated checkout before replacement, exact Git
+index membership, both staged root catalogs, generated JSON whitespace, commit
+and tag creation, validation in fresh Git checkouts, and unchanged version-tag
+refs after recovery. Source Markdown retains its existing formatting; the
+publication whitespace check deliberately targets generated JSON.
+
+To honor the execution workflow’s no-push rule, the bare fixture received refs
+with local `git fetch` operations. The documented hosted push commands remain a
+manual maintainer step. No hosted branch, tag, provider state, or global guidance
+was changed. The fixture and detailed JSON record were retained at
+`/var/folders/cg/bkyxlnp114s5682077ym2wn00000gn/T/toolkit marketplace rehearsal 4cnvj4km`.
+
+A real hosted marketplace and two reviewed published versions are still required
+for Codex and Claude install/update/removal/recovery acceptance. These local
+results do not establish those journeys.

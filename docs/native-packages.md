@@ -78,6 +78,8 @@ The snapshot can be relocated and validated without its source tree.
 Checksums prove internal consistency, not publisher authenticity. Review the
 recorded source commit and the generated tree before any manual publication.
 Hosted registration and update acceptance require separate real client checks.
+Use the [manual publication process](native-publication.md) to review and publish
+the generated tree to `native-plugins` with immutable version tags.
 
 ## Install and invoke
 
