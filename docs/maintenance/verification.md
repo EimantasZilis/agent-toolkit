@@ -37,5 +37,10 @@ through the typed service and TUI instead.
 | Archives, manifests, resource bytes and modes, corruption, traversal, historical releases | `internal/native/release_test.go`, `internal/native/resources_test.go` |
 | Snapshot provenance, committed bytes/modes, relocation, hostile catalogs, historical snapshots | `internal/native/snapshot_test.go` |
 | Non-terminal startup, argument failures, version reporting | `cmd/agent-toolkit/main_test.go`, `cmd/agent-toolkit/native_test.go` |
+| Real terminal size, startup/quit, cancellation, child cleanup, captured diagnostics | `internal/testutil/terminal_test.go` |
 
 Real terminal startup and current-source checks are covered by `make smoke-source`.
+It copies current source into a spaced path, launches `make run`, changes a
+visible source label, and launches it again. Both launches must quit without
+changing provider files or toolkit settings. macOS and Linux implementations
+use the existing `x/sys` dependency; repository tooling needs no Python runtime.

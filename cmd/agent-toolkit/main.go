@@ -17,12 +17,15 @@ func main() {
 	root := flag.String("root", ".", "toolkit source repository")
 	showVersion := flag.Bool("version", false, "print application version")
 	flag.Parse()
-	if flag.NArg() == 1 && (flag.Arg(0) == "validate" || flag.Arg(0) == "verify") {
+	if flag.NArg() == 1 && (flag.Arg(0) == "validate" || flag.Arg(0) == "verify" || flag.Arg(0) == "smoke-source") {
 		var err error
-		if flag.Arg(0) == "validate" {
+		switch flag.Arg(0) {
+		case "validate":
 			err = validate.Source(*root)
-		} else {
+		case "verify":
 			err = validate.Verify(context.Background(), *root)
+		case "smoke-source":
+			err = validate.SmokeSource(context.Background(), *root)
 		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

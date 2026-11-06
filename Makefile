@@ -24,4 +24,4 @@ test:
 	go test ./...
 
 smoke-source:
-	python3 scripts/smoke_source.py
+	go run ./cmd/agent-toolkit smoke-source
