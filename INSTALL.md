@@ -14,7 +14,7 @@ cd agent-toolkit
 make install
 ```
 
-Terminal `make install` opens the [setup TUI](docs/tui.md) from this checkout.
+Terminal `make install` opens the [setup TUI](docs/usage/tui.md) from this checkout.
 It requires Go at the version declared in `go.mod` (currently 1.27.3). The first
 launch may download modules and a compatible toolchain. Later launches use
 Go’s build cache and include source changes automatically.
@@ -30,16 +30,7 @@ the `agent-toolkit` folder.
 | Option | Best for | Updates managed by |
 | --- | --- | --- |
 | Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
-| [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
-
-Generate [combined Git marketplace snapshots](docs/native-packages.md#combined-git-marketplace-snapshots)
-for [manual publication](docs/native-publication.md). Hosted client acceptance
-is separate from local package validation.
-
-The [hosted Codex CLI journey](docs/native-packages.md#codex-cli) is verified on
-CLI `0.167.0` for installation, skill/helper sessions, existing-install updates,
-removal, and recovery. See the [evidence](docs/native-packages-evidence.md#hosted-codex-runtime-acceptance)
-for the tested versions and limitations. Claude client acceptance remains pending.
+| [Native plugins](docs/usage/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
 
 ## Select skills
 
@@ -101,62 +92,48 @@ removal confirmation with a default of No; automation must pass
 
 ## Configuration
 
-For explicit reconciliation across providers, use `scripts/managed.sh preview`
-with repeated `--provider` and `--skill` arguments. Apply the same selection with
-`scripts/managed.sh apply --revision REVISION`, using the revision from preview.
-Removals require `--confirm-removals`; conflicts stop the whole apply.
-`--no-providers` removes owned installations, and `--remove-skill NAME` removes
-an unused skill or helper. Required helpers cannot be removed while selected
-skills need them. Native plugins and user-owned files are preserved.
-The [versioned backend contract](docs/managed-backend.md) describes its JSON
-responses, read-only status/catalog commands, revisions, and errors.
+Run `make install` to change saved providers, skills, output location, or
+concise-output loading. Use `make install-cli` for Bash setup.
 
-Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
-and `--concise true|false` for shared output and automatic-loading preferences.
-The [setup and settings TUI](docs/tui.md) exposes these controls with explicit
-page saves, final setup review, and confirmations for removals and directory creation.
-Disabling concise loading keeps the skill installed. These controls update only
-the toolkit's guidance block and preserve surrounding instructions. The full
-global template remains an explicit CLI choice through `--full-template true`.
+For scripted configuration, pass options to `scripts/install.sh`:
 
-Bash setup and the TUI use one managed planner and transaction. Successful
-applies save desired settings in `config/settings.env` and the observed inventory
-in `config/inventory.json`. Both ignored files belong to this clone, independent
-of the caller’s directory. Provider files and saved state roll back together.
-
-Setup reads only this canonical state. Without saved state, Bash uses its fresh
-defaults and the TUI starts with no provider selected. Use setup options or the
-TUI to change saved choices.
-
-| Setting | Values | Purpose |
-| --- | --- | --- |
-| `PROVIDERS` | Space-separated `codex` and/or `claude` | Desired providers |
-| `REQUESTED_SKILLS` | Space-separated skill names | Desired skills; bundles expand when selected |
-| `RETAINED_HELPERS` | Skill names | Installed helpers retained after parent removal |
-| `GLOBAL_GUIDANCE` | `true`, `false` | Full global template |
-| `CONCISE_OUTPUT` | `true`, `false` | Concise loading independently of the full template |
-| `MARKDOWN_OUTPUT_PATH` | Blank or absolute path | Repository or central Markdown storage |
-
-Use `--output-path PATH` to save an output root (`''` selects repo-local).
-`MARKDOWN_OUTPUT_PATH` remains a temporary rendering override; it does not
-replace the saved preference. An explicit `--output-path` takes precedence.
-Use `--concise` and `--full-template` to control these settings independently.
-An output root can still require a minimal output-policy block.
-
-| Output mode | Artifact location |
+| Option | Effect |
 | --- | --- |
-| Repository (default) | `<repo-root>/<branch-slug>/<skill-name>/...` |
-| Central | `<output-root>/<repo-slug>/<branch-slug>/<skill-name>/...` |
+| `--provider codex` or `--provider claude` | Select providers; repeat for both |
+| `--skill NAME` or `--bundle NAME` | Select skills and their required helpers |
+| `--output-path PATH` | Save an absolute output root; `''` selects repository output |
+| `--concise true` or `false` | Enable or disable automatic concise-output loading |
+| `--full-template true` or `false` | Enable or disable the full global guidance template |
+| `--dry-run` | Preview without applying changes |
+| `--confirm-removals` | Authorize proposed removals in automation |
+
+Use `--concise true` for a standing instruction to load concise-output.
+Disabling it keeps the skill installed. The full guidance template is a separate
+choice. A shared output root may still require a minimal output-policy block.
+
+Settings are saved in this checkout's ignored `config/` directory. Both setup
+interfaces use them, and unspecified CLI options keep their saved values.
+Change preferences through setup rather than editing state files.
+`MARKDOWN_OUTPUT_PATH` temporarily overrides output for an invocation; an explicit
+`--output-path` takes precedence and updates the saved preference.
+
+### Markdown output
+
+| Mode | Artifact location |
+| --- | --- |
+| Repository (Bash default) | `<repo-root>/<branch-slug>/<skill-name>/...` |
+| Shared directory | `<output-root>/<repo-slug>/<branch-slug>/<skill-name>/...` |
 
 Explicit paths take precedence. Slugs use lowercase names with unsafe characters
-replaced by `-`; detached HEADs use `detached-<short-sha>`. Artifacts are not
-committed or removed automatically.
+replaced by `-`; detached HEADs use `detached-<short-sha>`. Changing the output
+location does not move existing artifacts. Artifacts are not committed or
+removed automatically.
 
 Skills look for earlier workflow output in this order:
 
 1. An explicit path.
 2. The current repository and branch's producer-skill directory.
-3. Its configured central equivalent.
+3. Its configured shared-directory equivalent.
 4. A documented legacy location.
 
 ## Update
@@ -175,7 +152,7 @@ Temporary `MARKDOWN_OUTPUT_PATH` overrides are ignored during update; change the
 saved preference through setup instead. Provider-home overrides still select
 the installation destinations.
 
-Update requires canonical state from a successful setup. It stops
+Update requires saved settings from a successful setup. It stops
 on unknown saved skills, ownership conflicts, proposed removals, or a changed
 preview revision. A moved resource can leave a dangling link that ownership
 records cannot safely identify; this also requires setup review. Resolve these
@@ -204,7 +181,7 @@ skills or providers requires confirmation before owned paths are removed.
 make uninstall
 ```
 
-Removes verified managed skills, guidance, and canonical settings in one
+Removes verified managed skills, guidance, and saved settings in one
 transaction. Unrelated user files and native plugins remain.
 Ownership conflicts stop uninstall before writes; resolve those conflicts and
 retry. Failed uninstall restores provider files and saved state together.

@@ -34,7 +34,7 @@ cd agent-toolkit
 make install
 ```
 
-Terminal `make install` opens the [setup TUI](docs/tui.md) from this checkout
+Terminal `make install` opens the [setup TUI](docs/usage/tui.md) from this checkout
 and requires Go at the version declared in `go.mod` (currently 1.27.3). The first
 launch may download modules and a compatible toolchain. Use `make install-cli`
 for Bash setup without Go.
@@ -57,7 +57,7 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
    Start a new agent session afterward.
 4. **Publish when ready:** generate and validate a versioned snapshot, review
    it in a separate publication checkout, then publish to `native-plugins`
-   with a version tag. Follow the [publication guide](docs/native-publication.md).
+   with a version tag. Follow the [publication guide](docs/maintenance/publish-native.md).
 
 Local changes do not automatically update published plugins. Publishing is a
 separate release decision.
@@ -141,9 +141,8 @@ for a full example.
 ## Guides
 
 See [INSTALL.md](INSTALL.md) for local setup and maintenance, or
-[native packages](docs/native-packages.md) for provider plugins. The
-[documentation index](docs/README.md) covers publishing, compatibility, and
-backend integration.
+[native packages](docs/usage/native-packages.md) for provider plugins. The
+[documentation index](docs/README.md) covers setup, plugin use, and publishing.
 
 ## Contributing
 

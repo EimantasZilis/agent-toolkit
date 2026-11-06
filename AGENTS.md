@@ -7,7 +7,7 @@ the optional global guidance template in `.agents/global/instructions.md`.
 Local setup uses the Bash installation backend in `scripts/`. The Go TUI in
 `cmd/agent-toolkit/` and `internal/` is another client of that backend. Native
 package tooling builds self-contained provider plugins from the same skills.
-See the [documentation index](docs/README.md) for setup, publishing, and backend
+See the [documentation index](docs/README.md) for usage and maintenance
 guides.
 
 Before changing a skill, read [CONTRIBUTING.md](CONTRIBUTING.md). Keep skill
