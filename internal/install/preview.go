@@ -37,7 +37,19 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	status.Native, err = s.nativeNotice(c, desired.Requested)
+	selected := append(append([]string(nil), desired.Requested...), desired.Retained...)
+	if desired.Concise {
+		selected = append(selected, "concise-output")
+	}
+	if len(selected) > 0 {
+		// Status still reports saved preferences if a source skill disappeared;
+		// refresh/setup diagnoses that separately before applying anything.
+		expanded, selectErr := c.Select(strings.Join(selected, " "), false)
+		if selectErr == nil {
+			selected = expanded
+		}
+	}
+	status.Native, err = s.nativeNotice(c, selected)
 	return status, err
 }
 
