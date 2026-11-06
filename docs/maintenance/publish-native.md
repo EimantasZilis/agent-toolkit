@@ -23,10 +23,10 @@ TOOLKIT_SNAPSHOT="/tmp/agent-toolkit-native-$TOOLKIT_VERSION"
 TOOLKIT_PUBLICATION="/tmp/agent-toolkit-publication-$TOOLKIT_VERSION"
 TOOLKIT_REMOTE=git@github.com:EimantasZilis/agent-toolkit.git
 
-python3 "$TOOLKIT_SOURCE/scripts/package_native.py" snapshot \
-  --version "$TOOLKIT_VERSION" --output "$TOOLKIT_SNAPSHOT"
-python3 "$TOOLKIT_SOURCE/scripts/package_native.py" validate-snapshot "$TOOLKIT_SNAPSHOT"
-git -C "$TOOLKIT_SOURCE" show --stat "$TOOLKIT_SOURCE_SHA" -- .agents scripts LICENSE
+(cd "$TOOLKIT_SOURCE" && go run ./cmd/agent-toolkit native snapshot \
+  --version "$TOOLKIT_VERSION" --output "$TOOLKIT_SNAPSHOT")
+(cd "$TOOLKIT_SOURCE" && go run ./cmd/agent-toolkit native validate-snapshot "$TOOLKIT_SNAPSHOT")
+git -C "$TOOLKIT_SOURCE" show --stat "$TOOLKIT_SOURCE_SHA" -- .agents cmd internal go.mod go.sum LICENSE
 ```
 
 Inspect `snapshot.json` and `release.json`. Confirm the source commit and version,
@@ -66,7 +66,7 @@ test "$(git -C "$TOOLKIT_PUBLICATION" branch --show-current)" = native-plugins
 test -z "$(git -C "$TOOLKIT_PUBLICATION" status --porcelain --untracked-files=all)"
 git -C "$TOOLKIT_PUBLICATION" rm -r --ignore-unmatch -- .
 cp -R "$TOOLKIT_SNAPSHOT/." "$TOOLKIT_PUBLICATION/"
-python3 "$TOOLKIT_SOURCE/scripts/package_native.py" validate-snapshot "$TOOLKIT_PUBLICATION"
+(cd "$TOOLKIT_SOURCE" && go run ./cmd/agent-toolkit native validate-snapshot "$TOOLKIT_PUBLICATION")
 git -C "$TOOLKIT_PUBLICATION" add --force --all -- \
   .agents .claude-plugin codex claude release.json snapshot.json
 git -C "$TOOLKIT_PUBLICATION" ls-files --error-unmatch -- \
@@ -124,12 +124,12 @@ snapshot. Its original version and source commit remain in `snapshot.json`:
 ```bash
 test "$(git -C "$TOOLKIT_PUBLICATION" branch --show-current)" = native-plugins
 test -z "$(git -C "$TOOLKIT_PUBLICATION" status --porcelain --untracked-files=all)"
-python3 "$TOOLKIT_SOURCE/scripts/package_native.py" validate-snapshot "$TOOLKIT_SNAPSHOT"
+(cd "$TOOLKIT_SOURCE" && go run ./cmd/agent-toolkit native validate-snapshot "$TOOLKIT_SNAPSHOT")
 git -C "$TOOLKIT_PUBLICATION" rm -r --ignore-unmatch -- .
 cp -R "$TOOLKIT_SNAPSHOT/." "$TOOLKIT_PUBLICATION/"
 git -C "$TOOLKIT_PUBLICATION" add --force --all -- \
   .agents .claude-plugin codex claude release.json snapshot.json
-python3 "$TOOLKIT_SOURCE/scripts/package_native.py" validate-snapshot "$TOOLKIT_PUBLICATION"
+(cd "$TOOLKIT_SOURCE" && go run ./cmd/agent-toolkit native validate-snapshot "$TOOLKIT_PUBLICATION")
 git -C "$TOOLKIT_PUBLICATION" diff --cached --check -- '*.json'
 git -C "$TOOLKIT_PUBLICATION" diff --cached --stat
 git -C "$TOOLKIT_PUBLICATION" commit -m 'Restore retained native snapshot'

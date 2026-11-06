@@ -18,7 +18,7 @@ import (
 var identity = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 var versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 var linkPattern = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
-var remotePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
+var remotePattern = regexp.MustCompile(`^(https?://|mailto:)`)
 
 func digest(data []byte) string {
 	h := sha256.Sum256(data)
@@ -79,11 +79,17 @@ func inventory(root string, snapshot bool) (map[string]string, map[string]int, e
 		if err != nil {
 			return err
 		}
-		if snapshot && rel == ".git" {
-			return filepath.SkipDir
-		}
 		if entry.Type()&os.ModeSymlink != 0 {
 			return fmt.Errorf("symlink member: %s", path)
+		}
+		if snapshot && rel == ".git" {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			if entry.Type().IsRegular() {
+				return nil
+			}
+			return fmt.Errorf("invalid Git administration: %s", path)
 		}
 		if entry.IsDir() {
 			return nil

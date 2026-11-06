@@ -41,7 +41,7 @@ func sourceFixture(t *testing.T) string {
 func copyTree(t *testing.T, source, target string) {
 	t.Helper()
 	must(t, os.CopyFS(target, os.DirFS(source)))
-	// CopyFS intentionally strips executable permissions; preserve the fixture's modes.
+	// Normalize fixture modes independently of CopyFS and the caller's umask.
 	must(t, filepath.WalkDir(source, func(path string, e os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -150,12 +150,14 @@ func TestReleaseCorruption(t *testing.T) {
 }
 
 func TestRejectUnsafeBuildInputs(t *testing.T) {
-	for _, kind := range []string{"version", "symlink", "escaping-link", "broken-link"} {
+	for _, kind := range []string{"version", "symlink", "escaping-link", "broken-link", "file-link"} {
 		t.Run(kind, func(t *testing.T) {
 			source := sourceFixture(t)
 			out := filepath.Join(t.TempDir(), "output")
 			version := "1.0.0"
 			switch kind {
+			case "file-link":
+				must(t, writeFile(filepath.Join(source, ".agents/skills/shared/helper/references/guide.md"), []byte("[secret](file:///etc/passwd)"), 0644))
 			case "version":
 				version = "01.0.0"
 			case "symlink":

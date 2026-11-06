@@ -14,6 +14,10 @@ func TestNativeArgumentsRejectWithoutWrites(t *testing.T) {
 		{"build", "--version", "1.0.0", "--output", "unused", "extra"},
 		{"validate"},
 		{"validate", "one", "two"},
+		{"snapshot"},
+		{"snapshot", "--version", "1.0.0"},
+		{"validate-snapshot"},
+		{"validate-snapshot", "one", "two"},
 	} {
 		t.Run("arguments", func(t *testing.T) {
 			root := t.TempDir()

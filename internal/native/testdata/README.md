@@ -8,3 +8,8 @@ provider ZIPs retain the historical archive format and checksums.
 Tests unpack this fixture in a temporary directory and validate it without the
 generator or its source checkout. The fixture is data; tests never execute its
 bundled resources.
+
+`historical-snapshot.zip` contains the combined snapshot produced by the Python
+snapshot test fixture using the same catalog. Its provenance identifies the
+fixture's isolated committed source tree. Tests preserve its original schema,
+inventories, and modes and validate it without that source tree.
