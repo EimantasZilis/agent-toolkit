@@ -59,4 +59,23 @@ validate_catalog() {
     done
   done < "$AGENT_TOOLKIT_HOME/.agents/bundles.txt"
   grep -Fxq starter <<< "$seen" || { printf 'Error: missing starter bundle\n' >&2; return 1; }
+  validate_output_skills
+}
+
+validate_output_skills() {
+  local registry="$AGENT_TOOLKIT_HOME/.agents/markdown-output-skills.txt"
+  local name seen=''
+  [[ -r "$registry" ]] || {
+    printf 'Error: missing or unreadable Markdown output skill registry\n' >&2
+    return 1
+  }
+
+  while IFS= read -r name || [[ -n "$name" ]]; do
+    skill_source "$name" >/dev/null || return 1
+    if grep -Fxq -- "$name" <<< "$seen"; then
+      printf 'Error: duplicate Markdown output skill: %s\n' "$name" >&2
+      return 1
+    fi
+    seen+="$name"$'\n'
+  done < "$registry"
 }

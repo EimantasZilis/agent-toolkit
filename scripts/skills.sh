@@ -51,12 +51,10 @@ render_skill_manifest() {
 }
 
 print_skill_output_policy() {
-  local source=$1
-  # Only workflows that produce or discover Markdown need these task-local rules.
-  case "${source##*/}" in
-    developer-highlights|next-commit|next-phase|plan-writing-conventions|plan-execution-conventions|plan-review|requirements-to-tickets|review-branch|test-cases|ticket-context|ticket-to-plan|to-markdown) ;;
-    *) return 0 ;;
-  esac
+  local source=$1 output_skills
+  # Both installation routes use the same workflow registry.
+  output_skills=$(cat "$AGENT_TOOLKIT_HOME/.agents/markdown-output-skills.txt") || return 1
+  grep -Fxq -- "${source##*/}" <<< "$output_skills" || return 0
   {
     printf '\n'
     awk '/^## Markdown artifact outputs/ { emit = 1 } emit { print }' "$(source_guidance)"

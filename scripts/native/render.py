@@ -11,20 +11,6 @@ from typing import Match
 from .catalog import Catalog
 
 LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
-OUTPUT_SKILLS = {
-    "developer-highlights",
-    "next-commit",
-    "next-phase",
-    "plan-writing-conventions",
-    "plan-execution-conventions",
-    "plan-review",
-    "requirements-to-tickets",
-    "review-branch",
-    "test-cases",
-    "ticket-context",
-    "ticket-to-plan",
-    "to-markdown",
-}
 
 
 class Renderer:
@@ -38,6 +24,8 @@ class Renderer:
         self.package = package
         explicit_file = catalog.root / ".agents/providers/claude/explicit-only.txt"
         self.explicit = set(explicit_file.read_text().splitlines())
+        output_file = catalog.root / ".agents/markdown-output-skills.txt"
+        self.output_skills = set(output_file.read_text().splitlines())
 
     def render(self, destination: Path, selected: list[str]) -> None:
         """Copy selected skills and adapters into a new package directory."""
@@ -127,7 +115,7 @@ class Renderer:
         key = str(source.relative_to(self.catalog.root / ".agents/skills"))
         if self.provider == "claude" and key in self.explicit:
             text = text.replace("\n---", "\ndisable-model-invocation: true\n---", 1)
-        if source.name in OUTPUT_SKILLS:
+        if source.name in self.output_skills:
             policy = (self.catalog.root / ".agents/global/instructions.md").read_text()
             policy = (
                 "## Markdown artifact outputs"

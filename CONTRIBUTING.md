@@ -53,8 +53,10 @@ Maintain compatibility through the plan format and artifact discovery rules,
 not a required installation of the plan's producer skill.
 
 Markdown-producing or discovery workflows also need task-local output rules;
-maintain the consumer list in `scripts/skills.sh` when adding one. Validate
-selective and full-catalog installation for both providers with `make verify`.
+maintain the shared consumer registry in
+`.agents/markdown-output-skills.txt` when adding one. Both local installation
+and native packaging read this registry; each entry must name an existing skill.
+Validate selective and full-catalog installation for both providers with `make verify`.
 
 ## Markdown artifact outputs
 

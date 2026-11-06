@@ -91,6 +91,43 @@ class NativeRenderTests(unittest.TestCase):
         self.assertIn("<repo-root>/<branch-slug>/<skill-name>/...", text)
         self.assertFalse((self.root / "settings.env").exists())
 
+    def test_output_policy_follows_shared_registry(self) -> None:
+        """GIVEN changed metadata WHEN either route renders THEN policy follows it."""
+        registry = self.source / ".agents/markdown-output-skills.txt"
+        registry.write_text("commit-message\n")
+        selected = ["commit-message", "to-markdown"]
+
+        for provider in ("codex", "claude"):
+            package = self.root / f"registry-{provider}"
+            Renderer(self.catalog, provider, "test").render(package, selected)
+
+            for name in selected:
+                with self.subTest(provider=provider, skill=name):
+                    native = (package / "skills" / name / "SKILL.md").read_text()
+                    managed = subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            (
+                                'source "$1/scripts/shared.sh"; '
+                                'print_skill_output_policy "$2"'
+                            ),
+                            "output-policy-test",
+                            str(self.source),
+                            str(self.catalog.sources[name]),
+                        ],
+                        env={"AGENT_TOOLKIT_HOME": str(self.source)},
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    ).stdout
+
+                    expected = name == "commit-message"
+                    self.assertEqual("## Markdown artifact outputs" in native, expected)
+                    self.assertEqual(
+                        "## Markdown artifact outputs" in managed, expected
+                    )
+
     def test_rails_contains_ruby_once(self) -> None:
         """GIVEN Rails WHEN rendered THEN Ruby guidance is local and deduplicated."""
         selected = self.catalog.select("ruby-rails-standards ruby-standards")
