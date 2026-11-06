@@ -13,10 +13,14 @@ var version = "development"
 
 func main() {
 	root := flag.String("root", ".", "toolkit source repository")
-	showVersion := flag.Bool("version", false, "print application and backend protocol versions")
+	showVersion := flag.Bool("version", false, "print application version")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		fmt.Fprintln(os.Stderr, "unexpected arguments; run without a subcommand to open the TUI")
+		os.Exit(2)
+	}
 	if *showVersion {
-		fmt.Printf("agent-toolkit %s; managed protocol 1\n", version)
+		fmt.Printf("agent-toolkit %s\n", version)
 		return
 	}
 	if err := tui.Run(*root); err != nil {

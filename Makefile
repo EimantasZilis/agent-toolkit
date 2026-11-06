@@ -1,3 +1,6 @@
+run:
+	go run ./cmd/agent-toolkit
+
 install:
 	bash ./scripts/setup.sh
 

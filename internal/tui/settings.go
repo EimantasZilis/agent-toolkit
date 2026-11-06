@@ -22,7 +22,7 @@ func (m *model) syncOutput() {
 	m.editingPath = false
 }
 
-// validateOutput only inspects the filesystem. Creation belongs to Bash apply.
+// validateOutput only inspects the filesystem. Creation belongs to the installation transaction.
 func (m model) validateOutput() (bool, error) {
 	if !m.globalOutput {
 		return false, nil

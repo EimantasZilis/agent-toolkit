@@ -1,9 +1,10 @@
 package tui
 
 import (
+	"context"
 	"errors"
-	"os"
-	"path/filepath"
+	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
+	"github.com/EimantasZilis/agent-toolkit/internal/install"
 	"strings"
 	"testing"
 
@@ -16,16 +17,27 @@ type fakeBackend struct {
 	fail  string
 }
 
-func (b *fakeBackend) run(action string, args []string) (response, error) {
+func (b *fakeBackend) record(action string) error {
 	b.calls = append(b.calls, action)
 	if b.fail == action {
-		return response{}, errors.New("stale_revision: preview again; recovery /tmp/backup")
+		return errors.New("stale_revision: preview again; recovery /tmp/backup")
 	}
-	r := response{Protocol: 1, OK: true, Kind: action, Revision: "revision"}
-	if action == "apply" {
-		r.Desired = settings{Providers: []string{"codex"}, Concise: true}
+	return nil
+}
+func (b *fakeBackend) Catalog() (*catalog.Catalog, error) {
+	if err := b.record("catalog"); err != nil {
+		return nil, err
 	}
-	return r, nil
+	return &catalog.Catalog{}, nil
+}
+func (b *fakeBackend) Status(context.Context) (install.Status, error) {
+	return install.Status{}, b.record("status")
+}
+func (b *fakeBackend) Preview(_ context.Context, r install.Request) (install.Preview, error) {
+	return install.Preview{Request: r, Desired: r.Desired, Revision: "revision"}, b.record("preview")
+}
+func (b *fakeBackend) Apply(context.Context, install.Preview, install.Confirmations) (install.Status, error) {
+	return install.Status{Installed: true, Desired: settings{Providers: []string{"codex"}, Concise: true}}, b.record("apply")
 }
 
 func readyModel(t *testing.T, wizard bool) (model, *fakeBackend) {
@@ -152,26 +164,14 @@ func TestSaveBeforeDepartureAndRetry(t *testing.T) {
 	}
 }
 
-func TestProtocolFixtures(t *testing.T) {
-	for _, name := range []string{"status-fresh", "preview-install"} {
-		data, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "managed", name+".json"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		kind := strings.Split(name, "-")[0]
-		if _, err := decodeResponse(data, kind); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := decodeResponse([]byte(strings.Replace(string(data), `"protocol_version": 1`, `"protocol_version": 9`, 1)), kind); err == nil {
-			t.Fatal("accepted incompatible protocol")
-		}
+func TestServiceStatusIsReadOnly(t *testing.T) {
+	m, root := backendFixture(t)
+	if m.wizard != true {
+		t.Fatal("fresh status did not enter setup")
 	}
-	for _, code := range []string{"stale_revision", "unsupported_protocol"} {
-		_, err := decodeResponse([]byte(`{"protocol_version":1,"ok":false,"error":{"code":"`+code+`","message":"retry"}}`), "preview")
-		if err == nil || !strings.Contains(err.Error(), code) {
-			t.Fatal("error code lost", err)
-		}
-	}
+	assertFile(t, root+"/toolkit/config", false)
+	m, _ = complete(m, m.Init())
+	assertFile(t, root+"/toolkit/config", false)
 }
 
 func TestWizardQuitSaveReturnsToReview(t *testing.T) {

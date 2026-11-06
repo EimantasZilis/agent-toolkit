@@ -1,9 +1,15 @@
 package tui
 
 import (
+	"context"
 	"fmt"
+	"github.com/EimantasZilis/agent-toolkit/internal/install"
+	"github.com/charmbracelet/x/term"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"reflect"
+	"syscall"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -34,7 +40,8 @@ type model struct {
 	status                      response
 	removed                     []string
 	preview                     response
-	applyArgs                   []string
+	applyRequest                install.Request
+	quitAfter                   bool
 	dialogs                     []dialog
 	unsaved                     bool
 	target                      int // -1 menu, -2 quit; other values are wizard pages.
@@ -76,17 +83,51 @@ var uiThemes = []uiTheme{
 	},
 }
 
-// Run starts the TUI. root must contain the toolkit's scripts and source skills.
-// Backend mutations finish before the UI accepts quit, allowing Bash rollback.
+// Run starts the source TUI with real terminal descriptors. Mutations finish
+// or roll back before shutdown, including handled signals and terminal loss.
 func Run(root string) error {
+	if !term.IsTerminal(os.Stdin.Fd()) || !term.IsTerminal(os.Stdout.Fd()) {
+		return fmt.Errorf("the TUI requires an interactive terminal; run make run from a terminal")
+	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return fmt.Errorf("resolve source root: %w", err)
 	}
-	m := newModel(shellBackend{abs}, abs)
-	_, err = tea.NewProgram(m).Run()
+	homes, err := install.EnvironmentHomes()
+	if err != nil {
+		return err
+	}
+	service, err := install.New(abs, homes)
+	if err != nil {
+		return err
+	}
+	tracked := &trackedBackend{backend: service}
+	defer tracked.close()
+	program := tea.NewProgram(newModel(tracked, abs), tea.WithoutSignalHandler())
+	signals, done := make(chan os.Signal, 1), make(chan struct{})
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
+	defer close(done)
+	go func() {
+		for {
+			select {
+			case <-signals:
+				program.Send(shutdownMsg{})
+			case <-done:
+				return
+			}
+		}
+	}()
+	final, err := program.Run()
+	if err == nil {
+		if m, ok := final.(model); ok && m.quitAfter && m.err != "" {
+			return fmt.Errorf("%s", m.err)
+		}
+	}
 	return err
 }
+
+type shutdownMsg struct{}
 
 func newModel(b backend, root string) model {
 	return model{backend: b, root: root, page: -1, width: 80, height: 24, expanded: map[string]bool{}}
@@ -94,13 +135,12 @@ func newModel(b backend, root string) model {
 
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		catalog, err := m.backend.run("catalog", nil)
+		catalog, err := m.backend.Catalog()
 		if err != nil {
 			return loadedMsg{err: err}
 		}
-		status, err := m.backend.run("status", nil)
-		installed, statErr := savedInstallation(m.root)
-		return loadedMsg{catalog, status, installed, firstError(err, statErr)}
+		status, err := m.backend.Status(context.Background())
+		return loadedMsg{catalogResponse(catalog), statusResponse(status), status.Installed, err}
 	}
 }
 
@@ -117,6 +157,12 @@ func (m model) dirty() bool {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case shutdownMsg:
+		if m.busy {
+			m.quitAfter = true
+			return m, nil
+		}
+		return m, tea.Quit
 	case loadedMsg:
 		m.busy = false
 		if msg.err != nil {
@@ -315,16 +361,22 @@ func (m model) startSave() (tea.Model, tea.Cmd) {
 	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
 	m.createOutput = missing
-	m.applyArgs = m.draft.arguments(m.removed)
-	if m.createOutput {
-		m.applyArgs = append(m.applyArgs, "--create-output-directory")
+	m.applyRequest = install.Request{Intent: install.Configure, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
+	request := m.applyRequest
+	return m, func() tea.Msg {
+		p, err := m.backend.Preview(context.Background(), request)
+		return resultMsg{"preview", previewResponse(p), err}
 	}
-	args := append([]string(nil), m.applyArgs...)
-	return m, func() tea.Msg { r, err := m.backend.run("preview", args); return resultMsg{"preview", r, err} }
 }
 
 func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	m.busy = false
+	if m.quitAfter {
+		if msg.err != nil {
+			m.err = msg.err.Error()
+		}
+		return m, tea.Quit
+	}
 	if msg.err != nil {
 		m.err = msg.err.Error()
 		m.depart = false
@@ -344,7 +396,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
 	m.syncOutput()
 	m.status = msg.response
-	m.removed, m.preview, m.applyArgs = nil, response{}, nil
+	m.removed, m.preview, m.applyRequest = nil, response{}, install.Request{}
 	m.notice = "Settings saved."
 	if m.wizard {
 		m.wizard = false
@@ -358,11 +410,8 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 
 func (m model) apply() (tea.Model, tea.Cmd) {
 	m.busy, m.notice = true, "Applying changes… Please wait for completion or rollback."
-	args := append([]string(nil), m.applyArgs...)
-	args = append(args, "--revision", m.preview.Revision)
-	if m.preview.Confirmation {
-		args = append(args, "--confirm-removals")
-	}
+	plan := m.preview.Plan
+	confirmed := install.Confirmations{Removals: m.preview.Confirmation, CreateOutput: m.createOutput}
 	return m, func() tea.Msg {
 		missing, err := m.validateOutput()
 		if err != nil {
@@ -371,8 +420,8 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 		if missing && !m.createOutput {
 			return resultMsg{action: "apply", err: fmt.Errorf("output directory disappeared; preview again to confirm creation")}
 		}
-		r, err := m.backend.run("apply", args)
-		return resultMsg{"apply", r, err}
+		status, err := m.backend.Apply(context.Background(), plan, confirmed)
+		return resultMsg{"apply", statusResponse(status), err}
 	}
 }
 

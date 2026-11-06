@@ -2,144 +2,92 @@
 package tui
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
+	"sync"
+
+	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
+	"github.com/EimantasZilis/agent-toolkit/internal/install"
 )
 
-const protocolVersion = 1
-
-type settings struct {
-	Providers    []string `json:"providers"`
-	Requested    []string `json:"requested_skills"`
-	Retained     []string `json:"retained_helpers"`
-	Output       string   `json:"output_path"`
-	Concise      bool     `json:"concise_output"`
-	FullTemplate bool     `json:"full_template"`
-}
+type settings = install.Settings
+type operation = install.Operation
+type selection = install.Selection
 
 type skill struct {
-	Name     string   `json:"name"`
-	Category string   `json:"category"`
-	Helpers  []string `json:"required_helpers"`
+	Name, Category string
+	Helpers        []string
 }
-
 type bundle struct {
-	Name   string   `json:"name"`
-	Skills []string `json:"skills"`
+	Name   string
+	Skills []string
 }
 
-type operation struct {
-	Provider string `json:"provider"`
-	Action   string `json:"action"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-}
-
-type selection struct {
-	Name string `json:"name"`
-	Role string `json:"role"`
-}
-
+// response is a presentation projection; all mutations use the typed plan.
 type response struct {
-	Protocol     int                 `json:"protocol_version"`
-	OK           bool                `json:"ok"`
-	Kind         string              `json:"kind"`
-	Revision     string              `json:"revision"`
-	Desired      settings            `json:"desired"`
-	Observed     map[string][]string `json:"observed"`
-	Applied      map[string][]string `json:"applied"`
-	Skills       []skill             `json:"skills"`
-	Bundles      []bundle            `json:"bundles"`
-	Selection    []selection         `json:"selection"`
-	Operations   []operation         `json:"operations"`
-	Conflicts    []operation         `json:"conflicts"`
-	Confirmation bool                `json:"confirmation_required"`
-	Native       struct {
-		Message string `json:"message"`
-	} `json:"native_overlap"`
-	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
+	Desired               settings
+	Observed, Applied     map[string][]string
+	Skills                []skill
+	Bundles               []bundle
+	Selection             []selection
+	Operations, Conflicts []operation
+	Confirmation          bool
+	Native                install.NativeOverlap
+	Plan                  install.Preview
+	Installed             bool
+	Revision              string
 }
 
 type backend interface {
-	run(string, []string) (response, error)
+	Catalog() (*catalog.Catalog, error)
+	Status(context.Context) (install.Status, error)
+	Preview(context.Context, install.Request) (install.Preview, error)
+	Apply(context.Context, install.Preview, install.Confirmations) (install.Status, error)
 }
 
-type shellBackend struct{ root string }
-
-func (b shellBackend) run(action string, args []string) (response, error) {
-	argv := append([]string{action, "--protocol", strconv.Itoa(protocolVersion)}, args...)
-	// Do not kill apply on UI cancellation: Bash must finish or perform rollback.
-	cmd := exec.Command(filepath.Join(b.root, "scripts", "managed.sh"), argv...)
-	cmd.Dir = b.root
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err := cmd.Run()
-	r, decodeErr := decodeResponse(stdout.Bytes(), action)
-	if err != nil || decodeErr != nil {
-		return r, fmt.Errorf("%s: %w\n%s", action, firstError(err, decodeErr), stderr.String())
+func catalogResponse(c *catalog.Catalog) response {
+	r := response{}
+	for _, s := range c.Skills {
+		r.Skills = append(r.Skills, skill{s.Name, s.Category, s.Helpers})
 	}
-	return r, nil
+	for _, name := range c.BundleNames() {
+		r.Bundles = append(r.Bundles, bundle{name, c.Bundles[name]})
+	}
+	return r
 }
 
-func firstError(a, b error) error {
-	if b != nil {
-		return b
-	}
-	return a
+func statusResponse(s install.Status) response {
+	return response{Desired: s.Desired, Observed: s.Observed, Applied: s.Applied, Native: s.Native, Installed: s.Installed, Revision: s.Revision}
 }
 
-func decodeResponse(data []byte, kind string) (response, error) {
-	var r response
-	if err := json.Unmarshal(data, &r); err != nil {
-		return r, fmt.Errorf("decode backend response: %w", err)
-	}
-	if r.Protocol != protocolVersion {
-		return r, fmt.Errorf("unsupported protocol %d (need %d)", r.Protocol, protocolVersion)
-	}
-	if !r.OK {
-		return r, fmt.Errorf("%s: %s", r.Error.Code, r.Error.Message)
-	}
-	if r.Kind != kind {
-		return r, fmt.Errorf("unexpected backend response %q, expected %q", r.Kind, kind)
-	}
-	if kind != "catalog" && r.Revision == "" {
-		return r, fmt.Errorf("backend response has no revision")
-	}
-	return r, nil
+func previewResponse(p install.Preview) response {
+	return response{Desired: p.Desired, Selection: p.Selection, Operations: p.Operations, Conflicts: p.Conflicts, Confirmation: p.Confirmation, Native: p.Native, Revision: p.Revision, Plan: p}
 }
 
-func (s settings) arguments(removed []string) []string {
-	args := []string{}
-	if len(s.Providers) == 0 {
-		args = append(args, "--no-providers")
-	}
-	for _, p := range s.Providers {
-		args = append(args, "--provider", p)
-	}
-	if len(s.Requested) == 0 {
-		args = append(args, "--no-skills")
-	}
-	for _, name := range s.Requested {
-		args = append(args, "--skill", name)
-	}
-	for _, name := range removed {
-		args = append(args, "--remove-skill", name)
-	}
-	return append(args, "--output-path", s.Output, "--concise", strconv.FormatBool(s.Concise), "--full-template", strconv.FormatBool(s.FullTemplate))
+// trackedBackend prevents new mutations after shutdown and waits for an active
+// transaction when the terminal closes before its result can reach the model.
+type trackedBackend struct {
+	backend
+	mu      sync.Mutex
+	closing bool
+	active  sync.WaitGroup
 }
 
-func savedInstallation(root string) (bool, error) {
-	_, err := os.Stat(filepath.Join(root, "config", "settings.env"))
-	if os.IsNotExist(err) {
-		return false, nil
+func (b *trackedBackend) Apply(ctx context.Context, p install.Preview, c install.Confirmations) (install.Status, error) {
+	b.mu.Lock()
+	if b.closing {
+		b.mu.Unlock()
+		return install.Status{}, fmt.Errorf("UI closed before apply started")
 	}
-	return err == nil, err
+	b.active.Add(1)
+	b.mu.Unlock()
+	defer b.active.Done()
+	return b.backend.Apply(ctx, p, c)
+}
+
+func (b *trackedBackend) close() {
+	b.mu.Lock()
+	b.closing = true
+	b.mu.Unlock()
+	b.active.Wait()
 }
