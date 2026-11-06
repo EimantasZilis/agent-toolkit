@@ -37,15 +37,19 @@ without reading saved settings.
 | `--native-inventory FILE` | Read a supported provider-exported inventory for overlap notices |
 
 Unspecified settings retain saved values. Fresh managed setup has no provider
-selected. Legacy `.env` choices and differing owned installations are imported
-without removal. Removing a parent retains installed helpers; disabling concise
-loading retains `concise-output`. Use explicit removal to discard an unused skill.
+selected. Bash defaults to Codex and the starter bundle. Removing a parent
+retains installed helpers; disabling concise loading retains `concise-output`.
+Use explicit removal to discard an unused skill.
+
+Once `config/settings.env` and `config/inventory.json` exist, they are the
+canonical state. Setup reads and updates choices only through these files.
+Both files must be present; missing files or duplicated required settings stop
+loading instead of silently using defaults.
 
 `AGENTS_HOME`, `CODEX_HOME`, and `CLAUDE_HOME` retain their destination overrides.
-`AGENT_TOOLKIT_ENV_FILE` selects the legacy import file. `MARKDOWN_OUTPUT_PATH`
-overrides rendering for this invocation without changing saved preferences;
-an explicit `--output-path` takes precedence. Keep the same arguments and
-environment between preview and apply.
+`MARKDOWN_OUTPUT_PATH` overrides rendering for this invocation without changing
+saved preferences; an explicit `--output-path` takes precedence. Keep the same
+arguments and environment between preview and apply.
 
 ## Responses and revisions
 
@@ -61,7 +65,7 @@ Preview adds `selection`, `operations`, `conflicts`, and
 `previously_installed` roles. Actions are `install`, `update`, `keep`, `remove`,
 `write-guidance`, `strip-guidance`, `remove-guidance`, or `conflict`.
 
-The revision fingerprints saved state, legacy import settings, source resources,
+The revision fingerprints saved state, source resources,
 provider destinations, and any supplied inventory export. Apply checks it under
 `config/apply.lock` before mutation. A revision identifies the observed state;
 clients must also resend the reviewed options unchanged. Conflicts stop the whole
@@ -116,5 +120,19 @@ on stderr. Clients must check both exit status and `ok`.
 | 5 | `unsupported_protocol` | Use a supported protocol version |
 | 130 or 143 | `interrupted` | Inspect rollback diagnostics before retrying |
 
-The existing `scripts/install.sh` remains an additive CLI with human-readable
-output. It never implicitly prunes unselected skills.
+`scripts/install.sh` is the human-readable frontend to this same planner and
+apply transaction. Its `--provider` and `--skill` flags map directly to managed
+options. `--bundle` expands to repeated `--skill`. The `--full-template` and
+`--concise` flags control guidance independently. Unspecified values retain
+canonical settings.
+It applies the exact preview revision after conflict checks and default-No
+terminal removal confirmation, or explicit `--confirm-removals` in automation.
+
+`--dry-run`, `--list`, and `--help` do not write. Provider and skill selections
+replace the corresponding desired sets. Use a dry run to inspect changes before
+authorizing removals.
+
+Uninstall uses the same owned-path planning and rollback rules with no providers
+selected. It removes canonical state inside the transaction.
+Conflicts abort the entire uninstall, preserving state for recovery. It does not
+remove native plugins or claim unowned paths.

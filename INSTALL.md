@@ -1,41 +1,31 @@
 # Local installation
 
-The outstanding TUI release tickets do not block installation. `make verify` passed.
-
-## Replace old Codex skills and install all current skills
+Install the selected skills from this checkout. Setup saves your choices for
+later refreshes; keep the checkout for linked resources.
 
 ```bash
-cd /Users/eimantas.zilis/repos/agent-toolkit
-
-toolkit_backup="$(mktemp -d "$HOME/agent-toolkit-backup.XXXXXX")"
-toolkit_skills="${AGENTS_HOME:-$HOME/.agents}/skills/agent-toolkit"
-
-if [[ -e "$toolkit_skills" || -L "$toolkit_skills" ]]; then
-  mv "$toolkit_skills" "$toolkit_backup/agent-toolkit"
-fi
-
-printf 'Old skills backed up to: %s\n' "$toolkit_backup"
-bash ./scripts/install.sh --provider codex --bundle all
+make install
 ```
 
-This replaces the old skills, including retired `plan-conventions` and `wrap-up`,
-with all 29 current skills. Global instructions stay unchanged.
-
-Start a new Codex session. Keep this repository at its current path.
-
-## Install for Claude (optional)
+For Bash setup without Go, use `make install-cli`. To select all skills for both
+providers without prompts:
 
 ```bash
-bash ./scripts/install.sh --provider claude --bundle all --no-global-guidance
+bash ./scripts/install.sh --provider codex --provider claude --bundle all
 ```
 
-## Uninstall
+Add `--full-template true` to install the global guidance template, or
+`--concise true` to enable standing concise-output instructions. Start a new
+agent session after setup.
+
+## Refresh or remove
 
 ```bash
-cd /Users/eimantas.zilis/repos/agent-toolkit
+make update
 make uninstall
 ```
 
-Removes managed skills and guidance for both providers. Modified files and
-retired skills may remain; the backup-and-move step above removes all old Codex
-toolkit skills from discovery.
+Update refreshes the saved selection. Uninstall removes verified owned skills,
+guidance, and saved state. Ownership conflicts stop either operation before
+writes. See [setup and recovery instructions](README.md#installation-instructions)
+for details.

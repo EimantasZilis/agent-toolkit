@@ -28,10 +28,9 @@ to a source skill. Move or remove adapters when moving or removing a skill;
 providers' installed metadata.
 
 Global guidance lives at `.agents/global/instructions.md` and is optional at
-installation. Select the provider in `.env` or pass `--provider codex` or
-`--provider claude` to `scripts/install.sh`. Local Markdown links are relative
-to their source file; rendering resolves cross-skill links for the installed
-layout.
+installation. Pass `--provider codex` or `--provider claude` to
+`scripts/install.sh`. Local Markdown links are relative to their source file;
+rendering resolves cross-skill links for the installed layout.
 
 Declare only required in-session skill loads and invocations in
 `.agents/dependencies.txt`: ticket planning requires plan review, and Rails
@@ -76,3 +75,11 @@ grouped by category, with categories ordered alphabetically. Within each
 category, follow the workflow order where one exists; otherwise, order skills
 alphabetically by name. Put shared guidance before the workflow steps it
 supports, and order independent skills alphabetically.
+
+## Source application checks
+
+Go uses the version declared in `go.mod`. Run `go test ./...`, `go vet ./...`,
+and `make smoke-source` when changing setup or the TUI. The smoke check needs
+Python 3.9 or later and runs in an isolated spaced checkout. CI runs the source
+checks and `make verify` on macOS and Linux with read-only repository access.
+Native package builds are independent of application delivery.

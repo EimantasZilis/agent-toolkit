@@ -31,15 +31,15 @@ check_installed_skill() {
 }
 
 verify_provider() {
-  local provider=$1 provider_root="$VERIFY_ROOT/$1" config_file="$VERIFY_ROOT/$1/.env"
-  mkdir -p "$provider_root"
-  printf 'LLM_PROVIDER=%s\nCONCISE_OUTPUT=True\nMARKDOWN_OUTPUT_PATH=\n' "$provider" > "$config_file"
-
-  AGENT_TOOLKIT_ENV_FILE="$config_file" \
-    AGENTS_HOME="$provider_root/agents" \
+  local provider=$1 provider_root="$VERIFY_ROOT/$1"
+  mkdir -p "$provider_root/toolkit"
+  cp -R "$VERIFY_ROOT/toolkit/.agents" "$VERIFY_ROOT/toolkit/scripts" "$provider_root/toolkit/"
+  local AGENT_TOOLKIT_HOME="$provider_root/toolkit"
+  export AGENT_TOOLKIT_HOME
+  AGENTS_HOME="$provider_root/agents" \
     CODEX_HOME="$provider_root/codex" \
     CLAUDE_HOME="$provider_root/claude" \
-    "$SCRIPT_DIR/install.sh" >/dev/null
+    "$SCRIPT_DIR/install.sh" --provider "$provider" --bundle all --full-template true --concise true >/dev/null
 
   LLM_PROVIDER="$provider"
   AGENTS_HOME="$provider_root/agents"
@@ -60,8 +60,7 @@ cleanup() { rm -rf "$VERIFY_ROOT"; }
 trap cleanup EXIT
 
 mkdir "$VERIFY_ROOT/toolkit"
-cp -R "$AGENT_TOOLKIT_HOME/.agents" "$AGENT_TOOLKIT_HOME/scripts" \
-  "$AGENT_TOOLKIT_HOME/.env.template" "$VERIFY_ROOT/toolkit/"
+cp -R "$AGENT_TOOLKIT_HOME/.agents" "$AGENT_TOOLKIT_HOME/scripts" "$VERIFY_ROOT/toolkit/"
 export AGENT_TOOLKIT_HOME="$VERIFY_ROOT/toolkit"
 
 verify_provider codex
