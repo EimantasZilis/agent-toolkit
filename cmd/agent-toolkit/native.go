@@ -10,7 +10,7 @@ import (
 
 func runNative(root string, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("expected native build or validate")
+		return fmt.Errorf("expected native build, validate, snapshot, or validate-snapshot")
 	}
 	switch args[0] {
 	case "build", "snapshot":

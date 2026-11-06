@@ -174,7 +174,7 @@ func settingsBytes(settings Settings) []byte {
 }
 
 func inventoryBytes(settings []byte, applied map[string][]string) ([]byte, error) {
-	// Stable provider rows retain compatibility with the legacy Bash reader.
+	// Preserve the version 1 state format, including empty provider rows.
 	for _, provider := range []string{"codex", "claude"} {
 		if applied[provider] == nil {
 			applied[provider] = []string{}
@@ -184,7 +184,7 @@ func inventoryBytes(settings []byte, applied map[string][]string) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	// Bash requires skill arrays on one line, separated by comma-space.
+	// Existing state files use single-line arrays separated by comma-space.
 	for _, provider := range []string{"codex", "claude"} {
 		array, err := json.Marshal(applied[provider])
 		if err != nil {

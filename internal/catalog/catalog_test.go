@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestSelectionsMatchLegacyFixtures(t *testing.T) {
+func TestSelectionContracts(t *testing.T) {
 	c, err := Load("../..")
 	if err != nil {
 		t.Fatal(err)

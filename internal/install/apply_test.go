@@ -256,14 +256,14 @@ func TestFailedRecoveryRetainsOriginalBackups(t *testing.T) {
 	}
 }
 
-func TestStateEncodingKeepsLegacyProviderRows(t *testing.T) {
+func TestStateEncodingPreservesVersionOneRows(t *testing.T) {
 	data, err := inventoryBytes([]byte("settings"), map[string][]string{"codex": {"one", "two"}, "claude": {}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, row := range []string{`  "schema_version": 1,`, `    "codex": ["one", "two"]`, `    "claude": []`} {
 		if !strings.Contains(string(data), row) {
-			t.Fatalf("legacy row missing %q: %s", row, data)
+			t.Fatalf("version 1 row missing %q: %s", row, data)
 		}
 	}
 }

@@ -1,17 +1,7 @@
+.PHONY: run test validate verify smoke-source
+
 run:
 	go run ./cmd/agent-toolkit
-
-install:
-	bash ./scripts/setup.sh
-
-install-cli:
-	bash ./scripts/install.sh
-
-update:
-	bash ./scripts/update.sh
-
-uninstall:
-	./scripts/uninstall.sh
 
 validate:
 	go run ./cmd/agent-toolkit validate

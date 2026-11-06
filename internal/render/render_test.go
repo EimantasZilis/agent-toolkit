@@ -9,7 +9,7 @@ import (
 	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 )
 
-func TestLegacyFixtures(t *testing.T) {
+func TestRenderingContracts(t *testing.T) {
 	c, err := catalog.Load("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestLegacyFixtures(t *testing.T) {
 				t.Fatal(err)
 			}
 			if got != string(want) {
-				t.Fatalf("render differs from legacy fixture\ngot:\n%s\nwant:\n%s", got, want)
+				t.Fatalf("render differs from contract fixture\ngot:\n%s\nwant:\n%s", got, want)
 			}
 		})
 	}
