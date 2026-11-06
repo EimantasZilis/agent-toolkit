@@ -1,0 +1,8 @@
+bash-standards
+define-coding-standards
+golang-standards
+javascript-standards
+python-standards
+ruby-rails-standards
+ruby-standards
+typescript-standards
