@@ -1,32 +1,38 @@
 # Install and manage local skills
 
-Install from this checkout to choose skills and optional global guidance for
-Codex or Claude. Supporting files remain linked to the checkout, so keep it
-available after installation.
+Install skills from this project into Codex or Claude. You choose which skills
+to install and whether to add global guidance that applies across projects.
 
 ## Quick start
 
-Requires Git, Bash, Make, `shasum`, and an installed, signed-in provider client.
-Run these commands in a macOS or Linux terminal:
+You need a macOS or Linux terminal with Git, Bash, Make, and `shasum`
+available. Install Codex or Claude and sign in before continuing. 
 
-```bash
-git clone https://github.com/EimantasZilis/agent-toolkit.git
-cd agent-toolkit
-make install
-```
+1. Clone the repo and install it:
+   
+   ```bash
+   git clone https://github.com/EimantasZilis/agent-toolkit.git
+   make install
+   ```
+3. Choose Codex or Claude, then choose the skills to install. Review the
+   proposed changes and confirm them. The initial defaults select the starter
+   bundle (`concise-output` and `commit-message`), save generated Markdown in
+   the repository where you use a skill, and leave global guidance unchanged.
 
-This checkout uses Bash until a TUI release is pinned. Choose a provider and
-skills when prompted, review the changes, then start a new client session.
-Fresh defaults select the starter bundle, repository-local Markdown output,
-and no changes to global guidance. See [TUI controls](docs/tui.md) for the
-terminal interface when enabled. The pinned TUI requires Python 3.9 or later
-and HTTPS for the first download; a verified cache works offline. Go is needed
-only for development.
+4. Start a new Codex or Claude session to load the installed skills.
+
+Run the management commands below from the `agent-toolkit` folder as well.
 
 | Option | Best for | Updates managed by |
 | --- | --- | --- |
-| Repository installer | Selected skills and optional global guidance; requires this clone | `make install` |
-| [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
+| Repository installer | Selected skills and optional global guidance; requires keeping the project folder | `make install` |
+| [Native plugins](docs/native-packages.md) | Packaged skills that do not require keeping the project folder | Claude or Codex plugin management |
+
+The installer currently uses text prompts through Bash. When a terminal user
+interface (TUI) release is configured, `make install` opens it instead; see
+[TUI controls](docs/tui.md). That interface requires Python 3.9 or later and an
+HTTPS connection for its first download. Afterward, a verified cached download
+works offline. Go is needed only for development.
 
 ## Select skills
 
@@ -68,7 +74,8 @@ settings; unspecified settings use saved values or defaults. `--list` and
 | Codex | `${AGENTS_HOME:-~/.agents}/skills/agent-toolkit/` | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
-- Skills have a generated `SKILL.md`; supporting files link to this clone.
+- Skills have a generated `SKILL.md`; supporting files link to the
+  `agent-toolkit` folder you downloaded.
 - Optional global guidance covers coding and Markdown output. Its writing rules
   apply to all documentation, whether created by a skill or edited directly.
   See [instructions.md](.agents/global/instructions.md).
@@ -95,9 +102,10 @@ enabled guidance.
 
 Successful installs also record shared preferences in `config/settings.env` and
 actual installed skills for each provider in `config/inventory.json`. These
-ignored files stay under this toolkit clone, regardless of the caller's working
-directory. Existing installations are imported without removing skills; provider
-ownership markers still determine which files the toolkit may change.
+ignored files stay in the `agent-toolkit` folder, regardless of which folder
+you run the installer from. Existing installations are imported without removing
+skills. Provider ownership markers still determine which files the toolkit may
+change.
 
 | Setting | Values | Purpose |
 | --- | --- | --- |
@@ -129,7 +137,8 @@ Skills look for earlier workflow output in this order:
 
 ## Update
 
-Pull changes, then run setup again:
+Open a terminal in your existing `agent-toolkit` folder. Download the latest
+changes and run the installer again:
 
 ```bash
 git pull --ff-only
@@ -150,7 +159,7 @@ The managed TUI supports removals with confirmation. The former
 | --- | --- |
 | Missing skill | Check provider and selection with `--dry-run`, then start a new session. |
 | User-owned skill skipped | Keep your version or move it aside before reinstalling. |
-| Broken supporting-file links | Restore the clone or reinstall from its new location. |
+| Broken supporting-file links | Restore the `agent-toolkit` folder to its original location, or run the installer from its new location. |
 | Missing legacy output setting | Rerun interactive installation or add `MARKDOWN_OUTPUT_PATH=` to `.env`. |
 | Failed installation | Changes roll back; if recovery fails, the error gives the backup location. |
 
