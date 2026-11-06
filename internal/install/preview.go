@@ -124,17 +124,29 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	desired.Requested = unique(desired.Requested)
 	desired.Retained = append([]string(nil), desired.Retained...)
 	if request.Intent != Uninstall {
+		for _, name := range append(append([]string(nil), desired.Requested...), desired.Retained...) {
+			if _, err := c.Lookup(name); err != nil {
+				return Preview{}, problem("setup_required", "", err.Error())
+			}
+		}
+		var required []string
+		if len(desired.Requested) > 0 {
+			required, err = c.Select(strings.Join(desired.Requested, " "), desired.Concise)
+			if err != nil {
+				return Preview{}, err
+			}
+		}
 		installed := append(append([]string(nil), status.Applied["codex"]...), status.Applied["claude"]...)
 		installed = append(installed, status.Observed["codex"]...)
 		installed = append(installed, status.Observed["claude"]...)
 		for _, skill := range c.Skills {
 			for _, helper := range skill.Helpers {
-				if contains(installed, helper) && !contains(request.Removed, helper) {
+				if contains(installed, helper) && !contains(request.Removed, helper) && !contains(required, helper) {
 					desired.Retained = append(desired.Retained, helper)
 				}
 			}
 		}
-		if status.Desired.Concise && contains(installed, "concise-output") && !contains(request.Removed, "concise-output") {
+		if status.Desired.Concise && !desired.Concise && contains(installed, "concise-output") && !contains(request.Removed, "concise-output") {
 			desired.Retained = append(desired.Retained, "concise-output")
 		}
 	}
@@ -258,7 +270,16 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		return Preview{}, problem("setup_required", "", "refresh would remove managed content; review setup")
 	}
 	preview.Native, err = s.nativeNotice(c, selected)
+	preview.seal = previewSignature(preview)
 	return preview, err
+}
+
+func previewSignature(p Preview) string {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return ""
+	}
+	return digest(data)
 }
 
 func expectedManifest(c *catalog.Catalog, name, provider, root string, settings Settings, selected []string) (string, error) {
@@ -283,6 +304,7 @@ func without(names []string, removed string) []string {
 	return result
 }
 
+// String describes the action and number of operations for diagnostics.
 func (p Preview) String() string {
 	return fmt.Sprintf("%s: %d operations (%d conflicts)", p.Request.Intent, len(p.Operations), len(p.Conflicts))
 }

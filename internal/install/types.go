@@ -66,6 +66,7 @@ type Preview struct {
 	Operations, Conflicts []Operation
 	Confirmation          bool
 	Native                NativeOverlap
+	seal                  string
 }
 
 // Confirmations records explicit acceptance of destructive and directory actions.
