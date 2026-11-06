@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-toolkit-selection.XXXXXX")"
 trap 'rm -rf -- "$TEST_ROOT"' EXIT
 mkdir "$TEST_ROOT/toolkit"
-cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$REPO_ROOT/.env.template" "$TEST_ROOT/toolkit/"
+cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$TEST_ROOT/toolkit/"
 REPO_ROOT="$TEST_ROOT/toolkit"
 export AGENT_TOOLKIT_HOME="$REPO_ROOT"
 unset MARKDOWN_OUTPUT_PATH
@@ -19,8 +19,7 @@ assert_contains() { grep -Fq -- "$1" "$2" || fail "missing '$1' in $2"; }
 install_at() {
   local root=$1
   shift
-  AGENT_TOOLKIT_ENV_FILE="$root/settings.env" \
-    AGENTS_HOME="$root/agents" CODEX_HOME="$root/codex" CLAUDE_HOME="$root/claude" \
+  AGENTS_HOME="$root/agents" CODEX_HOME="$root/codex" CLAUDE_HOME="$root/claude" \
     "$REPO_ROOT/scripts/install.sh" "$@"
 }
 
@@ -99,7 +98,7 @@ test_standalone_planning_and_metadata() {
 
 test_guidance_opt_in_and_preservation() {
   local provider=$1 root="$TEST_ROOT/guidance $1" skills guidance
-  install_at "$root" --provider "$provider" --skill commit-message --global-guidance >/dev/null
+  install_at "$root" --provider "$provider" --skill commit-message --full-template true --concise true >/dev/null
   skills="$(skills_at "$root" "$provider")"
   case "$provider" in
     codex) guidance="$root/codex/AGENTS.md" ;;
@@ -109,16 +108,16 @@ test_guidance_opt_in_and_preservation() {
   assert_file "$guidance"
   cp "$guidance" "$root/original-guidance"
   cp "$(dirname "$guidance")/.agent-toolkit-owned" "$root/original-marker"
-  install_at "$root" --no-global-guidance --confirm-removals >/dev/null
+  install_at "$root" --full-template false --concise false --confirm-removals >/dev/null
   assert_absent "$guidance"
   assert_absent "$(dirname "$guidance")/.agent-toolkit-owned"
   # No guidance preflight should run when the path belongs to the user.
   mkdir -p "$root/symlink-home"
   printf 'user instructions\n' > "$root/user.md"
   ln -s "$root/user.md" "$root/symlink-home/AGENTS.md"
-  AGENT_TOOLKIT_ENV_FILE="$root/settings.env" AGENTS_HOME="$root/agents" \
+  AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/symlink-home" CLAUDE_HOME="$root/claude" \
-    "$REPO_ROOT/scripts/install.sh" --provider codex --no-global-guidance --confirm-removals >/dev/null
+    "$REPO_ROOT/scripts/install.sh" --provider codex --full-template false --concise false --confirm-removals >/dev/null
   [[ -L "$root/symlink-home/AGENTS.md" ]] || fail 'disabled guidance symlink changed'
   [[ "$(cat "$root/user.md")" == 'user instructions' ]] || fail 'disabled guidance target changed'
 }
@@ -149,18 +148,18 @@ test_required_ruby_dependency() {
   assert_skill_count "$skills" 2
 }
 
-test_optional_coinstallation_and_legacy_preservation() {
+test_optional_coinstallation_and_user_preservation() {
   local provider=$1 root="$TEST_ROOT/optional $1" skills output name
   skills="$(skills_at "$root" "$provider")"
-  mkdir -p "$skills/plan-conventions"
-  printf 'previously installed conventions\n' > "$skills/plan-conventions/SKILL.md"
+  mkdir -p "$skills/user-skill"
+  printf 'user instructions\n' > "$skills/user-skill/SKILL.md"
 
   output="$(install_at "$root" --provider "$provider" --skill next-phase \
     --skill plan-execution-conventions --skill plan-writing-conventions --skill python-standards)"
   assert_skill_count "$skills" 5
   [[ "$output" != *'(dependency;'* ]] || fail 'optional integration became required'
-  [[ "$(cat "$skills/plan-conventions/SKILL.md")" == 'previously installed conventions' ]] ||
-    fail 'renaming conventions removed or changed the old installation'
+  [[ "$(cat "$skills/user-skill/SKILL.md")" == 'user instructions' ]] ||
+    fail 'unrelated user skill changed'
 
   for name in plan-writing-conventions plan-execution-conventions; do
     assert_contains 'Markdown artifact discovery' "$skills/$name/SKILL.md"
@@ -185,11 +184,11 @@ test_read_only_options_and_validation() {
   install_at "$root" --provider claude --bundle all --dry-run >/dev/null
   assert_absent "$root"
   mkdir -p "$root"
-  printf 'LLM_PROVIDER=claude\nSKILL_SELECTION=starter\nGLOBAL_GUIDANCE=False\nMARKDOWN_OUTPUT_PATH=\n' > "$root/settings.env"
-  original="$(cat "$root/settings.env")"
+  install_at "$root" --provider claude --skill commit-message >/dev/null
+  original="$(cat "$AGENT_TOOLKIT_HOME/config/settings.env")"
   output="$(install_at "$root" --provider codex --skill pr-description --dry-run)"
   [[ "$output" == *'Providers: codex'* ]] || fail 'CLI provider did not override saved provider'
-  [[ "$(cat "$root/settings.env")" == "$original" ]] || fail 'dry-run changed settings'
+  [[ "$(cat "$AGENT_TOOLKIT_HOME/config/settings.env")" == "$original" ]] || fail 'dry-run changed settings'
   assert_absent "$root/agents"
   if install_at "$root" --skill missing-skill > "$root/error" 2>&1; then fail 'accepted unknown skill'; fi
   if install_at "$root" --skill all > "$root/error" 2>&1; then fail 'accepted bundle as a skill name'; fi
@@ -198,8 +197,7 @@ test_read_only_options_and_validation() {
   if install_at "$root" --bundle missing > "$root/error" 2>&1; then fail 'accepted invalid bundle'; fi
   if install_at "$root" --skill > "$root/error" 2>&1; then fail 'accepted missing argument'; fi
   if install_at "$root" --unknown > "$root/error" 2>&1; then fail 'accepted unknown option'; fi
-  [[ "$(cat "$root/settings.env")" == "$original" ]] || fail 'invalid input changed settings'
-  assert_absent "$root/claude"
+  [[ "$(cat "$AGENT_TOOLKIT_HOME/config/settings.env")" == "$original" ]] || fail 'invalid input changed settings'
 }
 
 test_selective_rollback() {
@@ -217,11 +215,11 @@ test_selective_rollback() {
   [[ "$(cat "$AGENT_TOOLKIT_HOME/config/settings.env")" == "$original" ]] || fail 'failed install saved choices'
   cmp -s "$root/original-skill" "$skills/commit-message/SKILL.md" || fail 'existing skill changed'
   assert_absent "$skills/pr-description"
-  AGENT_TOOLKIT_ENV_FILE="$root/settings.env" AGENTS_HOME="$root/agents" \
+  AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/codex" CLAUDE_HOME="$root/claude" \
     "$REPO_ROOT/scripts/uninstall.sh" >/dev/null
   assert_absent "$skills/commit-message"
-  assert_absent "$root/settings.env"
+  assert_absent "$AGENT_TOOLKIT_HOME/config/settings.env"
 }
 
 test_user_owned_dependency() {
@@ -248,7 +246,7 @@ exit 23
 EOF
   chmod +x "$root/bin/mv"
   if PATH="$root/bin:$PATH" \
-    AGENT_TOOLKIT_ENV_FILE="$root/settings.env" AGENTS_HOME="$root/agents" \
+    AGENTS_HOME="$root/agents" \
     CODEX_HOME="$root/codex" CLAUDE_HOME="$root/claude" \
     "$REPO_ROOT/scripts/install.sh" --skill ticket-to-plan --confirm-removals > "$root/error" 2>&1; then
     fail 'expected settings save failure'
@@ -264,7 +262,7 @@ run_case() {
   shift
   export AGENT_TOOLKIT_HOME="$TEST_ROOT/toolkits/$name-${1:-shared}"
   mkdir -p "$AGENT_TOOLKIT_HOME"
-  cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$REPO_ROOT/.env.template" "$AGENT_TOOLKIT_HOME/"
+  cp -R "$REPO_ROOT/scripts" "$REPO_ROOT/.agents" "$AGENT_TOOLKIT_HOME/"
   "$name" "$@"
 }
 
@@ -275,7 +273,7 @@ for provider in codex claude; do
   run_case test_guidance_opt_in_and_preservation "$provider"
   run_case test_standalone_optional_integrations "$provider"
   run_case test_required_ruby_dependency "$provider"
-  run_case test_optional_coinstallation_and_legacy_preservation "$provider"
+  run_case test_optional_coinstallation_and_user_preservation "$provider"
 done
 run_case test_read_only_options_and_validation
 run_case test_selective_rollback

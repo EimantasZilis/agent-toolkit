@@ -75,11 +75,3 @@ resolve_selection() {
     include_skill concise-output || return 1
   fi
 }
-
-selected_sources() {
-  local name
-  while IFS= read -r name; do
-    [[ -n "$name" ]] || continue
-    skill_source "$name" || return 1
-  done <<< "$selected_names"
-}

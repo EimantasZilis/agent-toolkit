@@ -14,10 +14,7 @@ SKILL_CATALOG=$(source_skills)
 validate_catalog
 validate_dependencies
 managed_load
-managed_previous_output=$managed_output
 managed_previous_concise=$managed_concise
-managed_previous_full_template=$managed_full_template
-managed_regular_or_absent "${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}"
 managed_parse_options --no-providers --no-skills --concise false --full-template false --output-path ''
 managed_resolve_selection
 managed_plan

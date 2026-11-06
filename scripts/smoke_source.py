@@ -104,14 +104,13 @@ def prepare_checkout(base: Path) -> tuple[Path, dict[str, str], list[Path]]:
         shutil.copytree(
             source / name, root / name, ignore=shutil.ignore_patterns("__pycache__")
         )
-    for name in ("Makefile", "go.mod", "go.sum", ".env.template"):
+    for name in ("Makefile", "go.mod", "go.sum"):
         shutil.copyfile(source / name, root / name)
     environment = dict(os.environ, TERM="xterm-256color")
     for name in ("HOME", "AGENTS_HOME", "CODEX_HOME", "CLAUDE_HOME"):
         environment[name] = str(base / name.lower())
         Path(environment[name]).mkdir()
     environment["AGENT_TOOLKIT_HOME"] = str(root)
-    environment["AGENT_TOOLKIT_ENV_FILE"] = str(root / ".env")
     for name in ("GOPATH", "GOCACHE"):
         environment[name] = subprocess.check_output(
             ["go", "env", name], text=True

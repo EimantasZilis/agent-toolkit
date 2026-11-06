@@ -157,7 +157,7 @@ func backendFixture(t *testing.T) (model, string) {
 	if err := os.Mkdir(toolkit, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"scripts", ".agents", ".env.template"} {
+	for _, name := range []string{"scripts", ".agents"} {
 		if data, err := exec.Command("cp", "-R", filepath.Join(source, name), toolkit).CombinedOutput(); err != nil {
 			t.Fatalf("copy fixture: %v: %s", err, data)
 		}
@@ -167,7 +167,6 @@ func backendFixture(t *testing.T) (model, string) {
 	}
 	t.Setenv("AGENT_TOOLKIT_HOME", toolkit)
 	t.Setenv("HOME", root)
-	t.Setenv("AGENT_TOOLKIT_ENV_FILE", filepath.Join(root, "absent.env"))
 	t.Setenv("AGENTS_HOME", filepath.Join(root, "agents"))
 	t.Setenv("CODEX_HOME", filepath.Join(root, "codex"))
 	t.Setenv("CLAUDE_HOME", filepath.Join(root, "claude"))

@@ -134,9 +134,9 @@ For non-interactive installation:
 
 ```bash
 ./scripts/install.sh --list
-./scripts/install.sh --provider codex --bundle starter --no-global-guidance --dry-run
-./scripts/install.sh --provider claude --skill pr-description --no-global-guidance
-./scripts/install.sh --provider codex --bundle all --global-guidance
+./scripts/install.sh --provider codex --bundle starter --full-template false --concise false --dry-run
+./scripts/install.sh --provider claude --skill pr-description --full-template false --concise false
+./scripts/install.sh --provider codex --bundle all --full-template true --concise true
 ```
 
 Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
@@ -192,18 +192,16 @@ The [setup and settings TUI](docs/tui.md) exposes these controls with explicit
 page saves, final setup review, and confirmations for removals and directory creation.
 Disabling concise loading keeps the skill installed. These controls update only
 the toolkit's guidance block and preserve surrounding instructions. The full
-global template remains an explicit CLI choice through `--full-template true`
-or the legacy installer's `--global-guidance` option.
+global template remains an explicit CLI choice through `--full-template true`.
 
 Bash setup and the TUI use one managed planner and transaction. Successful
 applies save desired settings in `config/settings.env` and the observed inventory
 in `config/inventory.json`. Both ignored files belong to this clone, independent
 of the caller’s directory. Provider files and saved state roll back together.
 
-Before canonical state exists, setup imports `.env` as data and preserves owned
-installations from both providers. After migration, canonical state takes
-precedence; editing `.env` no longer changes setup. `AGENT_TOOLKIT_ENV_FILE`
-selects an alternate legacy import file. Legacy input is retained for recovery.
+Setup reads only this canonical state. Without saved state, Bash uses its fresh
+defaults and the TUI starts with no provider selected. Use setup options or the
+TUI to change saved choices.
 
 | Setting | Values | Purpose |
 | --- | --- | --- |
@@ -217,8 +215,7 @@ selects an alternate legacy import file. Legacy input is retained for recovery.
 Use `--output-path PATH` to save an output root (`''` selects repo-local).
 `MARKDOWN_OUTPUT_PATH` remains a temporary rendering override; it does not
 replace the saved preference. An explicit `--output-path` takes precedence.
-Use `--concise` or `--full-template` for independent settings. The older
-`--global-guidance` enables both, and `--no-global-guidance` disables both.
+Use `--concise` and `--full-template` to control these settings independently.
 An output root can still require a minimal output-policy block.
 
 | Output mode | Artifact location |
@@ -253,9 +250,9 @@ Temporary `MARKDOWN_OUTPUT_PATH` overrides are ignored during update; change the
 saved preference through setup instead. Provider-home overrides still select
 the installation destinations.
 
-Update requires canonical state or a recognized legacy installation. It stops
+Update requires canonical state from a successful setup. It stops
 on unknown saved skills, ownership conflicts, proposed removals, or a changed
-preview revision. A moved resource can leave a dangling link that older ownership
+preview revision. A moved resource can leave a dangling link that ownership
 records cannot safely identify; this also requires setup review. Resolve these
 through `make install-cli`; preserve user changes. Apply failures roll back provider files and saved state together.
 
@@ -266,9 +263,6 @@ pulling them. A repeated refresh preserves saved preferences.
 
 Bash and the TUI both reconcile the saved desired selection. Choosing fewer
 skills or providers requires confirmation before owned paths are removed.
-Older `plan-conventions` copies may require manual review because that name is
-absent from the current catalog. Its replacements are `plan-writing-conventions`
-and `plan-execution-conventions`.
 
 ### Troubleshooting
 
@@ -277,7 +271,6 @@ and `plan-execution-conventions`.
 | Missing skill | Check provider and selection with `--dry-run`, then start a new session. |
 | Ownership conflict or dangling resource link | Back up the affected installed skill outside the provider skills directory, then review setup. Keep the backup for comparison. |
 | Broken supporting-file links | Restore the clone or reinstall from its new location. |
-| Missing legacy output setting | Rerun interactive installation or add `MARKDOWN_OUTPUT_PATH=` to `.env`. |
 | Failed installation | Changes roll back; if recovery fails, the error gives the backup location. |
 
 ## Uninstall
@@ -286,8 +279,8 @@ and `plan-execution-conventions`.
 make uninstall
 ```
 
-Removes verified managed skills, guidance, canonical settings, and the legacy
-import file in one transaction. Unrelated user files and native plugins remain.
+Removes verified managed skills, guidance, and canonical settings in one
+transaction. Unrelated user files and native plugins remain.
 Ownership conflicts stop uninstall before writes; resolve those conflicts and
 retry. Failed uninstall restores provider files and saved state together.
 

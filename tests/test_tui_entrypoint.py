@@ -164,8 +164,10 @@ class EntrypointTests(unittest.TestCase):
         """GIVEN real Bash WHEN explicit dry-run runs THEN isolated state stays clean."""
         environment = dict(
             os.environ,
-            AGENT_TOOLKIT_ENV_FILE=str(self.root / "settings.env"),
+            AGENT_TOOLKIT_HOME=str(ROOT),
+            AGENTS_HOME=str(self.root / "agents"),
             CODEX_HOME=str(self.root / "codex"),
+            CLAUDE_HOME=str(self.root / "claude"),
             MARKDOWN_OUTPUT_PATH="",
         )
 
@@ -177,7 +179,10 @@ class EntrypointTests(unittest.TestCase):
                 "codex",
                 "--skill",
                 "concise-output",
-                "--no-global-guidance",
+                "--full-template",
+                "false",
+                "--concise",
+                "false",
                 "--dry-run",
             ],
             cwd=self.root,

@@ -30,13 +30,11 @@ class ManagedCLITests(unittest.TestCase):
         self.toolkit = self.root / "toolkit"
         for name in ("scripts", ".agents"):
             shutil.copytree(ROOT / name, self.toolkit / name)
-        shutil.copyfile(ROOT / ".env.template", self.toolkit / ".env.template")
         self.environment = dict(os.environ)
         self.environment.pop("MARKDOWN_OUTPUT_PATH", None)
         self.environment.update(
             PATH="/usr/bin:/bin:/usr/sbin:/sbin",
             AGENT_TOOLKIT_HOME=str(self.toolkit),
-            AGENT_TOOLKIT_ENV_FILE=str(self.root / "legacy.env"),
             AGENTS_HOME=str(self.root / "agents"),
             CODEX_HOME=str(self.root / "codex"),
             CLAUDE_HOME=str(self.root / "claude"),
@@ -76,11 +74,9 @@ class ManagedCLITests(unittest.TestCase):
         )
 
     def snapshot(self) -> dict[str, str]:
-        """Capture provider files, links, canonical state, and the legacy input."""
+        """Capture provider files, links, and canonical state."""
         result = {}
-        paths = [
-            self.root / name for name in ("agents", "codex", "claude", "legacy.env")
-        ]
+        paths = [self.root / name for name in ("agents", "codex", "claude")]
         paths.append(self.toolkit / "config")
         for path in paths:
             for item in [path, *path.rglob("*")] if path.is_dir() else [path]:
@@ -221,6 +217,37 @@ class ManagedCLITests(unittest.TestCase):
         self.assertFalse((self.toolkit / "config/inventory.json").exists())
         self.assertEqual(native.read_text(), "native content\n")
         self.assertEqual(user.read_text(), "user content\n")
+
+    def test_fresh_defaults_and_explicit_output_modes(self) -> None:
+        """GIVEN fresh setup WHEN output is selected THEN defaults and preferences save."""
+        output = str(self.root / "output with spaces")
+
+        self.run_script("install.sh", "--output-path", output)
+
+        desired = self.backend("status")["desired"]
+        self.assertEqual(desired["providers"], ["codex"])
+        self.assertEqual(
+            desired["requested_skills"], ["commit-message", "concise-output"]
+        )
+        self.assertEqual(desired["output_path"], output)
+        self.assertFalse(desired["full_template"])
+        self.assertFalse(desired["concise_output"])
+
+        self.run_script("install.sh", "--output-path", "", "--confirm-removals")
+
+        self.assertEqual(self.backend("status")["desired"]["output_path"], "")
+
+    def test_saved_provider_deselection_does_not_restore_defaults(self) -> None:
+        """GIVEN no saved providers WHEN setup repeats THEN defaults stay disabled."""
+        self.install_both()
+        self.run_script("install.sh", "--no-providers", "--confirm-removals")
+        before = self.snapshot()
+
+        self.run_script("install.sh", "--dry-run")
+        desired = self.backend("status")["desired"]
+
+        self.assertEqual(desired["providers"], [])
+        self.assertEqual(self.snapshot(), before)
 
     def test_help_list_and_dry_run_do_not_write(self) -> None:
         """GIVEN no installation WHEN inspected THEN provider files and state stay absent."""

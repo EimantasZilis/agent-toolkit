@@ -11,10 +11,9 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 fixture() {
   case_root="$TEST_ROOT/$1"
   mkdir -p "$case_root/toolkit"
-  cp -R "$SOURCE_ROOT/scripts" "$SOURCE_ROOT/.agents" "$SOURCE_ROOT/.env.template" "$case_root/toolkit/"
+  cp -R "$SOURCE_ROOT/scripts" "$SOURCE_ROOT/.agents" "$case_root/toolkit/"
   export AGENT_TOOLKIT_HOME="$case_root/toolkit"
   export AGENTS_HOME="$case_root/agents home" CODEX_HOME="$case_root/codex home" CLAUDE_HOME="$case_root/claude home"
-  export AGENT_TOOLKIT_ENV_FILE="$case_root/legacy.env"
   codex_skills="$AGENTS_HOME/skills/agent-toolkit"
   claude_skills="$CLAUDE_HOME/skills"
 }
@@ -147,8 +146,8 @@ cmp "$case_root/original" "$backup/SKILL.md" || fail 'recovery backup lost origi
 fixture guidance
 mkdir -p "$CODEX_HOME"
 printf 'User guidance\n' > "$CODEX_HOME/AGENTS.md"
-"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --global-guidance >/dev/null
-"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --provider claude --skill commit-message --global-guidance >/dev/null
+"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --full-template true --concise true >/dev/null
+"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --provider claude --skill commit-message --full-template true --concise true >/dev/null
 apply_current --no-providers
 grep -Fxq 'User guidance' "$CODEX_HOME/AGENTS.md" || fail 'user guidance lost'
 if grep -q 'agent-toolkit:start' "$CODEX_HOME/AGENTS.md"; then fail 'toolkit guidance survived removal'; fi
@@ -162,23 +161,5 @@ conflicts=$(backend preview | python3 -c 'import json,sys; print(len(json.load(s
 [[ "$conflicts" == 0 ]] || fail 'equivalent resource paths conflicted'
 apply_current --no-providers
 [[ ! -e "$codex_skills/ruby-rails-standards" && ! -e "$claude_skills/ruby-standards" ]] || fail 'aliased toolkit removal'
-
-fixture 'legacy links through an alias'
-ln -s "$AGENT_TOOLKIT_HOME" "$case_root/toolkit alias"
-export AGENT_TOOLKIT_HOME="$case_root/toolkit alias"
-mkdir -p "$codex_skills" "$claude_skills/agent-toolkit" "$CODEX_HOME" "$case_root/foreign"
-ln -s "$AGENT_TOOLKIT_HOME/.agents/skills/productivity/commit-message" "$codex_skills/commit-message"
-ln -s "$AGENT_TOOLKIT_HOME/.agents/skills/review/plan-review" "$claude_skills/agent-toolkit/plan-review"
-ln -s "$AGENT_TOOLKIT_HOME/.agents/global/instructions.md" "$CODEX_HOME/AGENTS.md"
-cp "$AGENT_TOOLKIT_HOME/.agents/skills/productivity/pr-comment/SKILL.md" "$case_root/foreign/SKILL.md"
-ln -s "$case_root/foreign" "$codex_skills/pr-comment"
-requested=$(backend preview | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)["desired"]["requested_skills"]))')
-[[ "$requested" == 'commit-message plan-review' ]] || fail 'legacy source links were not imported'
-apply_current --no-providers
-[[ ! -L "$codex_skills/commit-message" && ! -L "$claude_skills/agent-toolkit/plan-review" ]] || fail 'legacy source links survived'
-[[ ! -L "$CODEX_HOME/AGENTS.md" ]] || fail 'legacy guidance link survived'
-[[ -f "$AGENT_TOOLKIT_HOME/.agents/skills/productivity/commit-message/SKILL.md" ]] || fail 'source skill was removed'
-[[ -f "$AGENT_TOOLKIT_HOME/.agents/global/instructions.md" ]] || fail 'source guidance was removed'
-[[ -L "$codex_skills/pr-comment" && -f "$case_root/foreign/SKILL.md" ]] || fail 'unrelated link changed'
 
 printf 'OK: managed reconciliation tests passed\n'

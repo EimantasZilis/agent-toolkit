@@ -36,15 +36,12 @@ main() {
     return 2
   fi
   managed_load
-  if [[ -z "$managed_providers" ]] ||
-    [[ ! -f "$managed_settings_file" && -z "$inventory_codex$inventory_claude" ]]; then
+  if [[ ! -f "$managed_settings_file" || -z "$managed_providers" ]]; then
     printf 'Error: no saved installation; run make install-cli first.\n' >&2
     return 2
   fi
 
-  managed_previous_output=$managed_output
   managed_previous_concise=$managed_concise
-  managed_previous_full_template=$managed_full_template
   # Refresh always uses saved preferences, never a temporary setup override.
   MARKDOWN_OUTPUT_PATH=$managed_output
   managed_parse_options

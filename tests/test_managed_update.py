@@ -1,4 +1,4 @@
-"""Verify unattended saved-state refresh, refusals, migration, and rollback."""
+"""Verify unattended saved-state refresh, refusals and rollback."""
 
 from __future__ import annotations
 
@@ -24,14 +24,12 @@ class ManagedUpdateTests(unittest.TestCase):
         self.toolkit = self.root / "toolkit"
         for name in ("scripts", ".agents"):
             shutil.copytree(ROOT / name, self.toolkit / name)
-        for name in ("Makefile", ".env.template"):
-            shutil.copyfile(ROOT / name, self.toolkit / name)
+        shutil.copyfile(ROOT / "Makefile", self.toolkit / "Makefile")
         self.environment = dict(os.environ)
         self.environment.pop("MARKDOWN_OUTPUT_PATH", None)
         self.environment.update(
             PATH="/usr/bin:/bin:/usr/sbin:/sbin",
             AGENT_TOOLKIT_HOME=str(self.toolkit),
-            AGENT_TOOLKIT_ENV_FILE=str(self.root / "legacy.env"),
             AGENTS_HOME=str(self.root / "agents"),
             CODEX_HOME=str(self.root / "codex"),
             CLAUDE_HOME=str(self.root / "claude"),
@@ -77,7 +75,7 @@ class ManagedUpdateTests(unittest.TestCase):
     def snapshot(self) -> dict[str, str]:
         """Hash managed files and literal links without following source resources."""
         result = {}
-        paths = [self.toolkit / "config", self.root / "legacy.env"]
+        paths = [self.toolkit / "config"]
         paths.extend(self.root / name for name in ("agents", "codex", "claude"))
         for path in paths:
             for item in [path, *path.rglob("*")] if path.is_dir() else [path]:
@@ -128,20 +126,25 @@ class ManagedUpdateTests(unittest.TestCase):
             self.assertTrue((destination.parent / "plan-review/SKILL.md").is_file())
             self.assertFalse(destination.exists())
 
-    def test_missing_state_and_preferences_only_do_not_install_defaults(self) -> None:
+    def test_missing_state_does_not_install_defaults(self) -> None:
         """GIVEN no observed installation WHEN updating THEN setup is required."""
         before = self.snapshot()
 
         output = self.command("update.sh", expected=2)
         self.assertEqual(self.snapshot(), before)
-        (self.root / "legacy.env").write_text(
-            "LLM_PROVIDER=codex\nSKILL_SELECTION=starter\nMARKDOWN_OUTPUT_PATH=\n"
-        )
-        preferences_only = self.snapshot()
-        self.command("update.sh", "--dry-run", expected=2)
+        self.assertIn("make install-cli", output)
+        self.assertFalse((self.toolkit / "config").exists())
+
+    def test_observed_files_without_saved_state_require_setup(self) -> None:
+        """GIVEN installed files without settings WHEN updated THEN no choices are inferred."""
+        self.install()
+        shutil.rmtree(self.toolkit / "config")
+        before = self.snapshot()
+
+        output = self.command("update.sh", expected=2)
 
         self.assertIn("make install-cli", output)
-        self.assertEqual(self.snapshot(), preferences_only)
+        self.assertEqual(self.snapshot(), before)
         self.assertFalse((self.toolkit / "config").exists())
 
     def test_unknown_saved_skill_and_removed_catalog_entry_stop_read_only(self) -> None:
@@ -200,33 +203,6 @@ class ManagedUpdateTests(unittest.TestCase):
         for destination in self.destinations():
             self.assertTrue((destination / "old resource.md").is_symlink())
             self.assertFalse((destination / "moved resource.md").exists())
-
-    def test_legacy_import_is_read_only_until_successful_apply(self) -> None:
-        """GIVEN observed legacy installs WHEN refreshed THEN migration is transactional."""
-        self.install()
-        shutil.rmtree(self.toolkit / "config")
-        legacy = self.root / "legacy.env"
-        legacy.write_text(
-            "LLM_PROVIDER=codex\nSKILL_SELECTION=ticket-to-plan\n"
-            "GLOBAL_GUIDANCE=False\nCONCISE_OUTPUT=True\n"
-            f"MARKDOWN_OUTPUT_PATH={self.root / 'saved output'}\n"
-        )
-        before = self.snapshot()
-
-        self.command("update.sh", "--dry-run")
-        self.assertEqual(self.snapshot(), before)
-        self.environment["AGENT_TOOLKIT_FAIL_STATE"] = "after-settings"
-        self.command("update.sh", expected=1)
-        self.assertEqual(self.snapshot(), before)
-        del self.environment["AGENT_TOOLKIT_FAIL_STATE"]
-        self.command("update.sh")
-
-        saved = (self.toolkit / "config/settings.env").read_text()
-        self.assertIn("PROVIDERS=claude codex", saved)
-        self.assertIn("ticket-to-plan", saved)
-        self.assertEqual(
-            hashlib.sha256(legacy.read_bytes()).hexdigest(), before[str(legacy)]
-        )
 
     def test_apply_failures_restore_both_providers_and_state(self) -> None:
         """GIVEN changed instructions WHEN provider or state persistence fails THEN rollback restores."""

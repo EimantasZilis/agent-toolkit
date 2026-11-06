@@ -25,9 +25,7 @@ main() {
     return
   fi
   managed_load
-  managed_previous_output=$managed_output
   managed_previous_concise=$managed_concise
-  managed_previous_full_template=$managed_full_template
   if [[ "$command" == status ]]; then
     [[ $# -eq 0 ]] || { printf 'Error: status accepts only protocol/inventory options.\n' >&2; return 2; }
     selected_names=$(managed_status_selection)

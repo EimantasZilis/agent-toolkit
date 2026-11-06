@@ -6,8 +6,6 @@ Usage: scripts/install.sh [options]
   --provider codex|claude        Replace providers (repeat for both)
   --bundle NAME                  Select starter, all, or a category bundle
   --skill NAME                   Select one skill (repeatable; excludes --bundle)
-  --global-guidance              Update global guidance
-  --no-global-guidance           Disable full guidance and concise loading
   --confirm-removals             Authorize the previewed removals
   --remove-skill NAME             Remove an unused skill or helper
   --output-path PATH              Save output root (blank for repo-local)
@@ -28,7 +26,6 @@ parse_install_options() {
   frontend_options=()
   confirm_removals=false
   selection_option=''
-  guidance_option=''
   bundle_option=''
   dry_run=false
   list_only=false
@@ -56,12 +53,6 @@ parse_install_options() {
             ;;
         esac
         shift 2
-        ;;
-      --global-guidance|--no-global-guidance)
-        [[ -z "$guidance_option" ]] || { printf 'Error: specify guidance once.\n' >&2; return 1; }
-        guidance_option=true
-        [[ "$1" == --no-global-guidance ]] && guidance_option=false
-        shift
         ;;
       --remove-skill|--output-path|--concise|--full-template)
         [[ $# -ge 2 ]] || { printf 'Error: %s requires a value.\n' "$1" >&2; return 2; }

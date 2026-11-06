@@ -28,10 +28,9 @@ to a source skill. Move or remove adapters when moving or removing a skill;
 providers' installed metadata.
 
 Global guidance lives at `.agents/global/instructions.md` and is optional at
-installation. Select the provider in `.env` or pass `--provider codex` or
-`--provider claude` to `scripts/install.sh`. Local Markdown links are relative
-to their source file; rendering resolves cross-skill links for the installed
-layout.
+installation. Pass `--provider codex` or `--provider claude` to
+`scripts/install.sh`. Local Markdown links are relative to their source file;
+rendering resolves cross-skill links for the installed layout.
 
 Declare only required in-session skill loads and invocations in
 `.agents/dependencies.txt`: ticket planning requires plan review, and Rails

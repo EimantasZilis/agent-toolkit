@@ -37,7 +37,7 @@ and prevent duplicate saves. During apply, wait for completion or rollback
 before quitting. Errors preserve the draft; `s` requests a new preview for retry.
 
 Fresh setup starts with no provider selected and the starter skills selected.
-Select Codex, Claude Code, or both before continuing. Saved and imported choices
+Select Codex, Claude Code, or both before continuing. Saved choices
 are preserved on later runs. Expand skill categories with Left/Right, toggle a
 category or skill with Space, and use `a` to select/deselect all. Required helpers
 remain selected; removing a parent keeps its installed helpers. Remove unused

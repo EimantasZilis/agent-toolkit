@@ -1,8 +1,7 @@
 # Map the human CLI onto the same managed planner and transaction as the TUI.
 
 installation_defaults() {
-  local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}
-  if [[ ! -f "$managed_settings_file" && ! -f "$legacy" && -z "$managed_providers" ]]; then
+  if [[ ! -f "$managed_settings_file" ]]; then
     managed_providers=codex
     managed_requested=$(managed_words "$(bundle_members starter)")
   fi
@@ -18,7 +17,8 @@ installation_prompt() {
   prompt_for_value 'Concise output loading (True or False)' "$concise" concise
   provider_option=$providers
   selection_option=$selection
-  guidance_option=$(boolean_setting GLOBAL_GUIDANCE "$full")
+  frontend_options[${#frontend_options[@]}]=--full-template
+  frontend_options[${#frontend_options[@]}]=$full
   frontend_options[${#frontend_options[@]}]=--output-path
   frontend_options[${#frontend_options[@]}]=$output
   frontend_options[${#frontend_options[@]}]=--concise
@@ -40,12 +40,6 @@ installation_arguments() {
       installation_options[${#installation_options[@]}]=--skill
       installation_options[${#installation_options[@]}]=$name
     done
-  fi
-  if [[ -n "$guidance_option" ]]; then
-    installation_options[${#installation_options[@]}]=--full-template
-    installation_options[${#installation_options[@]}]=$guidance_option
-    installation_options[${#installation_options[@]}]=--concise
-    installation_options[${#installation_options[@]}]=$guidance_option
   fi
   if [[ ${#frontend_options[@]} -gt 0 ]]; then
     installation_options+=("${frontend_options[@]}")
@@ -92,18 +86,9 @@ installation_confirm() {
 }
 
 installation_main() {
-  local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}
   managed_load
-  if [[ ! -f "$managed_settings_file" && -f "$legacy" && "$interactive_install" == false &&
-    "$dry_run" == false && -z "${MARKDOWN_OUTPUT_PATH+x}" ]] &&
-    ! config_value "$legacy" MARKDOWN_OUTPUT_PATH >/dev/null; then
-    printf 'Error: MARKDOWN_OUTPUT_PATH is not configured; run setup interactively.\n' >&2
-    return 1
-  fi
   installation_defaults
-  managed_previous_output=$managed_output
   managed_previous_concise=$managed_concise
-  managed_previous_full_template=$managed_full_template
   if [[ "$interactive_install" == true ]]; then installation_prompt; fi
   installation_arguments
   if [[ ${#installation_options[@]} -gt 0 ]]; then

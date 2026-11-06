@@ -66,30 +66,6 @@ managed_validate_state_pair() {
   fi
 }
 
-managed_import_guidance() {
-  local provider destination marker hash expected
-  for provider in codex claude; do
-    destination=$(LLM_PROVIDER=$provider provider_guidance_dest)
-    marker=$(owned_marker "$(dirname "$destination")")
-    if link_points_to "$destination" "$(source_guidance)" ||
-      link_points_to "$destination" "$AGENT_TOOLKIT_HOME/.agents/global/AGENTS.md"; then
-      managed_providers=$(managed_words "$managed_providers" "$provider")
-      managed_full_template=true
-      continue
-    fi
-    [[ -f "$destination" && ! -L "$destination" && -f "$marker" && ! -L "$marker" ]] || continue
-    grep -Fxq -- "$AGENT_TOOLKIT_HOME" "$marker" || continue
-    expected=$(awk '$1 == "GUIDANCE_BLOCK" { print $2 }' "$marker")
-    hash=$(awk -v start="$agent_toolkit_start" -v end="$agent_toolkit_end" '
-      $0 == start { inside = 1 } inside { print } $0 == end { inside = 0 }
-    ' "$destination" | shasum -a 256 | awk '{print $1}')
-    if ! is_managed_guidance "$destination" && [[ -z "$expected" || "$hash" != "$expected" ]]; then continue; fi
-    managed_providers=$(managed_words "$managed_providers" "$provider")
-    if grep -Fxq '# agent-toolkit guidance' "$destination"; then managed_full_template=true; fi
-    if has_concise_output_block "$destination"; then managed_concise=true; fi
-  done
-}
-
 managed_lock() {
   managed_check_state_paths
   mkdir -p -- "$managed_state_dir"
@@ -101,22 +77,16 @@ managed_lock() {
 }
 
 managed_observed_skills() (
-  local provider=$1 root path name source
+  local provider=$1 root path name
   LLM_PROVIDER=$provider
-  for root in "$(provider_skills_dest)" "$(provider_legacy_skills_dest)"; do
-    [[ -n "$root" && -d "$root" ]] || continue
-    while IFS= read -r path; do
-      name=${path##*/}
-      [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || continue
-      if [[ -L "$path" ]]; then
-        source="$(skill_source "$name" 2>/dev/null || true)"
-        [[ -n "$source" ]] && link_points_to "$path" "$source" || continue
-      else
-        is_owned_dir "$path" || continue
-      fi
-      printf '%s\n' "$name"
-    done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) | LC_ALL=C sort)
-  done
+  root=$(provider_skills_dest)
+  [[ -d "$root" && ! -L "$root" ]] || return 0
+  while IFS= read -r path; do
+    name=${path##*/}
+    [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || continue
+    [[ ! -L "$path" ]] && is_owned_dir "$path" || continue
+    printf '%s\n' "$name"
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
 )
 
 managed_read_inventory() {
@@ -161,7 +131,6 @@ managed_read_inventory() {
 }
 
 managed_load() {
-  local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env} provider selection installed
   managed_state_paths
   managed_check_state_paths || return 1
   managed_validate_state_pair || return 1
@@ -185,36 +154,7 @@ managed_load() {
     managed_concise=$(boolean_setting CONCISE_OUTPUT "$(managed_setting CONCISE_OUTPUT)")
     managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$(managed_setting GLOBAL_GUIDANCE)")
     managed_validate_settings
-    return 0
   fi
-
-  if [[ -f "$legacy" ]]; then
-    provider=$(config_value "$legacy" LLM_PROVIDER || true)
-    case "$provider" in codex|claude) managed_providers=$provider ;; esac
-    selection=$(config_value "$legacy" SKILL_SELECTION || printf all)
-    if bundle_names | grep -Fxq -- "$selection"; then
-      managed_requested=$(managed_words "$(bundle_members "$selection")")
-    else
-      managed_requested=$(managed_words "$selection")
-    fi
-    managed_output=$(config_value "$legacy" MARKDOWN_OUTPUT_PATH || true)
-    managed_concise=$(boolean_setting CONCISE_OUTPUT "$(config_value "$legacy" CONCISE_OUTPUT || printf True)")
-    managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$(config_value "$legacy" GLOBAL_GUIDANCE || printf True)")
-    # Legacy concise loading was gated by global guidance, unlike protocol v1.
-    [[ "$managed_full_template" == true ]] || managed_concise=false
-  fi
-  for provider in codex claude; do
-    installed=$(managed_words "$(managed_observed_skills "$provider")")
-    case "$provider" in
-      codex) inventory_codex=$installed ;;
-      claude) inventory_claude=$installed ;;
-    esac
-    [[ -n "$installed" ]] || continue
-    managed_providers=$(managed_words "$managed_providers" "$provider")
-    managed_requested=$(managed_words "$managed_requested" "$installed")
-  done
-  managed_import_guidance
-  managed_validate_settings
 }
 
 managed_json_array() {
