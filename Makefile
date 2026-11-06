@@ -4,6 +4,9 @@ install:
 install-cli:
 	bash ./scripts/install.sh
 
+update:
+	bash ./scripts/update.sh
+
 uninstall:
 	./scripts/uninstall.sh
 

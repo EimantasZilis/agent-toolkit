@@ -109,7 +109,7 @@ for a full example.
 
 | Option | Best for | Updates managed by |
 | --- | --- | --- |
-| Repository installer | Selected skills and optional global guidance; requires this clone | `make install` |
+| Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
 | [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
 
 ### Select skills
@@ -235,27 +235,43 @@ Skills look for earlier workflow output in this order:
 
 ### Update
 
-Pull changes, then run setup again:
+Pull changes, then refresh the saved installation:
 
 ```bash
 git pull --ff-only
-make install
+make update
 ```
 
-For saved settings without prompts, use `./scripts/install.sh` outside a
-terminal. Restart the client session afterward.
+`make update` uses Bash without Go or selection prompts. It refreshes all saved
+providers, skills, retained helpers, and output/guidance preferences. Start new
+agent sessions afterward. Preview with `./scripts/update.sh --dry-run`.
+Temporary `MARKDOWN_OUTPUT_PATH` overrides are ignored during update; change the
+saved preference through setup instead. Provider-home overrides still select
+the installation destinations.
+
+Update requires canonical state or a recognized legacy installation. It stops
+on unknown saved skills, ownership conflicts, proposed removals, or a changed
+preview revision. A moved resource can leave a dangling link that older ownership
+records cannot safely identify; this also requires setup review. Resolve these
+through `make install-cli`; preserve user changes. Apply failures roll back provider files and saved state together.
+
+Git pull and refresh are separate operations. Linked resources can change as
+soon as Git updates the clone; rollback of a failed refresh cannot undo those
+source changes. Keep the checkout available and review source changes before
+pulling them. A repeated refresh preserves saved preferences.
 
 Bash and the TUI both reconcile the saved desired selection. Choosing fewer
-skills or providers requires confirmation before owned paths are removed. The former
-`plan-conventions` skill also remains installed; its replacements are
-`plan-writing-conventions` and `plan-execution-conventions`.
+skills or providers requires confirmation before owned paths are removed.
+Older `plan-conventions` copies may require manual review because that name is
+absent from the current catalog. Its replacements are `plan-writing-conventions`
+and `plan-execution-conventions`.
 
 ### Troubleshooting
 
 | Problem | Action |
 | --- | --- |
 | Missing skill | Check provider and selection with `--dry-run`, then start a new session. |
-| User-owned skill skipped | Keep your version or move it aside before reinstalling. |
+| Ownership conflict or dangling resource link | Back up the affected installed skill outside the provider skills directory, then review setup. Keep the backup for comparison. |
 | Broken supporting-file links | Restore the clone or reinstall from its new location. |
 | Missing legacy output setting | Rerun interactive installation or add `MARKDOWN_OUTPUT_PATH=` to `.env`. |
 | Failed installation | Changes roll back; if recovery fails, the error gives the backup location. |
