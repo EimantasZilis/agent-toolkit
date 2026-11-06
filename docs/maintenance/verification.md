@@ -14,6 +14,12 @@ make verify
 full installations for Codex and Claude. Tests inspect the bundled Python
 checker as a resource; they do not execute it.
 
+The commands run from the checkout. Without Make, use `go test ./...`,
+`go vet ./...`, and `go run ./cmd/agent-toolkit verify`. Source validation alone
+uses `go run ./cmd/agent-toolkit validate`. `--root PATH` before a maintainer
+command selects its source checkout. `--version` reports the application version.
+The source smoke check still requires Make because it exercises `make run`.
+
 ## Behavioral coverage after the Go migration
 
 This mapping records the replacements for the legacy test harnesses. JSON

@@ -5,6 +5,11 @@ Use a Git snapshot for hosted publication or an archive release for local
 marketplaces and ZIP distribution. Repository tooling requires Git and the Go
 version in `go.mod`.
 
+Run the commands below from the source checkout. `--root PATH`, placed before
+the command, selects another source root. Build and snapshot refuse existing
+output directories. Validation is read-only, works after relocation, and never
+executes packaged resources or changes local installations.
+
 ## Git marketplace snapshot
 
 Commit source inputs before generating, then choose a new version and output

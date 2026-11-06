@@ -2,7 +2,7 @@
 
 Native plugins install agent-toolkit skills into Codex or Claude Code without
 keeping a source checkout. Each package contains its supporting files and
-required helpers. Plugins leave the [local installer's](../../INSTALL.md) settings
+required helpers. Plugins leave the [local TUI's](../../INSTALL.md) settings
 and global guidance unchanged.
 
 ## Choose a package
@@ -86,7 +86,8 @@ codex plugin marketplace add ./dist/native/0.1.0/codex
 
 To update it, remove the old marketplace registration, register the new release,
 and add the package again. Keep local marketplace directories available while
-using their plugins. `make uninstall` removes only repository-managed skills.
+using their plugins. Uninstall in the local TUI removes only checkout-managed
+skills; manage native plugins through the provider.
 
 ## Compatibility
 

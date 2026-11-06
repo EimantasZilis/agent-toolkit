@@ -4,9 +4,11 @@ This repository ships reusable skills for Codex and Claude. Provider-neutral
 skills live in `.agents/skills/`, provider adapters in `.agents/providers/`, and
 the optional global guidance template in `.agents/global/instructions.md`.
 
-Local setup uses the Bash installation backend in `scripts/`. The Go TUI in
-`cmd/agent-toolkit/` and `internal/` is another client of that backend. Native
-package tooling builds self-contained provider plugins from the same skills.
+Local management runs through the Go TUI in `cmd/agent-toolkit/` and the typed
+installation service under `internal/install/`. Shared catalog and rendering
+packages also support self-contained native plugins. Start local management
+with `make run` or `go run ./cmd/agent-toolkit`; scripted local management has
+been removed. Native build and validation commands are maintainer tools.
 See the [documentation index](docs/README.md) for usage and maintenance
 guides.
 
@@ -19,5 +21,10 @@ keep [README.md](README.md) up to date with the skills and their summaries.
 
 Run `make verify` before reporting a structural change complete.
 This covers skills, tooling, provider adapters, and installation contracts.
-Generating plans or editing ordinary documentation does not trigger it; use
-artifact checks unless a specific claim needs an executable check.
+Run `make smoke-source` when changing startup or the TUI. It exercises actual
+terminal startup from current source in isolated homes. CI runs both checks
+on macOS and Linux. Go and Git are tooling prerequisites; Make is optional
+for local management but required by the source smoke check.
+
+For plans or ordinary documentation, use artifact checks unless a specific
+claim needs an executable check.

@@ -69,9 +69,12 @@ outside managed blocks and existing Markdown artifacts remain in place.
 Start a new agent session after configuring, refreshing, or uninstalling.
 Keep the checkout while local installations use its linked supporting files.
 
-## Transitional commands
+## Saved state and supported entry point
 
-Legacy Bash installation, update, and uninstall commands remain available during
-the Go migration. They share the saved state format. The TUI is the supported
-entry point for new local workflows; see [INSTALL.md](../../INSTALL.md) for the
-transitional command reference.
+Existing `config/settings.env`, `config/inventory.json`, ownership markers, and
+provider-home overrides remain compatible. The TUI reads saved values as data
+without shell evaluation. Configure changes preferences; refresh reapplies them.
+
+Local management uses the TUI. The former Bash scripts and installation, update,
+and uninstall Make targets have been removed. See [INSTALL.md](../../INSTALL.md)
+for installation paths, output rules, and recovery.

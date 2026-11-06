@@ -11,7 +11,7 @@ and Claude.
 
 ```mermaid
 flowchart TD
-    source["Shared skill library"] --> local["Local setup: terminal UI or Bash"]
+    source["Shared skill library"] --> local["Go terminal UI"]
     source --> publish["Build and publish plugins"]
     local --> yours["Your installation, linked to the checkout"]
     publish --> marketplace["Git marketplace: native-plugins branch"]
@@ -23,10 +23,18 @@ checkout for local installations; hosted plugins contain their supporting files
 and are managed through the provider. Prefer one installation route per skill
 to avoid duplicate copies.
 
-## Quick start
+## Choose an installation route
+
+- **Native plugins:** install through Codex or Claude without a source checkout.
+  Start with the [native plugin guide](docs/usage/native-packages.md).
+- **Local TUI:** keep a checkout to select skills and configure global guidance
+  and Markdown output. Follow the quick start below.
+
+## Local quick start
 
 **Prerequisites:** Git, the Go version declared in `go.mod`, and an installed,
-signed-in Codex or Claude Code client. Make is optional. Run the following in a macOS or Linux terminal:
+signed-in Codex or Claude Code client. Make is optional. Run the following in a
+macOS or Linux terminal:
 
 ```bash
 git clone https://github.com/EimantasZilis/agent-toolkit.git
@@ -36,8 +44,8 @@ make run
 
 `make run` opens the [local management TUI](docs/usage/tui.md) from current
 source. Without Make, use `go run ./cmd/agent-toolkit`. The first launch may
-download modules and a compatible toolchain. Legacy Bash commands remain
-available during the migration; see [INSTALL.md](INSTALL.md).
+download modules and a compatible toolchain. Local management uses this TUI;
+scripted installation, update, and uninstall commands have been removed.
 
 Choose providers and skills, then review the proposed changes. Keep this clone:
 supporting files link back to it. For options and maintenance, see
