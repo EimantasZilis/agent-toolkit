@@ -4,30 +4,10 @@ The TUI manages skills installed from this clone and their saved settings.
 Keep the clone for the installer and supporting files.
 [Native plugins](native-packages.md) are managed separately by each provider.
 
-This checkout has no pinned release, so `make install` currently uses Bash.
-After a release is pinned, it opens the TUI in a terminal using Python 3.9 or
-later and the Bash installer prerequisites. The first download needs HTTPS;
-cached launches work offline. Go is needed only for development.
+See [local installation](../INSTALL.md) for prerequisites and setup entry points.
+Maintainers can find [development and release instructions](tui-releases.md).
 
-Use `make install-cli` to run Bash directly. Non-terminal setup and
-`scripts/setup.sh` with arguments also use Bash. See
-[launcher and cache recovery](tui-releases.md#verified-launcher).
-
-Development requires Go 1.27.3 or later and the existing Bash installer
-prerequisites. From this source clone:
-
-```sh
-go run ./cmd/agent-toolkit --root .
-go build -o /tmp/agent-toolkit ./cmd/agent-toolkit
-go test ./...
-go test -race ./...
-go vet ./...
-make verify
-```
-
-`--version` prints the application and managed protocol versions. `--root`
-selects the source clone; retain it for the Bash backend and installed resources.
-Bubble Tea v2 and its transitive modules are pinned in `go.mod` and `go.sum`.
+## Setup and settings controls
 
 First setup stages four pages and applies only after final review. Later runs
 show a settings menu. Press `s` to save a page; leaving a dirty page offers

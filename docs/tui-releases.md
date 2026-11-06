@@ -4,6 +4,24 @@ The release build produces binaries for macOS and Linux on amd64 and arm64.
 Users can run them without Go. Maintainers need Go 1.27.3 or later, Python 3.9
 or later, and the repository's usual tools.
 
+## Development
+
+Development requires Go 1.27.3 or later and the existing Bash installer
+prerequisites. From this source clone:
+
+```sh
+go run ./cmd/agent-toolkit --root .
+go build -o /tmp/agent-toolkit ./cmd/agent-toolkit
+go test ./...
+go test -race ./...
+go vet ./...
+make verify
+```
+
+`--version` prints the application and managed protocol versions. `--root`
+selects the source clone; retain it for the Bash backend and installed resources.
+Bubble Tea v2 and its transitive modules are pinned in `go.mod` and `go.sum`.
+
 ## Dispatch and review
 
 The **TUI release candidate** workflow prepares one immutable candidate, verifies
@@ -97,16 +115,8 @@ for the first download. It checks backend compatibility, archive contents, and
 hashes before starting the TUI. It downloads only the pinned GitHub release;
 it never chooses the latest version or builds from source.
 
-This checkout has no published pin yet, so `make install` uses Bash. After a
-pin is added, it uses the launcher in a terminal. These routes always use Bash
-without downloading:
-
-- `make install-cli` or direct `scripts/install.sh` calls.
-- `scripts/setup.sh` with arguments.
-- Non-terminal `make install`.
-
-Launcher failures stop setup without applying installation changes. To continue
-with Bash, run `make install-cli` or `bash scripts/install.sh` with CLI options.
+Setup routing and the Bash fallback are documented in
+[local installation](../INSTALL.md#select-skills).
 
 ## Cache and recovery
 

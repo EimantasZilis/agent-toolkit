@@ -97,10 +97,12 @@ flowchart TD
 See the [worked workflow](EXAMPLES.md#chain-skills-from-a-feature-brief-to-delivery)
 for a full example.
 
-## Installation and maintenance
+## Guides
 
-See [INSTALL.md](INSTALL.md) to select skills, configure output, update, troubleshoot,
-or uninstall. For self-contained provider plugins, see [native packages](docs/native-packages.md).
+See [INSTALL.md](INSTALL.md) for local setup and maintenance, or
+[native packages](docs/native-packages.md) for provider plugins. The
+[documentation index](docs/README.md) covers publishing, compatibility, and
+backend integration.
 
 ## Contributing
 

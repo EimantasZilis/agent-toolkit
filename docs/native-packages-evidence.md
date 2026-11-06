@@ -19,4 +19,4 @@ establish every picker interaction or all overlapping-helper behavior.
 
 See the [archived test record](archive/native-packages-validation-2026-10-22.md)
 for commands, fixtures, limitations, and earlier results. For the checks to run
-before a release, see [release checks](native-packages.md#release-checks).
+before a release, see [release checks](native-publishing.md#release-checks).
