@@ -1,8 +1,14 @@
 # Agent guide — agent-toolkit
 
-This repository ships agent skills from `.agents/skills/` and a managed global
-guidance template from `.agents/global/AGENTS.md`. There is no application
-runtime.
+This repository ships reusable skills for Codex and Claude. Provider-neutral
+skills live in `.agents/skills/`, provider adapters in `.agents/providers/`, and
+the optional global guidance template in `.agents/global/instructions.md`.
+
+Local setup uses the Bash installation backend in `scripts/`. The Go TUI in
+`cmd/agent-toolkit/` and `internal/` is another client of that backend. Native
+package tooling builds self-contained provider plugins from the same skills.
+See the [documentation index](docs/README.md) for usage and maintenance
+guides.
 
 Before changing a skill, read [CONTRIBUTING.md](CONTRIBUTING.md). Keep skill
 names stable, use Markdown references rather than editor-specific rules, and

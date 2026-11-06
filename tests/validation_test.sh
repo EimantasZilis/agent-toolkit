@@ -77,11 +77,25 @@ test_duplicate_dependency_entry() {
   assert_invalid "$root" 'duplicate dependency entry: ticket-to-plan'
 }
 
+test_invalid_output_registry() {
+  local root
+  root="$(fixture output-registry)"
+  printf 'missing-skill\n' > "$root/.agents/markdown-output-skills.txt"
+  assert_invalid "$root" 'unknown skill: missing-skill'
+
+  printf 'to-markdown\nto-markdown\n' > "$root/.agents/markdown-output-skills.txt"
+  assert_invalid "$root" 'duplicate Markdown output skill: to-markdown'
+
+  mv "$root/.agents/markdown-output-skills.txt" "$root/removed-registry.txt"
+  assert_invalid "$root" 'missing or unreadable Markdown output skill registry'
+}
+
 test_optional_codex_adapter
 test_moved_codex_adapter
 test_removed_codex_skill
 test_stale_claude_entry
 test_missing_claude_list
+test_invalid_output_registry
 test_unknown_dependency
 test_duplicate_dependency_entry
 printf 'OK: adapter validation tests passed\n'

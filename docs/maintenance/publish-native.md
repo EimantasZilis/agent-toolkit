@@ -5,7 +5,7 @@ Publish it to this repository’s `native-plugins` branch. Keep source developme
 and generated content in separate checkouts so the source remains reviewable.
 The process is manual; generation does not publish anything.
 
-The [snapshot commands](native-packages.md#combined-git-marketplace-snapshots)
+The [snapshot commands](build-native.md#git-marketplace-snapshot)
 validate package integrity and source provenance. They do not establish hosted
 client compatibility. Keep local archive builds available for local installation.
 
@@ -143,5 +143,5 @@ git -C "$TOOLKIT_PUBLICATION" push origin refs/heads/native-plugins
 
 Keep all existing tags. Recovery changes the branch through a new commit; it
 does not move the old version tag or create a second tag for that same version.
-Client downgrade and recovery behavior still need provider-specific acceptance.
-See the [local rehearsal evidence](native-packages-evidence.md#git-marketplace-rehearsal).
+Test recovery in each supported client; restoring the marketplace branch does
+not by itself establish that installed packages downgrade correctly.

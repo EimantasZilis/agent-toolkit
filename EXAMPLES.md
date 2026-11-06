@@ -2,7 +2,7 @@
 
 [Back to the README](README.md)
 
-After [installation](README.md#installation-instructions), use these prompts in
+After [installation](INSTALL.md), use these prompts in
 your target repository. The invoice application, paths, and outputs are
 illustrative; no examples were executed.
 
@@ -42,7 +42,7 @@ flowchart TD
 
 Replace `<placeholders>` with paths reported by earlier steps. Default Markdown
 outputs live under `<repo-root>/<branch-slug>/<skill-name>/`; see
-[output configuration](README.md#configuration) for alternatives. Stay in the
+[output configuration](INSTALL.md#configuration) for alternatives. Stay in the
 same repository and branch, or supply earlier artifact paths explicitly.
 
 ### Implement and deliver
