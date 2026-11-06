@@ -18,26 +18,26 @@ flowchart TD
     marketplace --> users["Users install through Codex or Claude"]
 ```
 
-The terminal UI and Bash commands share one installation engine. Keep the
+The terminal UI uses the Go installation engine. Keep the
 checkout for local installations; hosted plugins contain their supporting files
 and are managed through the provider. Prefer one installation route per skill
 to avoid duplicate copies.
 
 ## Quick start
 
-**Prerequisites:** Git, Bash, Make, `shasum`, and an installed, signed-in Codex or
-Claude Code client. Run the following in a macOS or Linux terminal:
+**Prerequisites:** Git, the Go version declared in `go.mod`, and an installed,
+signed-in Codex or Claude Code client. Make is optional. Run the following in a macOS or Linux terminal:
 
 ```bash
 git clone https://github.com/EimantasZilis/agent-toolkit.git
 cd agent-toolkit
-make install
+make run
 ```
 
-Terminal `make install` opens the [setup TUI](docs/usage/tui.md) from this checkout
-and requires Go at the version declared in `go.mod` (currently 1.27.3). The first
-launch may download modules and a compatible toolchain. Use `make install-cli`
-for Bash setup without Go.
+`make run` opens the [local management TUI](docs/usage/tui.md) from current
+source. Without Make, use `go run ./cmd/agent-toolkit`. The first launch may
+download modules and a compatible toolchain. Legacy Bash commands remain
+available during the migration; see [INSTALL.md](INSTALL.md).
 
 Choose providers and skills, then review the proposed changes. Keep this clone:
 supporting files link back to it. For options and maintenance, see
@@ -52,8 +52,9 @@ Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
    usable by both providers and follow [CONTRIBUTING.md](CONTRIBUTING.md).
 2. **Validate it** with `make verify` and try the changed behavior in an agent
    session.
-3. **Use it locally:** select it through `make install` or `make install-cli`.
-   After pulling later changes, use `make update` to refresh saved selections.
+3. **Use it locally:** select it through `make run`.
+   Run `git pull --ff-only` separately, then choose **Refresh installation**
+   in the TUI to reapply saved selections.
    Start a new agent session afterward.
 4. **Publish when ready:** generate and validate a versioned snapshot, review
    it in a separate publication checkout, then publish to `native-plugins`

@@ -89,7 +89,7 @@ func TestWizardStagesAndAppliesOnce(t *testing.T) {
 		t.Fatal("quit interrupted apply")
 	}
 	m, _ = complete(m, cmd)
-	if m.wizard || m.page != -1 || m.dirty() {
+	if m.wizard || m.page != managementPage || m.dirty() {
 		t.Fatalf("setup not saved: %+v", m)
 	}
 	if strings.Join(b.calls, ",") != "preview,apply" {

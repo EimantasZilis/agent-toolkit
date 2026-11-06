@@ -14,6 +14,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+const managementPage = -3
+
 const unsavedPrompt = "There are unsaved changes on the page. Would you like to save them? [S]ave / Discard"
 
 var pageNames = []string{"LLM providers", "Skills", "Markdown output", "Global settings", "Review setup"}
@@ -171,6 +173,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.loaded, m.catalog, m.status = true, msg.catalog, msg.status
 		m.saved, m.draft = clone(msg.status.Desired), clone(msg.status.Desired)
+		m.includeUnavailableSkills()
+		if msg.installed {
+			m.page = managementPage
+		}
 		m.wizard = !msg.installed && len(m.saved.Providers) == 0
 		if m.wizard {
 			m.page = 0
@@ -280,7 +286,13 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		return m.navigate(-2)
 	}
 	if key == "esc" {
+		if m.page == managementPage {
+			return m.navigate(-2)
+		}
 		if m.page == -1 {
+			if m.status.Installed {
+				return m.navigate(managementPage)
+			}
 			return m.navigate(-2)
 		}
 		if m.wizard && m.page > 0 {
@@ -290,6 +302,24 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			return m.navigate(-2)
 		}
 		return m.navigate(-1)
+	}
+	if m.page == managementPage {
+		switch key {
+		case "up", "k":
+			m.cursor = max(0, m.cursor-1)
+		case "down", "j":
+			m.cursor = min(2, m.cursor+1)
+		case "enter":
+			switch m.cursor {
+			case 0:
+				m.page, m.cursor = -1, 0
+			case 1:
+				return m.startAction(install.Refresh)
+			case 2:
+				return m.startAction(install.Uninstall)
+			}
+		}
+		return m, nil
 	}
 	if m.page == -1 {
 		switch key {
@@ -352,16 +382,23 @@ func (m model) leave() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) startSave() (tea.Model, tea.Cmd) {
-	missing, err := m.validate()
+func (m model) startSave() (tea.Model, tea.Cmd) { return m.startAction(install.Configure) }
+
+func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
+	missing := false
+	var err error
+	if intent != install.Uninstall {
+		missing, err = m.validate()
+	}
 	if err != nil {
 		m.err = err.Error()
 		m.depart = false
 		return m, nil
 	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
+	m.preview = response{}
 	m.createOutput = missing
-	m.applyRequest = install.Request{Intent: install.Configure, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
+	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
 	request := m.applyRequest
 	return m, func() tea.Msg {
 		p, err := m.backend.Preview(context.Background(), request)
@@ -386,21 +423,40 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	if msg.action == "preview" {
 		m.preview = msg.response
 		if len(m.preview.Conflicts) > 0 {
-			m.err = "Resolve ownership conflicts before saving."
+			m.err = "Resolve ownership conflicts before applying:"
+			for _, conflict := range m.preview.Conflicts {
+				m.err += "\n" + conflict.Path
+			}
 			m.depart = false
 			return m, nil
 		}
 		m.dialogs = m.confirmations()
 		return m, nil
 	}
+	intent := m.applyRequest.Intent
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
 	m.syncOutput()
 	m.status = msg.response
 	m.removed, m.preview, m.applyRequest = nil, response{}, install.Request{}
-	m.notice = "Settings saved."
+	m.notice = "Settings saved. Start a new agent session to load the changes."
+	if intent == install.Refresh {
+		m.notice = "Installation refreshed. Start a new agent session to load the changes."
+	}
+	if intent == install.Uninstall {
+		m.wizard, m.page, m.cursor = true, 0, 0
+		for _, b := range m.catalog.Bundles {
+			if b.Name == "starter" {
+				m.draft.Requested = append([]string(nil), b.Skills...)
+			}
+		}
+		m.globalOutput = true
+		m.draft.Output = m.outputPath
+		m.notice = "Managed installation removed. Start a new agent session. Setup is ready for a new installation."
+		return m, nil
+	}
 	if m.wizard {
 		m.wizard = false
-		m.page, m.cursor = -1, 0
+		m.page, m.cursor = managementPage, 0
 	}
 	if m.depart {
 		return m.leave()
@@ -413,7 +469,11 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 	plan := m.preview.Plan
 	confirmed := install.Confirmations{Removals: m.preview.Confirmation, CreateOutput: m.createOutput}
 	return m, func() tea.Msg {
-		missing, err := m.validateOutput()
+		missing := false
+		var err error
+		if plan.Request.Intent != install.Uninstall {
+			missing, err = m.validateOutput()
+		}
 		if err != nil {
 			return resultMsg{action: "apply", err: err}
 		}
@@ -426,6 +486,9 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 }
 
 func (m model) confirmations() []dialog {
+	if m.applyRequest.Intent == install.Uninstall {
+		return []dialog{{"Uninstall all verified managed skills and guidance, and forget saved settings? [y/N]"}}
+	}
 	dialogs := m.selectionConfirmations()
 	if m.createOutput {
 		dialogs = append([]dialog{{"Create the Markdown output directory?\n" + m.draft.Output + "\n[y/N]"}}, dialogs...)
@@ -451,7 +514,12 @@ func (m model) viewLines() []string {
 	if !m.loaded {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
-		if m.page < 0 {
+		if m.page == managementPage {
+			for i, name := range []string{"Configure", "Refresh installation", "Uninstall"} {
+				lines = append(lines, row(i == m.cursor, name))
+			}
+			lines = append(lines, "", "Run git pull --ff-only separately before refreshing source changes.")
+		} else if m.page < 0 {
 			for i, name := range pageNames[:4] {
 				lines = append(lines, row(i == m.cursor, name))
 			}
@@ -487,7 +555,7 @@ func (m model) operationLines() []string {
 	lines := []string{"Proposed changes:"}
 	for _, op := range m.preview.Operations {
 		if op.Action != "keep" {
-			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name)
+			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name+"\n  "+op.Path)
 		}
 	}
 	return lines
@@ -498,7 +566,22 @@ func (m model) pageLines() []string {
 		return m.selectionLines()
 	}
 	if m.page == 4 {
-		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise)}
+		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nFull guidance: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise, m.draft.FullTemplate)}
 	}
 	return m.settingsLines()
+}
+
+// includeUnavailableSkills lets setup explicitly forget names removed from source.
+// Existing owned directories still require independent ownership verification.
+func (m *model) includeUnavailableSkills() {
+	known := map[string]bool{}
+	for _, s := range m.catalog.Skills {
+		known[s.Name] = true
+	}
+	for _, name := range append(append([]string(nil), m.saved.Requested...), m.saved.Retained...) {
+		if !known[name] {
+			m.catalog.Skills = append(m.catalog.Skills, skill{Name: name, Category: "unavailable"})
+			known[name] = true
+		}
+	}
 }

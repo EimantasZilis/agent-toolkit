@@ -5,32 +5,32 @@ updates. Keep the checkout for the installer and linked resources.
 
 ## Quick start
 
-Use a macOS or Linux terminal with Git, Bash, Make, and `shasum`. Install
+Use a macOS or Linux terminal with Git and the Go version in `go.mod`. Make
+is optional. Install
 Codex or Claude and sign in before continuing.
 
 ```bash
 git clone https://github.com/EimantasZilis/agent-toolkit.git
 cd agent-toolkit
-make install
+make run
 ```
 
-Terminal `make install` opens the [setup TUI](docs/usage/tui.md) from this checkout.
-It requires Go at the version declared in `go.mod` (currently 1.27.3). The first
-launch may download modules and a compatible toolchain. Later launches use
-Go’s build cache and include source changes automatically.
+`make run` opens the [local management TUI](docs/usage/tui.md) from current
+source. Without Make, use `go run ./cmd/agent-toolkit`. The first launch may
+download modules and a compatible toolchain. Choose providers, skills, output
+location, concise loading, and full guidance, then review the proposed paths.
 
-Use `make install-cli` for Bash setup without Go. Choose providers and skills,
-review the proposed changes, and confirm them. Fresh Bash defaults select Codex,
-the starter bundle (`concise-output` and `commit-message`), repository-local
-Markdown output, and no global guidance. The TUI starts with no provider selected.
+Later runs offer Configure, Refresh installation, and Uninstall. Run
+`git pull --ff-only` separately before refreshing source changes. Start a new
+agent session after changing an installation. Keep this checkout for linked
+supporting files. Native plugins are managed separately by the provider.
 
-Start a new agent session after setup. Run the management commands below from
-the `agent-toolkit` folder.
+## Transitional Bash reference
 
-| Option | Best for | Updates managed by |
-| --- | --- | --- |
-| Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
-| [Native plugins](docs/usage/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
+The commands below remain available during migration and share saved state with
+the TUI. They require Bash and the existing shell prerequisites. New local
+workflows should use the TUI; its full controls are in the
+[TUI guide](docs/usage/tui.md).
 
 ## Select skills
 

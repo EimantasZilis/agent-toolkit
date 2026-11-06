@@ -151,8 +151,8 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		}
 	}
 	for _, name := range request.Removed {
-		if _, err := c.Lookup(name); err != nil {
-			return Preview{}, err
+		if !validName.MatchString(name) {
+			return Preview{}, problem("invalid_settings", "", "invalid removed skill: "+name)
 		}
 		desired.Requested = without(desired.Requested, name)
 		desired.Retained = without(desired.Retained, name)

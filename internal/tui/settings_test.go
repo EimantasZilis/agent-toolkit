@@ -245,12 +245,12 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	assertFile(t, artifact, true)
 }
 
-func TestFullTemplatePreferencePreserved(t *testing.T) {
+func TestFullTemplatePreferenceIsIndependent(t *testing.T) {
 	m, _ := readyModel(t, false)
 	m.draft.FullTemplate, m.page = true, 3
 	m, _ = press(m, "space")
-	if !m.draft.FullTemplate || !m.draft.Concise || strings.Contains(strings.Join(m.settingsLines(), "\n"), "Full template") {
-		t.Fatal("full-template preference was changed or exposed")
+	if !m.draft.FullTemplate || !m.draft.Concise || !strings.Contains(strings.Join(m.settingsLines(), "\n"), "Full guidance template") {
+		t.Fatal("full-template preference was changed or hidden")
 	}
 	next, cmd := m.startSave()
 	m = next.(model)
