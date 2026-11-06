@@ -4,7 +4,7 @@ Native packages install agent-toolkit skills as Claude or Codex plugins.
 They include the skills, supporting files, and required helpers, so the source
 clone is no longer needed after building.
 
-The [repository installer](../README.md#installation-instructions) is an
+The [repository installer](../INSTALL.md) is an
 alternative that keeps supporting files linked to the clone. Native packages
 leave its settings and global guidance unchanged.
 
