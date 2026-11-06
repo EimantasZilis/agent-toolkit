@@ -1,48 +1,80 @@
-# Terminal setup
+# Local management TUI
 
-The TUI lets you choose providers, skills, Markdown output locations, and
-automatic concise-output loading. Run `make install` to open it. Later runs
-show your saved settings.
+Run `make run` to configure, refresh, or uninstall local skills for Codex and
+Claude Code. The TUI previews paths and changes before applying them. Native
+plugins remain managed separately by each provider.
 
-It requires Go at the version declared in `go.mod` and the
-[local installation prerequisites](../../INSTALL.md#quick-start). The first launch
-may download modules and a compatible toolchain. Use `make install-cli` for
-Bash setup without Go. Both interfaces share the same settings and installer.
+The TUI requires Git and the Go version declared in `go.mod`. Make is optional:
+`go run ./cmd/agent-toolkit` starts the same interface from the checkout. The
+first launch may download modules and a compatible toolchain. Startup requires
+an interactive terminal and fails without changing installations when redirected.
 
-## Choose and save settings
+## Configure an installation
 
-First setup takes you through four pages, then shows a final review before
-applying changes. Select Codex, Claude Code, or both; no provider is selected
-initially. The starter skills are preselected.
+Fresh setup starts with no provider selected and the starter skills preselected.
+Choose Codex, Claude Code, or both. Complete the settings pages and final review.
+Saved installations open a management menu; choose **Configure** to edit settings.
 
 | Control | Action |
 | --- | --- |
 | Arrow keys | Move between rows; Left/Right expand skill categories |
-| Space | Toggle a skill or category |
+| Space | Toggle a setting, skill, or category |
 | `a` | Select or deselect all skills |
-| `s` | Save the page |
-| Enter on the Path row | Edit the output path; Enter accepts, Escape cancels |
+| `s` | Preview and save settings |
+| Enter on Path | Edit the output path; Enter accepts, Escape cancels |
 | Page Up / Page Down | Scroll long pages and previews |
 | `t` / `T` | Cycle color themes for this run |
+| Escape | Return to the previous page or menu |
+| `q` | Quit; changed drafts offer Save or Discard |
 
-Leaving a changed page offers Save or Discard. Errors keep your draft so you
-can correct it and press `s` to retry. Wait for installation or rollback to
-finish before quitting.
+Errors preserve your draft. Conflicts show the affected paths and stop apply.
+Wait for installation or rollback to finish before quitting. Handled signals
+also let an active transaction finish or roll back. Failed recovery reports the
+location of retained backups.
 
-## What the settings affect
+## Settings
 
 - **Skills:** required helpers are included automatically. Removing a parent
-  skill keeps its installed helpers; remove unused helpers individually.
-- **Markdown output:** save artifacts in each repository or under a shared
-  absolute path, grouped by repository, branch, and skill. Changing the location
-  leaves existing artifacts in place.
-- **Global settings:** enable automatic concise-output loading. Disabling it
-  keeps the skill installed. Use the [CLI](../../INSTALL.md#configuration) to change
-  the full global guidance template.
+  keeps its installed helpers; remove unused helpers individually.
+- **Markdown output:** use each repository or a shared absolute path, grouped
+  by repository, branch, and skill. Existing artifacts stay in place.
+- **Automatic concise-output loading:** install the skill and add its standing
+  instruction. Disabling the instruction keeps the skill installed.
+- **Full guidance template:** add shared coding and documentation instructions
+  independently of concise-output loading.
 
-Removing providers or skills and creating a missing output directory require
-confirmation. The default is No. User-edited installations cause a conflict
-and stop the operation so you can resolve them.
+Removing skills or providers and creating an output directory require explicit
+confirmation. Enter, No, and Escape cancel; the default is No. Apply checks that
+source files and installed content still match the preview.
 
-Keep this checkout: installed supporting files link to it.
-[Native plugins](native-packages.md) are managed separately by each provider.
+## Refresh source changes
+
+1. Run `git pull --ff-only` separately to update the checkout.
+2. Run `make run` and choose **Refresh installation**.
+3. Review the proposed paths and confirm.
+4. Start a new agent session.
+
+Refresh preserves saved preferences. If a saved skill is unavailable or refresh
+would remove managed content, use Configure to review the selection. Supporting
+files link to this checkout and may change as soon as you pull. Installation
+rollback cannot undo checkout changes.
+
+## Uninstall
+
+Choose **Uninstall**, review the managed paths, and explicitly confirm the final
+prompt. Cancellation changes nothing. Successful uninstall removes verified
+managed content and saved settings, then returns to fresh setup. User guidance
+outside managed blocks and existing Markdown artifacts remain in place.
+
+Start a new agent session after configuring, refreshing, or uninstalling.
+Keep the checkout while local installations use its linked supporting files.
+
+## Saved state and supported entry point
+
+Existing `config/settings.env`, `config/inventory.json`, ownership markers, and
+provider-home overrides remain compatible. The TUI reads saved values as data
+without shell evaluation. Configure changes preferences; refresh reapplies them.
+
+Local management uses the TUI. The former Bash scripts and installation, update,
+and uninstall Make targets have been removed. See [INSTALL.md](../../INSTALL.md)
+for installation paths, output rules, and recovery.

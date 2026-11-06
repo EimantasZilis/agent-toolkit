@@ -1,12 +1,20 @@
 package tui
 
 import (
+	"context"
 	"fmt"
+	"github.com/EimantasZilis/agent-toolkit/internal/install"
+	"github.com/charmbracelet/x/term"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"reflect"
+	"syscall"
 
 	tea "charm.land/bubbletea/v2"
 )
+
+const managementPage = -3
 
 const unsavedPrompt = "There are unsaved changes on the page. Would you like to save them? [S]ave / Discard"
 
@@ -34,7 +42,8 @@ type model struct {
 	status                      response
 	removed                     []string
 	preview                     response
-	applyArgs                   []string
+	applyRequest                install.Request
+	quitAfter                   bool
 	dialogs                     []dialog
 	unsaved                     bool
 	target                      int // -1 menu, -2 quit; other values are wizard pages.
@@ -76,17 +85,51 @@ var uiThemes = []uiTheme{
 	},
 }
 
-// Run starts the TUI. root must contain the toolkit's scripts and source skills.
-// Backend mutations finish before the UI accepts quit, allowing Bash rollback.
+// Run starts the source TUI with real terminal descriptors. Mutations finish
+// or roll back before shutdown, including handled signals and terminal loss.
 func Run(root string) error {
+	if !term.IsTerminal(os.Stdin.Fd()) || !term.IsTerminal(os.Stdout.Fd()) {
+		return fmt.Errorf("the TUI requires an interactive terminal; run make run from a terminal")
+	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return fmt.Errorf("resolve source root: %w", err)
 	}
-	m := newModel(shellBackend{abs}, abs)
-	_, err = tea.NewProgram(m).Run()
+	homes, err := install.EnvironmentHomes()
+	if err != nil {
+		return err
+	}
+	service, err := install.New(abs, homes)
+	if err != nil {
+		return err
+	}
+	tracked := &trackedBackend{backend: service}
+	defer tracked.close()
+	program := tea.NewProgram(newModel(tracked, abs), tea.WithoutSignalHandler())
+	signals, done := make(chan os.Signal, 1), make(chan struct{})
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
+	defer close(done)
+	go func() {
+		for {
+			select {
+			case <-signals:
+				program.Send(shutdownMsg{})
+			case <-done:
+				return
+			}
+		}
+	}()
+	final, err := program.Run()
+	if err == nil {
+		if m, ok := final.(model); ok && m.quitAfter && m.err != "" {
+			return fmt.Errorf("%s", m.err)
+		}
+	}
 	return err
 }
+
+type shutdownMsg struct{}
 
 func newModel(b backend, root string) model {
 	return model{backend: b, root: root, page: -1, width: 80, height: 24, expanded: map[string]bool{}}
@@ -94,13 +137,12 @@ func newModel(b backend, root string) model {
 
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		catalog, err := m.backend.run("catalog", nil)
+		catalog, err := m.backend.Catalog()
 		if err != nil {
 			return loadedMsg{err: err}
 		}
-		status, err := m.backend.run("status", nil)
-		installed, statErr := savedInstallation(m.root)
-		return loadedMsg{catalog, status, installed, firstError(err, statErr)}
+		status, err := m.backend.Status(context.Background())
+		return loadedMsg{catalogResponse(catalog), statusResponse(status), status.Installed, err}
 	}
 }
 
@@ -117,6 +159,12 @@ func (m model) dirty() bool {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case shutdownMsg:
+		if m.busy {
+			m.quitAfter = true
+			return m, nil
+		}
+		return m, tea.Quit
 	case loadedMsg:
 		m.busy = false
 		if msg.err != nil {
@@ -125,6 +173,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.loaded, m.catalog, m.status = true, msg.catalog, msg.status
 		m.saved, m.draft = clone(msg.status.Desired), clone(msg.status.Desired)
+		m.includeUnavailableSkills()
+		if msg.installed {
+			m.page = managementPage
+		}
 		m.wizard = !msg.installed && len(m.saved.Providers) == 0
 		if m.wizard {
 			m.page = 0
@@ -234,7 +286,13 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		return m.navigate(-2)
 	}
 	if key == "esc" {
+		if m.page == managementPage {
+			return m.navigate(-2)
+		}
 		if m.page == -1 {
+			if m.status.Installed {
+				return m.navigate(managementPage)
+			}
 			return m.navigate(-2)
 		}
 		if m.wizard && m.page > 0 {
@@ -244,6 +302,24 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			return m.navigate(-2)
 		}
 		return m.navigate(-1)
+	}
+	if m.page == managementPage {
+		switch key {
+		case "up", "k":
+			m.cursor = max(0, m.cursor-1)
+		case "down", "j":
+			m.cursor = min(2, m.cursor+1)
+		case "enter":
+			switch m.cursor {
+			case 0:
+				m.page, m.cursor = -1, 0
+			case 1:
+				return m.startAction(install.Refresh)
+			case 2:
+				return m.startAction(install.Uninstall)
+			}
+		}
+		return m, nil
 	}
 	if m.page == -1 {
 		switch key {
@@ -306,25 +382,38 @@ func (m model) leave() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) startSave() (tea.Model, tea.Cmd) {
-	missing, err := m.validate()
+func (m model) startSave() (tea.Model, tea.Cmd) { return m.startAction(install.Configure) }
+
+func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
+	missing := false
+	var err error
+	if intent != install.Uninstall {
+		missing, err = m.validate()
+	}
 	if err != nil {
 		m.err = err.Error()
 		m.depart = false
 		return m, nil
 	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
+	m.preview = response{}
 	m.createOutput = missing
-	m.applyArgs = m.draft.arguments(m.removed)
-	if m.createOutput {
-		m.applyArgs = append(m.applyArgs, "--create-output-directory")
+	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
+	request := m.applyRequest
+	return m, func() tea.Msg {
+		p, err := m.backend.Preview(context.Background(), request)
+		return resultMsg{"preview", previewResponse(p), err}
 	}
-	args := append([]string(nil), m.applyArgs...)
-	return m, func() tea.Msg { r, err := m.backend.run("preview", args); return resultMsg{"preview", r, err} }
 }
 
 func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	m.busy = false
+	if m.quitAfter {
+		if msg.err != nil {
+			m.err = msg.err.Error()
+		}
+		return m, tea.Quit
+	}
 	if msg.err != nil {
 		m.err = msg.err.Error()
 		m.depart = false
@@ -334,21 +423,40 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	if msg.action == "preview" {
 		m.preview = msg.response
 		if len(m.preview.Conflicts) > 0 {
-			m.err = "Resolve ownership conflicts before saving."
+			m.err = "Resolve ownership conflicts before applying:"
+			for _, conflict := range m.preview.Conflicts {
+				m.err += "\n" + conflict.Path
+			}
 			m.depart = false
 			return m, nil
 		}
 		m.dialogs = m.confirmations()
 		return m, nil
 	}
+	intent := m.applyRequest.Intent
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
 	m.syncOutput()
 	m.status = msg.response
-	m.removed, m.preview, m.applyArgs = nil, response{}, nil
-	m.notice = "Settings saved."
+	m.removed, m.preview, m.applyRequest = nil, response{}, install.Request{}
+	m.notice = "Settings saved. Start a new agent session to load the changes."
+	if intent == install.Refresh {
+		m.notice = "Installation refreshed. Start a new agent session to load the changes."
+	}
+	if intent == install.Uninstall {
+		m.wizard, m.page, m.cursor = true, 0, 0
+		for _, b := range m.catalog.Bundles {
+			if b.Name == "starter" {
+				m.draft.Requested = append([]string(nil), b.Skills...)
+			}
+		}
+		m.globalOutput = true
+		m.draft.Output = m.outputPath
+		m.notice = "Managed installation removed. Start a new agent session. Setup is ready for a new installation."
+		return m, nil
+	}
 	if m.wizard {
 		m.wizard = false
-		m.page, m.cursor = -1, 0
+		m.page, m.cursor = managementPage, 0
 	}
 	if m.depart {
 		return m.leave()
@@ -358,25 +466,29 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 
 func (m model) apply() (tea.Model, tea.Cmd) {
 	m.busy, m.notice = true, "Applying changes… Please wait for completion or rollback."
-	args := append([]string(nil), m.applyArgs...)
-	args = append(args, "--revision", m.preview.Revision)
-	if m.preview.Confirmation {
-		args = append(args, "--confirm-removals")
-	}
+	plan := m.preview.Plan
+	confirmed := install.Confirmations{Removals: m.preview.Confirmation, CreateOutput: m.createOutput}
 	return m, func() tea.Msg {
-		missing, err := m.validateOutput()
+		missing := false
+		var err error
+		if plan.Request.Intent != install.Uninstall {
+			missing, err = m.validateOutput()
+		}
 		if err != nil {
 			return resultMsg{action: "apply", err: err}
 		}
 		if missing && !m.createOutput {
 			return resultMsg{action: "apply", err: fmt.Errorf("output directory disappeared; preview again to confirm creation")}
 		}
-		r, err := m.backend.run("apply", args)
-		return resultMsg{"apply", r, err}
+		status, err := m.backend.Apply(context.Background(), plan, confirmed)
+		return resultMsg{"apply", statusResponse(status), err}
 	}
 }
 
 func (m model) confirmations() []dialog {
+	if m.applyRequest.Intent == install.Uninstall {
+		return []dialog{{"Uninstall all verified managed skills and guidance, and forget saved settings? [y/N]"}}
+	}
 	dialogs := m.selectionConfirmations()
 	if m.createOutput {
 		dialogs = append([]dialog{{"Create the Markdown output directory?\n" + m.draft.Output + "\n[y/N]"}}, dialogs...)
@@ -402,7 +514,12 @@ func (m model) viewLines() []string {
 	if !m.loaded {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
-		if m.page < 0 {
+		if m.page == managementPage {
+			for i, name := range []string{"Configure", "Refresh installation", "Uninstall"} {
+				lines = append(lines, row(i == m.cursor, name))
+			}
+			lines = append(lines, "", "Run git pull --ff-only separately before refreshing source changes.")
+		} else if m.page < 0 {
 			for i, name := range pageNames[:4] {
 				lines = append(lines, row(i == m.cursor, name))
 			}
@@ -438,7 +555,7 @@ func (m model) operationLines() []string {
 	lines := []string{"Proposed changes:"}
 	for _, op := range m.preview.Operations {
 		if op.Action != "keep" {
-			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name)
+			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name+"\n  "+op.Path)
 		}
 	}
 	return lines
@@ -449,7 +566,22 @@ func (m model) pageLines() []string {
 		return m.selectionLines()
 	}
 	if m.page == 4 {
-		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise)}
+		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nFull guidance: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise, m.draft.FullTemplate)}
 	}
 	return m.settingsLines()
+}
+
+// includeUnavailableSkills lets setup explicitly forget names removed from source.
+// Existing owned directories still require independent ownership verification.
+func (m *model) includeUnavailableSkills() {
+	known := map[string]bool{}
+	for _, s := range m.catalog.Skills {
+		known[s.Name] = true
+	}
+	for _, name := range append(append([]string(nil), m.saved.Requested...), m.saved.Retained...) {
+		if !known[name] {
+			m.catalog.Skills = append(m.catalog.Skills, skill{Name: name, Category: "unavailable"})
+			known[name] = true
+		}
+	}
 }

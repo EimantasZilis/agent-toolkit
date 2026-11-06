@@ -28,9 +28,9 @@ to a source skill. Move or remove adapters when moving or removing a skill;
 providers' installed metadata.
 
 Global guidance lives at `.agents/global/instructions.md` and is optional at
-installation. Pass `--provider codex` or `--provider claude` to
-`scripts/install.sh`. Local Markdown links are relative to their source file;
-rendering resolves cross-skill links for the installed layout.
+installation. Choose providers and guidance in the TUI started by `make run`
+or `go run ./cmd/agent-toolkit`. Local Markdown links are relative to their
+source file; rendering resolves cross-skill links for the installed layout.
 
 Declare only required in-session skill loads and invocations in
 `.agents/dependencies.txt`: ticket planning requires plan review, and Rails
@@ -80,8 +80,30 @@ supports, and order independent skills alphabetically.
 
 ## Source application checks
 
-Go uses the version declared in `go.mod`. Run `go test ./...`, `go vet ./...`,
-and `make smoke-source` when changing setup or the TUI. The smoke check needs
-Python 3.9 or later and runs in an isolated spaced checkout. CI runs the source
-checks and `make verify` on macOS and Linux with read-only repository access.
-Native package builds are independent of application delivery.
+Repository tooling uses Go and Git. Go uses the version declared in `go.mod`.
+The TUI calls the typed installation service directly. Catalog and rendering
+packages are shared by local installation and native packaging.
+
+| Check | Make command | Go command |
+| --- | --- | --- |
+| Source metadata, links, layout and registries | `make validate` | `go run ./cmd/agent-toolkit validate` |
+| Package tests | `make test` | `go test ./...` |
+| Tests, vet and isolated provider installations | `make verify` | Run tests, `go vet ./...`, then `go run ./cmd/agent-toolkit verify` |
+| Actual TUI startup from current source | `make smoke-source` | `go run ./cmd/agent-toolkit smoke-source` |
+
+Run `make verify` and `make smoke-source` when changing setup or the TUI.
+The smoke check exercises `make run`, so that check requires Make even when
+invoked through Go. Local management and native commands can run without Make.
+Smoke runs in a spaced checkout, isolates provider homes, and verifies read-only
+quit after a source change. CI runs both commands on macOS and Linux with
+read-only repository permissions.
+
+Tests live beside their Go packages, with fixtures under `testdata/`.
+The bundled Python checker remains a skill resource. Repository checks inspect
+its contents, modes, and references without executing it. Using that skill's
+helper can still require Python.
+
+See the [verification coverage map](docs/maintenance/verification.md) for behavior
+preserved from earlier tooling. Native package builds are independent of local
+installation; follow the [build](docs/maintenance/build-native.md) and
+[manual publication](docs/maintenance/publish-native.md) guides.

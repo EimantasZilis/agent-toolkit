@@ -1,187 +1,142 @@
-# Install and manage local skills
+# Install and manage skills
 
-Install selected skills into Codex or Claude and save your choices for later
-updates. Keep the checkout for the installer and linked resources.
+Choose native plugins for provider-managed skills without a source checkout.
+Use the local TUI when you want to select skills from a checkout and configure
+global guidance or Markdown output. Prefer one route per skill to avoid duplicates.
 
-## Quick start
+Native installation, updates, and removal are covered in the
+[native plugin guide](docs/usage/native-packages.md). The rest of this guide
+covers local management.
 
-Use a macOS or Linux terminal with Git, Bash, Make, and `shasum`. Install
-Codex or Claude and sign in before continuing.
+## Start local management
 
-```bash
+Use an interactive macOS or Linux terminal with Git and the Go version in
+`go.mod`. Install and sign in to Codex or Claude Code first. Make is optional.
+
+```sh
 git clone https://github.com/EimantasZilis/agent-toolkit.git
 cd agent-toolkit
-make install
+make run
 ```
 
-Terminal `make install` opens the [setup TUI](docs/usage/tui.md) from this checkout.
-It requires Go at the version declared in `go.mod` (currently 1.27.3). The first
-launch may download modules and a compatible toolchain. Later launches use
-Go’s build cache and include source changes automatically.
+Without Make, run `go run ./cmd/agent-toolkit`. The first launch may download
+modules and a compatible toolchain. The TUI always runs current source.
+Redirected startup fails clearly before changing installations.
 
-Use `make install-cli` for Bash setup without Go. Choose providers and skills,
-review the proposed changes, and confirm them. Fresh Bash defaults select Codex,
-the starter bundle (`concise-output` and `commit-message`), repository-local
-Markdown output, and no global guidance. The TUI starts with no provider selected.
+Fresh setup starts with no provider selected and the starter skills preselected.
+Work through the settings pages and review the proposed paths before applying.
+Later launches open a management
+menu with Configure, Refresh installation, and Uninstall. See the
+[TUI controls](docs/usage/tui.md).
 
-Start a new agent session after setup. Run the management commands below from
-the `agent-toolkit` folder.
+Local management is interactive. The former Bash scripts and the `install`,
+`install-cli`, `update`, and `uninstall` Make targets have been removed.
+Maintainer commands validate source and build plugins; they do not provide
+scripted local installation.
 
-| Option | Best for | Updates managed by |
-| --- | --- | --- |
-| Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
-| [Native plugins](docs/usage/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
-
-## Select skills
-
-Run `make install-cli` and choose a bundle or space-separated skill names:
+## Choose skills and guidance
 
 | Selection | Includes |
 | --- | --- |
-| `starter` | `concise-output` and `commit-message` |
-| `all` | Full catalog |
-| Category, such as `coding` | All skills in that category |
-| Skill names | Only those skills and their required helpers |
+| Starter | `concise-output` and `commit-message` |
+| Category, such as coding | Skills in that category |
+| Individual skills | Selected skills and their required helpers |
+| All skills | The full catalog |
 
 Required helpers are included automatically: `plan-review` for `ticket-to-plan`
-and `ruby-standards` for `ruby-rails-standards`. Optional skills are separate.
+and `ruby-standards` for `ruby-rails-standards`. Optional integrations are separate.
+Removing a parent keeps installed helpers; remove unused helpers individually.
 
-For non-interactive installation:
+Automatic concise-output loading adds a standing instruction and installs the
+skill. Disabling the instruction keeps the skill installed. Installing the skill
+alone does not make it a standing instruction.
 
-```bash
-./scripts/install.sh --list
-./scripts/install.sh --provider codex --bundle starter --full-template false --concise false --dry-run
-./scripts/install.sh --provider claude --skill pr-description --full-template false --concise false
-./scripts/install.sh --provider codex --bundle all --full-template true --concise true
-```
+The full global guidance template is an independent choice. It adds shared
+coding and documentation guidance from
+[instructions.md](.agents/global/instructions.md). A shared output directory or
+concise loading can require a smaller managed guidance block even when the
+full template is disabled.
 
-Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
-without invoking Go. If source setup fails, diagnostics remain visible and
-setup stops; use `make install-cli` to continue with Bash.
-
-Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
-settings; unspecified settings retain saved values. Fresh Bash setup defaults to
-Codex and `starter`. `--list`, `--help`, and `--dry-run` write nothing. Repeat
-`--provider` to select both providers in one operation:
-
-```bash
-./scripts/install.sh --provider codex --provider claude --bundle starter --dry-run
-```
-
-Explicit providers and skills replace their saved selections. Selecting fewer
-can remove owned installations. Review `--dry-run` first. A terminal asks for
-removal confirmation with a default of No; automation must pass
-`--confirm-removals`. Decline or EOF changes nothing.
-
-## Installed files and guidance
+## Installed files and checkout lifetime
 
 | Provider | Skills | Global guidance |
 | --- | --- | --- |
 | Codex | `${AGENTS_HOME:-~/.agents}/skills/agent-toolkit/` | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
-- Skills have a generated `SKILL.md`; supporting files link to this clone.
-- Optional global guidance covers coding and Markdown output. Its writing rules
-  apply to all documentation, whether created by a skill or edited directly.
-  See [instructions.md](.agents/global/instructions.md).
-- Existing user content is preserved. Edited skills and managed guidance blocks cause ownership conflicts.
-  The whole operation stops before writes so user changes remain intact.
-- Disabling guidance proposes removal of its verified managed block and requires
-  confirmation. Surrounding user instructions remain intact.
-- Installing `concise-output` alone does not make it a standing instruction.
+Skills have generated manifests. Supporting resources link to this checkout,
+so keep it available while the installation is in use. Restore the checkout
+or reinstall from its new location if those links break. Provider-home
+environment overrides continue to select installation destinations.
 
-## Configuration
+The TUI preserves:
 
-Run `make install` to change saved providers, skills, output location, or
-concise-output loading. Use `make install-cli` for Bash setup.
+- The `config/settings.env` and `config/inventory.json` formats.
+- Provider paths and home overrides.
+- Existing ownership markers.
 
-For scripted configuration, pass options to `scripts/install.sh`:
+Settings are read as data
+without shell evaluation. Change preferences through Configure; avoid editing
+state files directly. Inventory records observations and cannot grant ownership
+of user files.
 
-| Option | Effect |
-| --- | --- |
-| `--provider codex` or `--provider claude` | Select providers; repeat for both |
-| `--skill NAME` or `--bundle NAME` | Select skills and their required helpers |
-| `--output-path PATH` | Save an absolute output root; `''` selects repository output |
-| `--concise true` or `false` | Enable or disable automatic concise-output loading |
-| `--full-template true` or `false` | Enable or disable the full global guidance template |
-| `--dry-run` | Preview without applying changes |
-| `--confirm-removals` | Authorize proposed removals in automation |
-
-Use `--concise true` for a standing instruction to load concise-output.
-Disabling it keeps the skill installed. The full guidance template is a separate
-choice. A shared output root may still require a minimal output-policy block.
-
-Settings are saved in this checkout's ignored `config/` directory. Both setup
-interfaces use them, and unspecified CLI options keep their saved values.
-Change preferences through setup rather than editing state files.
-`MARKDOWN_OUTPUT_PATH` temporarily overrides output for an invocation; an explicit
-`--output-path` takes precedence and updates the saved preference.
-
-### Markdown output
+## Markdown output
 
 | Mode | Artifact location |
 | --- | --- |
-| Repository (Bash default) | `<repo-root>/<branch-slug>/<skill-name>/...` |
+| Repository | `<repo-root>/<branch-slug>/<skill-name>/...` |
 | Shared directory | `<output-root>/<repo-slug>/<branch-slug>/<skill-name>/...` |
 
-Explicit paths take precedence. Slugs use lowercase names with unsafe characters
-replaced by `-`; detached HEADs use `detached-<short-sha>`. Changing the output
-location does not move existing artifacts. Artifacts are not committed or
-removed automatically.
+Fresh TUI setup recommends a shared directory. Choose repository output to
+keep artifacts with each project. Explicit user paths take precedence.
+Slugs use lowercase names with unsafe characters replaced by `-`; detached
+HEADs use `detached-<short-sha>`.
 
-Skills look for earlier workflow output in this order:
+Changing the output location does not move existing artifacts. Uninstall does
+not delete them. When a skill consumes earlier workflow output, it checks:
 
 1. An explicit path.
 2. The current repository and branch's producer-skill directory.
 3. Its configured shared-directory equivalent.
 4. A documented legacy location.
 
-## Update
+## Refresh source changes
 
-Pull changes, then refresh the saved installation:
+1. Review source changes and run `git pull --ff-only` in the checkout.
+2. Run `make run` or `go run ./cmd/agent-toolkit`.
+3. Choose Refresh installation and review the proposed paths.
+4. Start a new agent session after applying.
 
-```bash
-git pull --ff-only
-make update
-```
+Refresh reapplies saved providers, skills, retained helpers, and guidance/output
+preferences from current source. It does not pull Git changes. Missing state,
+unavailable saved skills, proposed removals, or ownership conflicts require
+Configure to review the installation.
 
-`make update` uses Bash without Go or selection prompts. It refreshes all saved
-providers, skills, retained helpers, and output/guidance preferences. Start new
-agent sessions afterward. Preview with `./scripts/update.sh --dry-run`.
-Temporary `MARKDOWN_OUTPUT_PATH` overrides are ignored during update; change the
-saved preference through setup instead. Provider-home overrides still select
-the installation destinations.
+Linked resources may change as soon as Git updates the checkout. Rollback of
+an installation cannot undo those source changes.
 
-Update requires saved settings from a successful setup. It stops
-on unknown saved skills, ownership conflicts, proposed removals, or a changed
-preview revision. A moved resource can leave a dangling link that ownership
-records cannot safely identify; this also requires setup review. Resolve these
-through `make install-cli`; preserve user changes. Apply failures roll back provider files and saved state together.
+## Conflicts and recovery
 
-Git pull and refresh are separate operations. Linked resources can change as
-soon as Git updates the clone; rollback of a failed refresh cannot undo those
-source changes. Keep the checkout available and review source changes before
-pulling them. A repeated refresh preserves saved preferences.
+The TUI shows affected paths and preserves your draft when a conflict prevents
+apply. Edited manifests, managed guidance, foreign content, and dangling resource
+links can require review. Back up user changes outside provider skill directories
+before resolving the affected paths.
 
-Bash and the TUI both reconcile the saved desired selection. Choosing fewer
-skills or providers requires confirmation before owned paths are removed.
+Removing skills or providers and creating output directories require explicit
+confirmation. The default is No. A stale preview is rejected if source or
+installed content changes before apply.
 
-## Troubleshooting
+Failed operations restore provider files and saved state together. Wait for
+installation or rollback to finish. If recovery fails, the error reports retained
+backup paths for manual recovery. Filesystem rollback does not cover machine
+loss or uncatchable termination.
 
-| Problem | Action |
-| --- | --- |
-| Missing skill | Check provider and selection with `--dry-run`, then start a new session. |
-| Ownership conflict or dangling resource link | Back up the affected installed skill outside the provider skills directory, then review setup. Keep the backup for comparison. |
-| Broken supporting-file links | Restore the clone or reinstall from its new location. |
-| Failed installation | Changes roll back; if recovery fails, the error gives the backup location. |
+## Uninstall local skills
 
-## Uninstall
+Run the TUI and choose Uninstall. Review the managed paths and explicitly confirm
+the final prompt. Successful uninstall removes verified managed skills, guidance,
+and saved settings in one transaction. Surrounding user guidance, unrelated files,
+Markdown artifacts, and native plugins remain.
 
-```bash
-make uninstall
-```
-
-Removes verified managed skills, guidance, and saved settings in one
-transaction. Unrelated user files and native plugins remain.
-Ownership conflicts stop uninstall before writes; resolve those conflicts and
-retry. Failed uninstall restores provider files and saved state together.
+Ownership conflicts stop uninstall before writes. Resolve them and retry.
+Start a new agent session after configuring, refreshing, or uninstalling.

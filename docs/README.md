@@ -8,7 +8,7 @@ cover developing the toolkit and distributing plugins.
 | Task | Guide |
 | --- | --- |
 | Install, configure, update, or remove local skills | [Local installation](../INSTALL.md) |
-| Use the terminal setup interface | [TUI controls](usage/tui.md) |
+| Configure, refresh, and uninstall through the terminal UI | [TUI controls](usage/tui.md) |
 | Install and manage provider plugins | [Native plugins](usage/native-packages.md) |
 | Try skills or chain a development workflow | [Worked examples](../EXAMPLES.md) |
 
@@ -17,6 +17,7 @@ cover developing the toolkit and distributing plugins.
 | Task | Guide |
 | --- | --- |
 | Author skills or develop the toolkit | [Contributing](../CONTRIBUTING.md) |
+| Run Go checks and inspect behavioral coverage | [Verification](maintenance/verification.md) |
 | Build and validate plugin packages | [Package builds](maintenance/build-native.md) |
 | Publish a Git marketplace | [Publication](maintenance/publish-native.md) |
 

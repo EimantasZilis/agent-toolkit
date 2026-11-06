@@ -1,8 +1,8 @@
 package tui
 
 import (
+	"github.com/EimantasZilis/agent-toolkit/internal/install"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -157,10 +157,8 @@ func backendFixture(t *testing.T) (model, string) {
 	if err := os.Mkdir(toolkit, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"scripts", ".agents"} {
-		if data, err := exec.Command("cp", "-R", filepath.Join(source, name), toolkit).CombinedOutput(); err != nil {
-			t.Fatalf("copy fixture: %v: %s", err, data)
-		}
+	if err := os.CopyFS(filepath.Join(toolkit, ".agents"), os.DirFS(filepath.Join(source, ".agents"))); err != nil {
+		t.Fatal(err)
 	}
 	for _, key := range []string{"MARKDOWN_OUTPUT_PATH", "AGENT_TOOLKIT_FAIL_STATE", "AGENT_TOOLKIT_FAIL_PROVIDER", "AGENT_TOOLKIT_INTERRUPT_PROVIDER"} {
 		t.Setenv(key, "")
@@ -170,7 +168,11 @@ func backendFixture(t *testing.T) (model, string) {
 	t.Setenv("AGENTS_HOME", filepath.Join(root, "agents"))
 	t.Setenv("CODEX_HOME", filepath.Join(root, "codex"))
 	t.Setenv("CLAUDE_HOME", filepath.Join(root, "claude"))
-	m := newModel(shellBackend{toolkit}, toolkit)
+	service, err := install.New(toolkit, install.Homes{Agents: filepath.Join(root, "agents"), Codex: filepath.Join(root, "codex"), Claude: filepath.Join(root, "claude")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := newModel(service, toolkit)
 	next, _ := m.Update(m.Init()())
 	m = next.(model)
 	if m.err != "" {

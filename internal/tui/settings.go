@@ -22,7 +22,7 @@ func (m *model) syncOutput() {
 	m.editingPath = false
 }
 
-// validateOutput only inspects the filesystem. Creation belongs to Bash apply.
+// validateOutput only inspects the filesystem. Creation belongs to the installation transaction.
 func (m model) validateOutput() (bool, error) {
 	if !m.globalOutput {
 		return false, nil
@@ -108,8 +108,17 @@ func (m model) editPath(key string) (tea.Model, tea.Cmd) {
 
 func (m *model) editSettings(key string) {
 	if m.page == 3 {
-		if key == "space" {
-			m.draft.Concise = !m.draft.Concise
+		switch key {
+		case "up", "k":
+			m.cursor = max(0, m.cursor-1)
+		case "down", "j":
+			m.cursor = min(1, m.cursor+1)
+		case "space":
+			if m.cursor == 0 {
+				m.draft.Concise = !m.draft.Concise
+			} else {
+				m.draft.FullTemplate = !m.draft.FullTemplate
+			}
 		}
 		return
 	}
@@ -154,7 +163,9 @@ func (m model) settingsLines() []string {
 			"Select skills to load automatically each session in " + strings.Join(providers, ", ") + " global configuration.",
 			"Enabling installs concise-output and its standing instruction. Disabling removes only the instruction.",
 			"",
-			row(true, check(m.draft.Concise)+"concise-output"),
+			row(m.cursor == 0, check(m.draft.Concise)+"concise-output automatic loading"),
+			row(m.cursor == 1, check(m.draft.FullTemplate)+"Full guidance template"),
+			"Full guidance adds shared coding and documentation instructions separately from concise loading.",
 		}
 	}
 	lines := []string{

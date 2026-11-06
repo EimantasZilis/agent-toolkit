@@ -2,10 +2,7 @@ package tui
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
-	"reflect"
-	"slices"
 	"strings"
 	"testing"
 
@@ -144,7 +141,7 @@ func TestCreationConfirmationAndCancellation(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "missing", "output")
 			m.globalOutput, m.draft.Output = true, path
 			m, cmd := press(m, "s")
-			if cmd == nil || !m.createOutput || !slices.Contains(m.applyArgs, "--create-output-directory") {
+			if cmd == nil || !m.createOutput || m.applyRequest.Desired.Output != path {
 				t.Fatal("missing directory was not staged")
 			}
 			m, _ = complete(m, cmd)
@@ -176,31 +173,6 @@ func TestBlankGlobalModeIsDirtyAndDiscardable(t *testing.T) {
 	}
 }
 
-func TestDirectoryRollbackPreservesNewArtifacts(t *testing.T) {
-	root := t.TempDir()
-	transaction, err := filepath.Abs(filepath.Join("..", "..", "scripts", "transaction.sh"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(root, "outputs")
-	// The script is fixed test code; filesystem paths are positional arguments.
-	cmd := exec.Command("bash", "-c", `source "$1"
-transaction_begin
-mkdir -- "$2"
-transaction_record_directory "$2"
-printf 'new artifact' > "$2/keep.md"
-exit 97`, "rollback-test", transaction, path)
-	cmd.Env = append(os.Environ(), "TMPDIR="+root)
-	data, err := cmd.CombinedOutput()
-	if err == nil || !strings.Contains(string(data), "rollback incomplete; recovery backups retained at") {
-		t.Fatalf("missing rollback diagnostics: %s: %v", data, err)
-	}
-	content, err := os.ReadFile(filepath.Join(path, "keep.md"))
-	if err != nil || string(content) != "new artifact" {
-		t.Fatalf("new artifact lost: %q: %v", content, err)
-	}
-}
-
 func TestDisappearedOutputRequiresNewConfirmation(t *testing.T) {
 	m, b := readyModel(t, false)
 	path := filepath.Join(t.TempDir(), "outputs")
@@ -220,12 +192,11 @@ func TestDisappearedOutputRequiresNewConfirmation(t *testing.T) {
 	}
 }
 
-func TestBackendOutputConciseAndRollback(t *testing.T) {
+func TestBackendOutputAndConcise(t *testing.T) {
 	m, root := backendFixture(t)
 	m.draft.Providers = []string{"codex", "claude"}
 	m.draft.Requested = []string{"commit-message"}
 	m = saveFixture(t, m)
-	previous := clone(m.saved)
 	path := filepath.Join(root, "new outputs", "literal $(touch PWN) 'quoted'")
 	m.page, m.globalOutput, m.outputPath, m.draft.Output = 2, true, path, path
 	m.draft.Concise = true
@@ -235,24 +206,6 @@ func TestBackendOutputConciseAndRollback(t *testing.T) {
 	if m.err != "" || len(m.dialogs) < 2 {
 		t.Fatalf("preview failed: %s", m.err)
 	}
-	t.Setenv("AGENT_TOOLKIT_FAIL_PROVIDER", "claude")
-	for len(m.dialogs) > 0 {
-		m, cmd = press(m, "y")
-		if cmd != nil {
-			m, _ = complete(m, cmd)
-		}
-	}
-	if m.err == "" || !m.dirty() || !reflect.DeepEqual(m.saved, previous) {
-		t.Fatal("failed apply lost draft or changed saved state")
-	}
-	assertFile(t, filepath.Dir(path), false)
-	for _, skill := range []string{
-		filepath.Join(root, "agents", "skills", "agent-toolkit", "concise-output"),
-		filepath.Join(root, "claude", "skills", "concise-output"),
-	} {
-		assertFile(t, skill, false)
-	}
-	t.Setenv("AGENT_TOOLKIT_FAIL_PROVIDER", "")
 	m = saveFixture(t, m)
 	assertFile(t, path, true)
 	if m.dirty() || m.saved.Output != path || !m.saved.Concise {
@@ -292,17 +245,19 @@ func TestBackendOutputConciseAndRollback(t *testing.T) {
 	assertFile(t, artifact, true)
 }
 
-func TestFullTemplatePreferencePreserved(t *testing.T) {
+func TestFullTemplatePreferenceIsIndependent(t *testing.T) {
 	m, _ := readyModel(t, false)
 	m.draft.FullTemplate, m.page = true, 3
 	m, _ = press(m, "space")
-	if !m.draft.FullTemplate || !m.draft.Concise || strings.Contains(strings.Join(m.settingsLines(), "\n"), "Full template") {
-		t.Fatal("full-template preference was changed or exposed")
+	if !m.draft.FullTemplate || !m.draft.Concise || !strings.Contains(strings.Join(m.settingsLines(), "\n"), "Full guidance template") {
+		t.Fatal("full-template preference was changed or hidden")
 	}
-	args := m.draft.arguments(nil)
-	if i := slices.Index(args, "--full-template"); i < 0 || args[i+1] != "true" {
-		t.Fatal("full template lost at backend boundary")
+	next, cmd := m.startSave()
+	m = next.(model)
+	if cmd == nil || !m.applyRequest.Desired.FullTemplate {
+		t.Fatal("full template lost at typed boundary")
 	}
+
 }
 
 func TestViewportResizeLongListsAndDialogs(t *testing.T) {

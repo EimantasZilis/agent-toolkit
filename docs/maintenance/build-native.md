@@ -2,7 +2,13 @@
 
 Build self-contained Codex and Claude plugins from the shared skill library.
 Use a Git snapshot for hosted publication or an archive release for local
-marketplaces and ZIP distribution. Both require Bash and Python 3.9 or newer.
+marketplaces and ZIP distribution. Repository tooling requires Git and the Go
+version in `go.mod`.
+
+Run the commands below from the source checkout. `--root PATH`, placed before
+the command, selects another source root. Build and snapshot refuse existing
+output directories. Validation is read-only, works after relocation, and never
+executes packaged resources or changes local installations.
 
 ## Git marketplace snapshot
 
@@ -10,8 +16,8 @@ Commit source inputs before generating, then choose a new version and output
 directory:
 
 ```bash
-python3 scripts/package_native.py snapshot --version 0.1.0 --output /tmp/native-snapshot-0.1.0
-python3 scripts/package_native.py validate-snapshot /tmp/native-snapshot-0.1.0
+go run ./cmd/agent-toolkit native snapshot --version 0.1.0 --output /tmp/native-snapshot-0.1.0
+go run ./cmd/agent-toolkit native validate-snapshot /tmp/native-snapshot-0.1.0
 ```
 
 The snapshot contains both provider catalogs and separate Codex and Claude
@@ -19,10 +25,16 @@ package trees. `snapshot.json` records the source commit, version, file checksum
 and executable modes. `release.json` lists package contents and invocation rules.
 Follow the [publication guide](publish-native.md) to publish the reviewed tree.
 
-Source inputs in `.agents/`, `scripts/`, and `LICENSE` must match HEAD, including
-executable modes. Untracked inputs and ignored skill resources are rejected;
-Python bytecode under `scripts/**/__pycache__/` is excluded. Unrelated documentation
-and managed settings need not be committed.
+These source inputs must match HEAD, including executable modes:
+
+- `.agents/`
+- `cmd/`
+- `internal/`
+- `go.mod` and `go.sum`
+- `LICENSE`
+
+Untracked inputs, ignored inputs, and symlinks are rejected. Unrelated
+documentation, managed settings, and generated output are excluded.
 
 Validate a pristine snapshot or clean checkout of its published tag. Codex adds
 an installation receipt to its managed checkout, which fails the snapshot's
@@ -31,8 +43,8 @@ strict file inventory check.
 ## Archive release
 
 ```bash
-python3 scripts/package_native.py build --version 0.1.0 --output dist/native/0.1.0
-python3 scripts/package_native.py validate dist/native/0.1.0
+go run ./cmd/agent-toolkit native build --version 0.1.0 --output dist/native/0.1.0
+go run ./cmd/agent-toolkit native validate dist/native/0.1.0
 ```
 
 Each provider directory contains a marketplace catalog, self-contained packages

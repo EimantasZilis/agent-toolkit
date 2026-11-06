@@ -1,32 +1,17 @@
-install:
-	bash ./scripts/setup.sh
+.PHONY: run test validate verify smoke-source
 
-install-cli:
-	bash ./scripts/install.sh
-
-update:
-	bash ./scripts/update.sh
-
-uninstall:
-	./scripts/uninstall.sh
+run:
+	go run ./cmd/agent-toolkit
 
 validate:
-	./scripts/validate.sh
+	go run ./cmd/agent-toolkit validate
 
 verify: test
-	./scripts/verify.sh
+	go vet ./...
+	go run ./cmd/agent-toolkit verify
 
 test:
-	python3 -m unittest discover -s tests -p 'test_tui_*.py'
-	python3 -m unittest discover -s tests -p 'test_native_*.py'
-	python3 -m unittest discover -s tests -p 'test_managed_*.py'
-	bash ./tests/catalog_test.sh
-	bash ./tests/validation_test.sh
-	./tests/installer_test.sh
-	bash ./tests/selection_test.sh
-	bash ./tests/managed_state_test.sh
-	bash ./tests/managed_reconcile_test.sh
-	bash ./tests/managed_guidance_test.sh
+	go test ./...
 
 smoke-source:
-	python3 scripts/smoke_source.py
+	go run ./cmd/agent-toolkit smoke-source
