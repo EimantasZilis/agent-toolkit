@@ -116,6 +116,11 @@ Generate [combined Git marketplace snapshots](docs/native-packages.md#combined-g
 for [manual publication](docs/native-publication.md). Hosted client acceptance
 is separate from local package validation.
 
+The [hosted Codex CLI journey](docs/native-packages.md#codex-cli) is verified on
+CLI `0.167.0` for installation, skill/helper sessions, existing-install updates,
+removal, and recovery. See the [evidence](docs/native-packages-evidence.md#hosted-codex-runtime-acceptance)
+for the tested versions and limitations. Claude client acceptance remains pending.
+
 ### Select skills
 
 Run `make install-cli` and choose a bundle or space-separated skill names:
