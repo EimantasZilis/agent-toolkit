@@ -25,14 +25,12 @@ class ManagedProtocolTests(unittest.TestCase):
         self.toolkit = self.root / "toolkit"
         for directory in ("scripts", ".agents"):
             shutil.copytree(REPO / directory, self.toolkit / directory)
-        shutil.copyfile(REPO / ".env.template", self.toolkit / ".env.template")
 
         self.environment = dict(os.environ)
         for key in ("MARKDOWN_OUTPUT_PATH", "AGENT_TOOLKIT_FAIL_STATE"):
             self.environment.pop(key, None)
         self.environment.update(
             AGENT_TOOLKIT_HOME=str(self.toolkit),
-            AGENT_TOOLKIT_ENV_FILE=str(self.root / "legacy.env"),
             AGENTS_HOME=str(self.root / "agents"),
             CODEX_HOME=str(self.root / "codex"),
             CLAUDE_HOME=str(self.root / "claude"),
@@ -111,6 +109,70 @@ class ManagedProtocolTests(unittest.TestCase):
         self.assertNotEqual(applied["revision"], revision)
         self.assertEqual(stale["error"]["code"], "stale_revision")
         self.assertFalse((self.toolkit / "config/apply.lock").exists())
+
+    def test_canonical_state_preserves_saved_preferences(self) -> None:
+        """GIVEN applied state WHEN reloaded THEN saved choices and helpers remain."""
+        arguments = (
+            "--provider",
+            "codex",
+            "--provider",
+            "claude",
+            "--skill",
+            "ticket-to-plan",
+            "--concise",
+            "true",
+            "--output-path",
+            str(self.root / "saved output"),
+        )
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+
+        status = self.command("status")
+        unchanged = self.command("preview")
+
+        self.assertEqual(status["desired"], preview["desired"])
+        self.assertEqual(
+            unchanged["desired"],
+            dict(
+                preview["desired"], retained_helpers=["concise-output", "plan-review"]
+            ),
+        )
+        self.assertFalse(unchanged["confirmation_required"])
+
+    def test_partial_or_duplicate_canonical_state_is_rejected_read_only(self) -> None:
+        """GIVEN damaged canonical state WHEN loaded THEN no files change."""
+        arguments = ("--provider", "codex", "--skill", "commit-message")
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+        settings = self.toolkit / "config/settings.env"
+        inventory = self.toolkit / "config/inventory.json"
+        original = settings.read_bytes()
+        saved_inventory = inventory.read_bytes()
+
+        inventory.unlink()
+        self.command("status", expected=1)
+        self.assertEqual(settings.read_bytes(), original)
+        inventory.write_bytes(saved_inventory)
+        settings.write_bytes(original + b"PROVIDERS=claude\n")
+        self.command("preview", expected=1)
+
+        self.assertEqual(settings.read_bytes(), original + b"PROVIDERS=claude\n")
+        self.assertEqual(inventory.read_bytes(), saved_inventory)
+        self.assertFalse((self.toolkit / "config/apply.lock").exists())
+
+    def test_observed_files_do_not_replace_missing_canonical_settings(self) -> None:
+        """GIVEN installed files without state WHEN inspected THEN no choices are inferred."""
+        arguments = ("--provider", "codex", "--skill", "commit-message")
+        preview = self.command("preview", *arguments)
+        self.command("apply", *arguments, "--revision", str(preview["revision"]))
+        shutil.rmtree(self.toolkit / "config")
+
+        status = self.command("status")
+
+        self.assertEqual(status["desired"]["providers"], [])
+        self.assertEqual(status["desired"]["requested_skills"], [])
+        self.assertEqual(status["observed"]["codex"], ["commit-message"])
+        self.assertFalse((self.toolkit / "config").exists())
 
     def test_invalid_versions_and_arguments_fail_without_writes(self) -> None:
         """GIVEN unsupported or hostile input WHEN called THEN no shell code runs."""

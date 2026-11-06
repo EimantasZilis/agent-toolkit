@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercise shared guidance settings, migration, preservation, and rollback.
+# Exercise shared guidance settings, preservation, and rollback.
 set -euo pipefail
 
 SOURCE_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -10,8 +10,8 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 fixture() {
   case_root="$TEST_ROOT/$1"
   mkdir -p "$case_root/toolkit"
-  cp -R "$SOURCE_ROOT/scripts" "$SOURCE_ROOT/.agents" "$SOURCE_ROOT/.env.template" "$case_root/toolkit/"
-  export AGENT_TOOLKIT_HOME="$case_root/toolkit" AGENT_TOOLKIT_ENV_FILE="$case_root/legacy.env"
+  cp -R "$SOURCE_ROOT/scripts" "$SOURCE_ROOT/.agents" "$case_root/toolkit/"
+  export AGENT_TOOLKIT_HOME="$case_root/toolkit"
   export AGENTS_HOME="$case_root/agents" CODEX_HOME="$case_root/codex" CLAUDE_HOME="$case_root/claude"
   mkdir -p "$CODEX_HOME" "$CLAUDE_HOME"
   printf 'User Codex instructions\n' > "$CODEX_HOME/AGENTS.md"
@@ -82,14 +82,14 @@ expect_failure 97 env AGENT_TOOLKIT_FAIL_PROVIDER=claude "$AGENT_TOOLKIT_HOME/sc
 snapshot > "$case_root/after"
 cmp "$case_root/before" "$case_root/after" || fail 'guidance rollback changed files or saved settings'
 
-fixture legacy
-"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --global-guidance >/dev/null
+fixture full-template
+"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --full-template true --concise true >/dev/null
 assert_contains '# agent-toolkit guidance' "$CODEX_HOME/AGENTS.md"
 apply_current --full-template false --concise false --output-path "$case_root/central"
 assert_absent_text '# agent-toolkit guidance' "$CODEX_HOME/AGENTS.md"
 assert_contains 'User Codex instructions' "$CODEX_HOME/AGENTS.md"
 assert_contains 'GUIDANCE_BLOCK ' "$CODEX_HOME/.agent-toolkit-owned"
-"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --global-guidance >/dev/null
+"$AGENT_TOOLKIT_HOME/scripts/install.sh" --provider codex --skill commit-message --full-template true --concise true >/dev/null
 assert_contains '# agent-toolkit guidance' "$CODEX_HOME/AGENTS.md"
 apply_current --full-template false --concise false --output-path ''
 assert_absent_text 'agent-toolkit:start' "$CODEX_HOME/AGENTS.md"
@@ -99,9 +99,9 @@ fixture uninstall
 apply_current --provider codex --skill commit-message --concise true
 cp "$CODEX_HOME/AGENTS.md" "$case_root/clean-guidance"
 printf '\n<!-- agent-toolkit:concise-output:start -->\nUser-edited loading instructions\n<!-- agent-toolkit:concise-output:end -->\n' >> "$CODEX_HOME/AGENTS.md"
-"$AGENT_TOOLKIT_HOME/scripts/uninstall.sh" > /dev/null 2> "$case_root/warnings"
+expect_failure 4 "$AGENT_TOOLKIT_HOME/scripts/uninstall.sh"
 assert_contains 'User-edited loading instructions' "$CODEX_HOME/AGENTS.md"
-assert_contains 'preserving modified or foreign guidance' "$case_root/warnings"
+assert_contains 'resolve ownership conflicts' "$case_root/error"
 cp "$case_root/clean-guidance" "$CODEX_HOME/AGENTS.md"
 "$AGENT_TOOLKIT_HOME/scripts/uninstall.sh" >/dev/null
 assert_contains 'User Codex instructions' "$CODEX_HOME/AGENTS.md"

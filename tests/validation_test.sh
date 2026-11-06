@@ -11,7 +11,7 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 fixture() {
   local root="$TEST_ROOT/$1"
   mkdir -p "$root"
-  cp -R "$REPO_ROOT/.agents" "$REPO_ROOT/scripts" "$REPO_ROOT/.env.template" "$root/"
+  cp -R "$REPO_ROOT/.agents" "$REPO_ROOT/scripts" "$root/"
   printf '%s\n' "$root"
 }
 

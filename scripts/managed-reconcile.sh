@@ -64,7 +64,6 @@ managed_revision() (
   local provider root
   {
     for root in "$managed_settings_file" "$managed_inventory_file" \
-      "${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env}" \
       "$AGENT_TOOLKIT_HOME/.agents" "$AGENT_TOOLKIT_HOME/scripts"; do
       managed_fingerprint_path "$root" || exit 1
     done
@@ -73,7 +72,7 @@ managed_revision() (
     fi
     for provider in codex claude; do
       LLM_PROVIDER=$provider
-      for root in "$(provider_skills_dest)" "$(provider_legacy_skills_dest)" \
+      for root in "$(provider_skills_dest)" \
         "$(provider_guidance_dest)" "$(owned_marker "$(dirname "$(provider_guidance_dest)")")"; do
         [[ -n "$root" ]] || continue
         managed_fingerprint_path "$root" || exit 1
@@ -84,10 +83,7 @@ managed_revision() (
 
 managed_safe_skill() {
   local source=$1 destination=$2 key=$3 item rel expected
-  if [[ -L "$destination" ]]; then
-    link_points_to "$destination" "$source"
-    return
-  fi
+  [[ ! -L "$destination" ]] || return 1
   [[ ! -L "$destination/SKILL.md" && ! -L "$(owned_marker "$destination")" ]] || return 1
   is_managed_skill "$destination" || return 1
   [[ $(wc -l < "$(owned_marker "$destination")") -eq 2 ]] || return 1
@@ -161,30 +157,24 @@ managed_plan_selected() {
 
 managed_plan_removals() {
   local root path name source key action
-  for root in "$SKILLS_DEST" "$(provider_legacy_skills_dest)"; do
-    [[ -n "$root" && -d "$root" && ! -L "$root" ]] || continue
-    while IFS= read -r path; do
-      name=${path##*/}
-      if managed_contains "$managed_providers" "$LLM_PROVIDER" && [[ "$root" == "$SKILLS_DEST" ]] &&
-        grep -Fxq -- "$name" <<< "$selected_names"; then
-        continue
-      fi
-      # Inventory never grants ownership. Unknown user paths are left alone.
-      if [[ -L "$path" ]]; then
-        source=$(skill_source "$name" 2>/dev/null || true)
-        [[ -n "$source" ]] && link_points_to "$path" "$source" || continue
-      else
-        is_owned_dir "$path" || continue
-      fi
-      action=conflict
-      source=$(skill_source "$name" 2>/dev/null || true)
-      if [[ -n "$source" ]]; then
-        key=$(skill_key "$source")
-        if managed_safe_skill "$source" "$path" "$key"; then action=remove; fi
-      fi
-      managed_add_operation "$LLM_PROVIDER" "$action" "$name" "$path"
-    done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) | LC_ALL=C sort)
-  done
+  root=$SKILLS_DEST
+  [[ -d "$root" && ! -L "$root" ]] || return 0
+  while IFS= read -r path; do
+    name=${path##*/}
+    if managed_contains "$managed_providers" "$LLM_PROVIDER" &&
+      grep -Fxq -- "$name" <<< "$selected_names"; then
+      continue
+    fi
+    # Inventory never grants ownership. Unknown user paths are left alone.
+    [[ ! -L "$path" ]] && is_owned_dir "$path" || continue
+    action=conflict
+    source=$(skill_source "$name" 2>/dev/null || true)
+    if [[ -n "$source" ]]; then
+      key=$(skill_key "$source")
+      if managed_safe_skill "$source" "$path" "$key"; then action=remove; fi
+    fi
+    managed_add_operation "$LLM_PROVIDER" "$action" "$name" "$path"
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
 }
 
 managed_plan() {
@@ -267,6 +257,15 @@ managed_apply() {
   done
   inventory_codex=$(managed_words "$(managed_observed_skills codex)")
   inventory_claude=$(managed_words "$(managed_observed_skills claude)")
-  managed_save
+  if [[ "${managed_forget:-false}" == true ]]; then
+    rm -f -- "$managed_settings_file"
+    if [[ "${AGENT_TOOLKIT_FAIL_STATE:-}" == after-settings ]]; then
+      printf 'Error: unable to remove managed state.\n' >&2
+      return 1
+    fi
+    rm -f -- "$managed_inventory_file"
+  else
+    managed_save
+  fi
   transaction_commit
 }

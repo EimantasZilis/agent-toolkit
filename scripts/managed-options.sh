@@ -95,3 +95,10 @@ managed_resolve_selection() {
     return 2
   }
 }
+
+managed_selection_role() {
+  if managed_contains "$managed_requested" "$1"; then printf requested
+  elif [[ "$1" == concise-output && "$managed_concise" == true ]]; then printf automatic
+  elif managed_contains "$managed_retained" "$1"; then printf retained
+  else printf required; fi
+}

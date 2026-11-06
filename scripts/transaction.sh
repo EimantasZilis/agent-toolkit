@@ -1,4 +1,4 @@
-# Filesystem transactions shared by additive and managed installation.
+# Filesystem transactions shared by the managed installation frontends.
 
 path_exists() { [[ -e "$1" || -L "$1" ]]; }
 

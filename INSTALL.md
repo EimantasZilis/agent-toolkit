@@ -1,38 +1,45 @@
 # Install and manage local skills
 
-Install skills from this project into Codex or Claude. You choose which skills
-to install and whether to add global guidance that applies across projects.
+Install selected skills into Codex or Claude and save your choices for later
+updates. Keep the checkout for the installer and linked resources.
 
 ## Quick start
 
-You need a macOS or Linux terminal with Git, Bash, Make, and `shasum`
-available. Install Codex or Claude and sign in before continuing. 
+Use a macOS or Linux terminal with Git, Bash, Make, and `shasum`. Install
+Codex or Claude and sign in before continuing.
 
-1. Clone the repo and install it:
-   
-   ```bash
-   git clone https://github.com/EimantasZilis/agent-toolkit.git
-   make install
-   ```
-3. Choose Codex or Claude, then choose the skills to install. Review the
-   proposed changes and confirm them. The initial defaults select the starter
-   bundle (`concise-output` and `commit-message`), save generated Markdown in
-   the repository where you use a skill, and leave global guidance unchanged.
+```bash
+git clone https://github.com/EimantasZilis/agent-toolkit.git
+cd agent-toolkit
+make install
+```
 
-4. Start a new Codex or Claude session to load the installed skills.
+Terminal `make install` opens the [setup TUI](docs/tui.md) from this checkout.
+It requires Go at the version declared in `go.mod` (currently 1.27.3). The first
+launch may download modules and a compatible toolchain. Later launches use
+Go’s build cache and include source changes automatically.
 
-Run the management commands below from the `agent-toolkit` folder as well.
+Use `make install-cli` for Bash setup without Go. Choose providers and skills,
+review the proposed changes, and confirm them. Fresh Bash defaults select Codex,
+the starter bundle (`concise-output` and `commit-message`), repository-local
+Markdown output, and no global guidance. The TUI starts with no provider selected.
+
+Start a new agent session after setup. Run the management commands below from
+the `agent-toolkit` folder.
 
 | Option | Best for | Updates managed by |
 | --- | --- | --- |
-| Repository installer | Selected skills and optional global guidance; requires keeping the project folder | `make install` |
-| [Native plugins](docs/native-packages.md) | Packaged skills that do not require keeping the project folder | Claude or Codex plugin management |
+| Repository installer | Selected skills and optional global guidance; requires this clone | `make update` |
+| [Native plugins](docs/native-packages.md) | Skills packaged independently of the clone | Claude or Codex plugin management |
 
-The installer currently uses text prompts through Bash. When a terminal user
-interface (TUI) release is configured, `make install` opens it instead; see
-[TUI controls](docs/tui.md). That interface requires Python 3.9 or later and an
-HTTPS connection for its first download. Afterward, a verified cached download
-works offline. Go is needed only for development.
+Generate [combined Git marketplace snapshots](docs/native-packages.md#combined-git-marketplace-snapshots)
+for [manual publication](docs/native-publication.md). Hosted client acceptance
+is separate from local package validation.
+
+The [hosted Codex CLI journey](docs/native-packages.md#codex-cli) is verified on
+CLI `0.167.0` for installation, skill/helper sessions, existing-install updates,
+removal, and recovery. See the [evidence](docs/native-packages-evidence.md#hosted-codex-runtime-acceptance)
+for the tested versions and limitations. Claude client acceptance remains pending.
 
 ## Select skills
 
@@ -52,20 +59,28 @@ For non-interactive installation:
 
 ```bash
 ./scripts/install.sh --list
-./scripts/install.sh --provider codex --bundle starter --no-global-guidance --dry-run
-./scripts/install.sh --provider claude --skill pr-description --no-global-guidance
-./scripts/install.sh --provider codex --bundle all --global-guidance
+./scripts/install.sh --provider codex --bundle starter --full-template false --concise false --dry-run
+./scripts/install.sh --provider claude --skill pr-description --full-template false --concise false
+./scripts/install.sh --provider codex --bundle all --full-template true --concise true
 ```
 
 Non-terminal `make install` and `scripts/setup.sh` with arguments also use Bash
-without downloading. If the TUI launcher fails, setup stops; use
-`make install-cli` to continue with Bash. See
-[launcher and cache details](docs/tui-releases.md#verified-launcher) and
-[release dispatch and pin review](docs/tui-releases.md#dispatch-and-review).
+without invoking Go. If source setup fails, diagnostics remain visible and
+setup stops; use `make install-cli` to continue with Bash.
 
 Repeat `--skill` for multiple skills, or use `--bundle`. CLI options override saved
-settings; unspecified settings use saved values or defaults. `--list` and
-`--dry-run` write nothing. Install separately for each provider.
+settings; unspecified settings retain saved values. Fresh Bash setup defaults to
+Codex and `starter`. `--list`, `--help`, and `--dry-run` write nothing. Repeat
+`--provider` to select both providers in one operation:
+
+```bash
+./scripts/install.sh --provider codex --provider claude --bundle starter --dry-run
+```
+
+Explicit providers and skills replace their saved selections. Selecting fewer
+can remove owned installations. Review `--dry-run` first. A terminal asks for
+removal confirmation with a default of No; automation must pass
+`--confirm-removals`. Decline or EOF changes nothing.
 
 ## Installed files and guidance
 
@@ -74,50 +89,59 @@ settings; unspecified settings use saved values or defaults. `--list` and
 | Codex | `${AGENTS_HOME:-~/.agents}/skills/agent-toolkit/` | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
-- Skills have a generated `SKILL.md`; supporting files link to the
-  `agent-toolkit` folder you downloaded.
+- Skills have a generated `SKILL.md`; supporting files link to this clone.
 - Optional global guidance covers coding and Markdown output. Its writing rules
   apply to all documentation, whether created by a skill or edited directly.
   See [instructions.md](.agents/global/instructions.md).
-- Existing user content is preserved. Edited skills and guidance become
-  user-owned and are preserved on later installs.
-- Disabling global guidance leaves any previously installed guidance in place.
+- Existing user content is preserved. Edited skills and managed guidance blocks cause ownership conflicts.
+  The whole operation stops before writes so user changes remain intact.
+- Disabling guidance proposes removal of its verified managed block and requires
+  confirmation. Surrounding user instructions remain intact.
 - Installing `concise-output` alone does not make it a standing instruction.
 
 ## Configuration
 
-Use the [TUI settings pages](docs/tui.md#setup-and-settings-controls) to manage
-providers, skills, Markdown output, and automatic concise-output loading.
-Removals require confirmation, and ownership conflicts stop the apply.
-Disabling concise loading leaves the skill installed.
+For explicit reconciliation across providers, use `scripts/managed.sh preview`
+with repeated `--provider` and `--skill` arguments. Apply the same selection with
+`scripts/managed.sh apply --revision REVISION`, using the revision from preview.
+Removals require `--confirm-removals`; conflicts stop the whole apply.
+`--no-providers` removes owned installations, and `--remove-skill NAME` removes
+an unused skill or helper. Required helpers cannot be removed while selected
+skills need them. Native plugins and user-owned files are preserved.
+The [versioned backend contract](docs/managed-backend.md) describes its JSON
+responses, read-only status/catalog commands, revisions, and errors.
 
-For scripted reconciliation, use the [managed backend reference](docs/managed-backend.md).
-It owns the preview/apply commands, revision handling, selection flags, and JSON
-responses. The full global template is an explicit CLI choice through
-`--full-template true` or the additive installer's `--global-guidance` option.
+Managed reconciliation accepts `--output-path PATH` (blank for repo-local output)
+and `--concise true|false` for shared output and automatic-loading preferences.
+The [setup and settings TUI](docs/tui.md) exposes these controls with explicit
+page saves, final setup review, and confirmations for removals and directory creation.
+Disabling concise loading keeps the skill installed. These controls update only
+the toolkit's guidance block and preserve surrounding instructions. The full
+global template remains an explicit CLI choice through `--full-template true`.
 
-The Bash installer saves successful choices to `.env` and reuses them next time.
-Older configurations without selection or guidance settings retain `all` and
-enabled guidance.
+Bash setup and the TUI use one managed planner and transaction. Successful
+applies save desired settings in `config/settings.env` and the observed inventory
+in `config/inventory.json`. Both ignored files belong to this clone, independent
+of the caller’s directory. Provider files and saved state roll back together.
 
-Successful installs also record shared preferences in `config/settings.env` and
-actual installed skills for each provider in `config/inventory.json`. These
-ignored files stay in the `agent-toolkit` folder, regardless of which folder
-you run the installer from. Existing installations are imported without removing
-skills. Provider ownership markers still determine which files the toolkit may
-change.
+Setup reads only this canonical state. Without saved state, Bash uses its fresh
+defaults and the TUI starts with no provider selected. Use setup options or the
+TUI to change saved choices.
 
 | Setting | Values | Purpose |
 | --- | --- | --- |
-| `LLM_PROVIDER` | `codex`, `claude` | Installation provider |
-| `SKILL_SELECTION` | Bundle or space-separated skill names | Requested skills |
-| `GLOBAL_GUIDANCE` | `True`, `False` | Update global guidance |
+| `PROVIDERS` | Space-separated `codex` and/or `claude` | Desired providers |
+| `REQUESTED_SKILLS` | Space-separated skill names | Desired skills; bundles expand when selected |
+| `RETAINED_HELPERS` | Skill names | Installed helpers retained after parent removal |
+| `GLOBAL_GUIDANCE` | `true`, `false` | Full global template |
+| `CONCISE_OUTPUT` | `true`, `false` | Concise loading independently of the full template |
 | `MARKDOWN_OUTPUT_PATH` | Blank or absolute path | Repository or central Markdown storage |
-| `CONCISE_OUTPUT` | `True`, `False` | Standing concise output with global guidance; includes the skill |
 
-Use `AGENT_TOOLKIT_ENV_FILE` for a different settings file, including separate
-provider selections. `MARKDOWN_OUTPUT_PATH` also accepts a temporary environment
-override without changing the saved setting.
+Use `--output-path PATH` to save an output root (`''` selects repo-local).
+`MARKDOWN_OUTPUT_PATH` remains a temporary rendering override; it does not
+replace the saved preference. An explicit `--output-path` takes precedence.
+Use `--concise` and `--full-template` to control these settings independently.
+An output root can still require a minimal output-policy block.
 
 | Output mode | Artifact location |
 | --- | --- |
@@ -137,30 +161,41 @@ Skills look for earlier workflow output in this order:
 
 ## Update
 
-Open a terminal in your existing `agent-toolkit` folder. Download the latest
-changes and run the installer again:
+Pull changes, then refresh the saved installation:
 
 ```bash
 git pull --ff-only
-make install
+make update
 ```
 
-For saved settings without prompts, use `./scripts/install.sh --provider codex`
-(or `claude`). Restart the client session afterward.
+`make update` uses Bash without Go or selection prompts. It refreshes all saved
+providers, skills, retained helpers, and output/guidance preferences. Start new
+agent sessions afterward. Preview with `./scripts/update.sh --dry-run`.
+Temporary `MARKDOWN_OUTPUT_PATH` overrides are ignored during update; change the
+saved preference through setup instead. Provider-home overrides still select
+the installation destinations.
 
-The Bash installer is additive: choosing fewer skills keeps earlier installs.
-The managed TUI supports removals with confirmation. The former
-`plan-conventions` skill also remains installed; its replacements are
-`plan-writing-conventions` and `plan-execution-conventions`.
+Update requires canonical state from a successful setup. It stops
+on unknown saved skills, ownership conflicts, proposed removals, or a changed
+preview revision. A moved resource can leave a dangling link that ownership
+records cannot safely identify; this also requires setup review. Resolve these
+through `make install-cli`; preserve user changes. Apply failures roll back provider files and saved state together.
+
+Git pull and refresh are separate operations. Linked resources can change as
+soon as Git updates the clone; rollback of a failed refresh cannot undo those
+source changes. Keep the checkout available and review source changes before
+pulling them. A repeated refresh preserves saved preferences.
+
+Bash and the TUI both reconcile the saved desired selection. Choosing fewer
+skills or providers requires confirmation before owned paths are removed.
 
 ## Troubleshooting
 
 | Problem | Action |
 | --- | --- |
 | Missing skill | Check provider and selection with `--dry-run`, then start a new session. |
-| User-owned skill skipped | Keep your version or move it aside before reinstalling. |
-| Broken supporting-file links | Restore the `agent-toolkit` folder to its original location, or run the installer from its new location. |
-| Missing legacy output setting | Rerun interactive installation or add `MARKDOWN_OUTPUT_PATH=` to `.env`. |
+| Ownership conflict or dangling resource link | Back up the affected installed skill outside the provider skills directory, then review setup. Keep the backup for comparison. |
+| Broken supporting-file links | Restore the clone or reinstall from its new location. |
 | Failed installation | Changes roll back; if recovery fails, the error gives the backup location. |
 
 ## Uninstall
@@ -169,5 +204,7 @@ The managed TUI supports removals with confirmation. The former
 make uninstall
 ```
 
-Removes managed skills and guidance for both providers and the installer's
-settings file. User-owned skills and configuration are preserved.
+Removes verified managed skills, guidance, and canonical settings in one
+transaction. Unrelated user files and native plugins remain.
+Ownership conflicts stop uninstall before writes; resolve those conflicts and
+retry. Failed uninstall restores provider files and saved state together.

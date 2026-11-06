@@ -50,6 +50,22 @@ managed_check_state_paths() {
   managed_regular_or_absent "$managed_inventory_file"
 }
 
+managed_validate_state_pair() {
+  local key
+  if [[ -f "$managed_settings_file" || -f "$managed_inventory_file" ]]; then
+    [[ -f "$managed_settings_file" && -f "$managed_inventory_file" ]] || {
+      printf 'Error: incomplete managed state; restore settings and inventory together.\n' >&2
+      return 1
+    }
+    for key in STATE_VERSION PROVIDERS REQUESTED_SKILLS RETAINED_HELPERS MARKDOWN_OUTPUT_PATH CONCISE_OUTPUT GLOBAL_GUIDANCE; do
+      [[ $(grep -c "^$key=" "$managed_settings_file") == 1 ]] || {
+        printf 'Error: managed settings require exactly one %s entry.\n' "$key" >&2
+        return 1
+      }
+    done
+  fi
+}
+
 managed_lock() {
   managed_check_state_paths
   mkdir -p -- "$managed_state_dir"
@@ -61,22 +77,16 @@ managed_lock() {
 }
 
 managed_observed_skills() (
-  local provider=$1 root path name source
+  local provider=$1 root path name
   LLM_PROVIDER=$provider
-  for root in "$(provider_skills_dest)" "$(provider_legacy_skills_dest)"; do
-    [[ -n "$root" && -d "$root" ]] || continue
-    while IFS= read -r path; do
-      name=${path##*/}
-      [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || continue
-      if [[ -L "$path" ]]; then
-        source="$(skill_source "$name" 2>/dev/null || true)"
-        [[ -n "$source" ]] && link_points_to "$path" "$source" || continue
-      else
-        is_owned_dir "$path" || continue
-      fi
-      printf '%s\n' "$name"
-    done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) | LC_ALL=C sort)
-  done
+  root=$(provider_skills_dest)
+  [[ -d "$root" && ! -L "$root" ]] || return 0
+  while IFS= read -r path; do
+    name=${path##*/}
+    [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || continue
+    [[ ! -L "$path" ]] && is_owned_dir "$path" || continue
+    printf '%s\n' "$name"
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
 )
 
 managed_read_inventory() {
@@ -121,10 +131,10 @@ managed_read_inventory() {
 }
 
 managed_load() {
-  local legacy=${AGENT_TOOLKIT_ENV_FILE:-$AGENT_TOOLKIT_HOME/.env} provider selection installed
   managed_state_paths
-  managed_check_state_paths
-  managed_read_inventory
+  managed_check_state_paths || return 1
+  managed_validate_state_pair || return 1
+  managed_read_inventory || return 1
   managed_providers=''
   managed_requested=''
   managed_retained=''
@@ -144,33 +154,7 @@ managed_load() {
     managed_concise=$(boolean_setting CONCISE_OUTPUT "$(managed_setting CONCISE_OUTPUT)")
     managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$(managed_setting GLOBAL_GUIDANCE)")
     managed_validate_settings
-    return 0
   fi
-
-  if [[ -f "$legacy" ]]; then
-    provider=$(config_value "$legacy" LLM_PROVIDER || true)
-    case "$provider" in codex|claude) managed_providers=$provider ;; esac
-    selection=$(config_value "$legacy" SKILL_SELECTION || printf all)
-    if bundle_names | grep -Fxq -- "$selection"; then
-      managed_requested=$(managed_words "$(bundle_members "$selection")")
-    else
-      managed_requested=$(managed_words "$selection")
-    fi
-    managed_output=$(config_value "$legacy" MARKDOWN_OUTPUT_PATH || true)
-    managed_concise=$(boolean_setting CONCISE_OUTPUT "$(config_value "$legacy" CONCISE_OUTPUT || printf True)")
-    managed_full_template=$(boolean_setting GLOBAL_GUIDANCE "$(config_value "$legacy" GLOBAL_GUIDANCE || printf True)")
-  fi
-  for provider in codex claude; do
-    installed=$(managed_words "$(managed_observed_skills "$provider")")
-    case "$provider" in
-      codex) inventory_codex=$installed ;;
-      claude) inventory_claude=$installed ;;
-    esac
-    [[ -n "$installed" ]] || continue
-    managed_providers=$(managed_words "$managed_providers" "$provider")
-    managed_requested=$(managed_words "$managed_requested" "$installed")
-  done
-  managed_validate_settings
 }
 
 managed_json_array() {
@@ -206,18 +190,4 @@ managed_save() {
     printf 'Error: unable to persist managed settings and inventory.\n' >&2
     return 1
   fi
-}
-
-managed_save_legacy() {
-  local provider=$LLM_PROVIDER
-  managed_providers=$(managed_words "$managed_providers" "$provider")
-  managed_requested=$(managed_words "$managed_requested" "$requested_names")
-  managed_output=$configured_output
-  managed_concise=$CONCISE_OUTPUT
-  managed_full_template=$GLOBAL_GUIDANCE
-  case "$provider" in
-    codex) inventory_codex=$(managed_words "$(managed_observed_skills codex)") ;;
-    claude) inventory_claude=$(managed_words "$(managed_observed_skills claude)") ;;
-  esac
-  managed_save
 }
