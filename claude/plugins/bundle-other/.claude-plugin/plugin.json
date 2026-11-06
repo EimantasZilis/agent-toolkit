@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bundle-other.",
+  "name": "bundle-other",
+  "version": "0.1.0"
+}

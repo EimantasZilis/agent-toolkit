@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: test-cases.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "test-cases",
+    "longDescription": "Portable agent-toolkit skills: test-cases.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "test-cases",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: ruby-rails-standards.",
+  "name": "ruby-rails-standards",
+  "version": "0.1.0"
+}

@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: annotate.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "annotate",
+    "longDescription": "Portable agent-toolkit skills: annotate.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "annotate",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

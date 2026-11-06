@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: developer-highlights.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "developer-highlights",
+    "longDescription": "Portable agent-toolkit skills: developer-highlights.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "developer-highlights",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

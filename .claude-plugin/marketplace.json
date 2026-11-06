@@ -1,0 +1,160 @@
+{
+  "name": "agent-toolkit",
+  "owner": {
+    "name": "agent-toolkit contributors"
+  },
+  "plugins": [
+    {
+      "name": "annotate",
+      "source": "./claude/plugins/annotate"
+    },
+    {
+      "name": "bash-standards",
+      "source": "./claude/plugins/bash-standards"
+    },
+    {
+      "name": "commit-message",
+      "source": "./claude/plugins/commit-message"
+    },
+    {
+      "name": "concise-output",
+      "source": "./claude/plugins/concise-output"
+    },
+    {
+      "name": "define-coding-standards",
+      "source": "./claude/plugins/define-coding-standards"
+    },
+    {
+      "name": "developer-highlights",
+      "source": "./claude/plugins/developer-highlights"
+    },
+    {
+      "name": "golang-standards",
+      "source": "./claude/plugins/golang-standards"
+    },
+    {
+      "name": "javascript-standards",
+      "source": "./claude/plugins/javascript-standards"
+    },
+    {
+      "name": "next-commit",
+      "source": "./claude/plugins/next-commit"
+    },
+    {
+      "name": "next-phase",
+      "source": "./claude/plugins/next-phase"
+    },
+    {
+      "name": "plan-execution-conventions",
+      "source": "./claude/plugins/plan-execution-conventions"
+    },
+    {
+      "name": "plan-review",
+      "source": "./claude/plugins/plan-review"
+    },
+    {
+      "name": "plan-writing-conventions",
+      "source": "./claude/plugins/plan-writing-conventions"
+    },
+    {
+      "name": "pr-comment",
+      "source": "./claude/plugins/pr-comment"
+    },
+    {
+      "name": "pr-description",
+      "source": "./claude/plugins/pr-description"
+    },
+    {
+      "name": "python-standards",
+      "source": "./claude/plugins/python-standards"
+    },
+    {
+      "name": "quick-plan",
+      "source": "./claude/plugins/quick-plan"
+    },
+    {
+      "name": "requirements-to-tickets",
+      "source": "./claude/plugins/requirements-to-tickets"
+    },
+    {
+      "name": "review-branch",
+      "source": "./claude/plugins/review-branch"
+    },
+    {
+      "name": "ruby-rails-standards",
+      "source": "./claude/plugins/ruby-rails-standards"
+    },
+    {
+      "name": "ruby-standards",
+      "source": "./claude/plugins/ruby-standards"
+    },
+    {
+      "name": "security-check",
+      "source": "./claude/plugins/security-check"
+    },
+    {
+      "name": "security-review",
+      "source": "./claude/plugins/security-review"
+    },
+    {
+      "name": "test-cases",
+      "source": "./claude/plugins/test-cases"
+    },
+    {
+      "name": "ticket-context",
+      "source": "./claude/plugins/ticket-context"
+    },
+    {
+      "name": "ticket-to-plan",
+      "source": "./claude/plugins/ticket-to-plan"
+    },
+    {
+      "name": "to-clipboard",
+      "source": "./claude/plugins/to-clipboard"
+    },
+    {
+      "name": "to-markdown",
+      "source": "./claude/plugins/to-markdown"
+    },
+    {
+      "name": "typescript-standards",
+      "source": "./claude/plugins/typescript-standards"
+    },
+    {
+      "name": "bundle-all",
+      "source": "./claude/plugins/bundle-all"
+    },
+    {
+      "name": "bundle-coding",
+      "source": "./claude/plugins/bundle-coding"
+    },
+    {
+      "name": "bundle-implementation",
+      "source": "./claude/plugins/bundle-implementation"
+    },
+    {
+      "name": "bundle-other",
+      "source": "./claude/plugins/bundle-other"
+    },
+    {
+      "name": "bundle-productivity",
+      "source": "./claude/plugins/bundle-productivity"
+    },
+    {
+      "name": "bundle-review",
+      "source": "./claude/plugins/bundle-review"
+    },
+    {
+      "name": "bundle-scoping",
+      "source": "./claude/plugins/bundle-scoping"
+    },
+    {
+      "name": "bundle-security",
+      "source": "./claude/plugins/bundle-security"
+    },
+    {
+      "name": "bundle-starter",
+      "source": "./claude/plugins/bundle-starter"
+    }
+  ]
+}

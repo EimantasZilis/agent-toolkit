@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: to-clipboard.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "to-clipboard",
+    "longDescription": "Portable agent-toolkit skills: to-clipboard.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "to-clipboard",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

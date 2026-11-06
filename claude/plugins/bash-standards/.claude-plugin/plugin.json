@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bash-standards.",
+  "name": "bash-standards",
+  "version": "0.1.0"
+}

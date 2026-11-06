@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: pr-comment.",
+  "name": "pr-comment",
+  "version": "0.1.0"
+}

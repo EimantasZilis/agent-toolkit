@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: ticket-context.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "ticket-context",
+    "longDescription": "Portable agent-toolkit skills: ticket-context.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "ticket-context",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

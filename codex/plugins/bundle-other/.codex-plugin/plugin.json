@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bundle-other.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "bundle-other",
+    "longDescription": "Portable agent-toolkit skills: bundle-other.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "bundle-other",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

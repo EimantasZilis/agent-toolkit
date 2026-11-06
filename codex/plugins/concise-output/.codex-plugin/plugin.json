@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: concise-output.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "concise-output",
+    "longDescription": "Portable agent-toolkit skills: concise-output.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "concise-output",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: next-phase.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "next-phase",
+    "longDescription": "Portable agent-toolkit skills: next-phase.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "next-phase",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

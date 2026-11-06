@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: commit-message.",
+  "name": "commit-message",
+  "version": "0.1.0"
+}

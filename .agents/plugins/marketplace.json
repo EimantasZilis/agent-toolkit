@@ -1,0 +1,464 @@
+{
+  "interface": {
+    "displayName": "agent-toolkit"
+  },
+  "name": "agent-toolkit",
+  "plugins": [
+    {
+      "category": "Developer Tools",
+      "name": "annotate",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/annotate",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bash-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bash-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "commit-message",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/commit-message",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "concise-output",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/concise-output",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "define-coding-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/define-coding-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "developer-highlights",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/developer-highlights",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "golang-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/golang-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "javascript-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/javascript-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "next-commit",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/next-commit",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "next-phase",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/next-phase",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "plan-execution-conventions",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/plan-execution-conventions",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "plan-review",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/plan-review",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "plan-writing-conventions",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/plan-writing-conventions",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "pr-comment",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/pr-comment",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "pr-description",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/pr-description",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "python-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/python-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "quick-plan",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/quick-plan",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "requirements-to-tickets",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/requirements-to-tickets",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "review-branch",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/review-branch",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "ruby-rails-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/ruby-rails-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "ruby-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/ruby-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "security-check",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/security-check",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "security-review",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/security-review",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "test-cases",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/test-cases",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "ticket-context",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/ticket-context",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "ticket-to-plan",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/ticket-to-plan",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "to-clipboard",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/to-clipboard",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "to-markdown",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/to-markdown",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "typescript-standards",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/typescript-standards",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-all",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-all",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-coding",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-coding",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-implementation",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-implementation",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-other",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-other",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-productivity",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-productivity",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-review",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-review",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-scoping",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-scoping",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-security",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-security",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "name": "bundle-starter",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugins/bundle-starter",
+        "source": "local"
+      }
+    }
+  ]
+}

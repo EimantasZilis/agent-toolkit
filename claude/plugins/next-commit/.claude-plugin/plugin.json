@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: next-commit.",
+  "name": "next-commit",
+  "version": "0.1.0"
+}

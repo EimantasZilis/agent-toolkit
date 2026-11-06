@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: typescript-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "typescript-standards",
+    "longDescription": "Portable agent-toolkit skills: typescript-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "typescript-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

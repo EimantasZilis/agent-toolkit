@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: define-coding-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "define-coding-standards",
+    "longDescription": "Portable agent-toolkit skills: define-coding-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "define-coding-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

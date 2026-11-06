@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: javascript-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "javascript-standards",
+    "longDescription": "Portable agent-toolkit skills: javascript-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "javascript-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

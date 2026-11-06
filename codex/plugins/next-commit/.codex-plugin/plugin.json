@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: next-commit.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "next-commit",
+    "longDescription": "Portable agent-toolkit skills: next-commit.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "next-commit",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

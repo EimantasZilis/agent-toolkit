@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: golang-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "golang-standards",
+    "longDescription": "Portable agent-toolkit skills: golang-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "golang-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

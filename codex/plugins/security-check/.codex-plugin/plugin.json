@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: security-check.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "security-check",
+    "longDescription": "Portable agent-toolkit skills: security-check.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "security-check",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

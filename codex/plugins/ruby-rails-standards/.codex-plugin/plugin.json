@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: ruby-rails-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "ruby-rails-standards",
+    "longDescription": "Portable agent-toolkit skills: ruby-rails-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "ruby-rails-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bundle-review.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "bundle-review",
+    "longDescription": "Portable agent-toolkit skills: bundle-review.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "bundle-review",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

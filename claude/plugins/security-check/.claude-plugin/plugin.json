@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: security-check.",
+  "name": "security-check",
+  "version": "0.1.0"
+}

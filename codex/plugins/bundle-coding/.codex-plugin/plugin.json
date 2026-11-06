@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bundle-coding.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "bundle-coding",
+    "longDescription": "Portable agent-toolkit skills: bundle-coding.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "bundle-coding",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

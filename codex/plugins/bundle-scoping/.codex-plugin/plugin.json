@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bundle-scoping.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "bundle-scoping",
+    "longDescription": "Portable agent-toolkit skills: bundle-scoping.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "bundle-scoping",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

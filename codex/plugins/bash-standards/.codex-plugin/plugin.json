@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: bash-standards.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "bash-standards",
+    "longDescription": "Portable agent-toolkit skills: bash-standards.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "bash-standards",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

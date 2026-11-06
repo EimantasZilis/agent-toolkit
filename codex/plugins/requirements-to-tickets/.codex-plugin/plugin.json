@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: requirements-to-tickets.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "requirements-to-tickets",
+    "longDescription": "Portable agent-toolkit skills: requirements-to-tickets.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "requirements-to-tickets",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

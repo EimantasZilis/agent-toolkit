@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: plan-writing-conventions.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "plan-writing-conventions",
+    "longDescription": "Portable agent-toolkit skills: plan-writing-conventions.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "plan-writing-conventions",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

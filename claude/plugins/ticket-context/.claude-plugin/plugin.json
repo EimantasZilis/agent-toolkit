@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: ticket-context.",
+  "name": "ticket-context",
+  "version": "0.1.0"
+}

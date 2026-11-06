@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: plan-review.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "plan-review",
+    "longDescription": "Portable agent-toolkit skills: plan-review.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "plan-review",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

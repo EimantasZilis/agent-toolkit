@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: plan-execution-conventions.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "plan-execution-conventions",
+    "longDescription": "Portable agent-toolkit skills: plan-execution-conventions.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "plan-execution-conventions",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

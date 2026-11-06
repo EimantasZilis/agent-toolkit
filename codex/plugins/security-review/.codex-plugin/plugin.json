@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: security-review.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "security-review",
+    "longDescription": "Portable agent-toolkit skills: security-review.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "security-review",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

@@ -1,0 +1,8 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: ticket-to-plan.",
+  "name": "ticket-to-plan",
+  "version": "0.1.0"
+}

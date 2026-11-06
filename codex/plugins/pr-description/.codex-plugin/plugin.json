@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "agent-toolkit contributors"
+  },
+  "description": "Portable agent-toolkit skills: pr-description.",
+  "interface": {
+    "capabilities": [],
+    "category": "Developer Tools",
+    "developerName": "agent-toolkit contributors",
+    "displayName": "pr-description",
+    "longDescription": "Portable agent-toolkit skills: pr-description.",
+    "shortDescription": "Portable engineering skills"
+  },
+  "name": "pr-description",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}
