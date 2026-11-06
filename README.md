@@ -3,6 +3,26 @@
 agent-toolkit provides installable skills for concise communication, coding
 standards, planning, implementation, and review, with support for Claude and Codex.
 
+## How the repo fits together
+
+Write each skill once in `.agents/skills/`, then install it locally or publish
+it as a native plugin. Provider adapters handle the differences between Codex
+and Claude.
+
+```mermaid
+flowchart TD
+    source["Shared skill library"] --> local["Local setup: terminal UI or Bash"]
+    source --> publish["Build and publish plugins"]
+    local --> yours["Your installation, linked to the checkout"]
+    publish --> marketplace["Git marketplace: native-plugins branch"]
+    marketplace --> users["Users install through Codex or Claude"]
+```
+
+The terminal UI and Bash commands share one installation engine. Keep the
+checkout for local installations; hosted plugins contain their supporting files
+and are managed through the provider. Prefer one installation route per skill
+to avoid duplicate copies.
+
 ## Quick start
 
 **Prerequisites:** Git, Bash, Make, `shasum`, and an installed, signed-in Codex or
@@ -28,6 +48,22 @@ before writing files. Keep this clone: supporting files link back to it.
 
 Start a new session and try `$concise-output` in Codex or `/concise-output` in
 Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
+
+## Everyday workflow
+
+1. **Create or improve a skill** in `.agents/skills/`. Keep its instructions
+   usable by both providers and follow [CONTRIBUTING.md](CONTRIBUTING.md).
+2. **Validate it** with `make verify` and try the changed behavior in an agent
+   session.
+3. **Use it locally:** select it through `make install` or `make install-cli`.
+   After pulling later changes, use `make update` to refresh saved selections.
+   Start a new agent session afterward.
+4. **Publish when ready:** generate and validate a versioned snapshot, review
+   it in a separate publication checkout, then publish to `native-plugins`
+   with a version tag. Follow the [publication guide](docs/native-publication.md).
+
+Local changes do not automatically update published plugins. Publishing is a
+separate release decision.
 
 ## Highlights
 
