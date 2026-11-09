@@ -1,5 +1,8 @@
 # Contributing to agent-toolkit
 
+See the [repository overview](docs/overview.md) for how the shared skill library,
+local installation, and plugin publication fit together.
+
 Skills live at `.agents/skills/<category>/<skill-name>/SKILL.md`. The front
 matter `name` must match the skill directory, and `description` must state the
 trigger. Keep this source tree provider-neutral. Codex metadata belongs under
@@ -77,6 +80,19 @@ grouped by category, with categories ordered alphabetically. Within each
 category, follow the workflow order where one exists; otherwise, order skills
 alphabetically by name. Put shared guidance before the workflow steps it
 supports, and order independent skills alphabetically.
+
+## Skill examples
+
+Keep examples in `docs/examples/` focused on the skill's value, an example
+prompt, and the result it produces. Include a `Why use it` section in every
+example. Use one short paragraph to explain the practical benefit beyond the
+sample scenario. Aim for two or three sentences without repeating the
+introduction or result. Ground benefits in the skill's actual behavior and avoid
+unsupported promises. Apply this structure to new and existing examples.
+
+Do not add disclaimers about examples being illustrative or commands and
+application checks not being executed. This applies to both new and existing
+examples.
 
 ## Source application checks
 

@@ -3,6 +3,9 @@
 Use the usage guides to install skills and work with them. Maintenance guides
 cover developing the toolkit and distributing plugins.
 
+Start with the [repository overview](overview.md) to understand the shared skill
+library, installation routes, and development workflow.
+
 ## Usage
 
 | Task | Guide |
@@ -10,7 +13,8 @@ cover developing the toolkit and distributing plugins.
 | Install, configure, update, or remove local skills | [Local installation](../INSTALL.md) |
 | Configure, refresh, and uninstall through the terminal UI | [TUI controls](usage/tui.md) |
 | Install and manage provider plugins | [Native plugins](usage/native-packages.md) |
-| Try skills or chain a development workflow | [Worked examples](../EXAMPLES.md) |
+| See what individual skills produce | [Skill examples](../EXAMPLES.md) |
+| Combine skills or follow a ticket through delivery | [Development workflows](usage/workflows.md) |
 
 ## Maintenance
 

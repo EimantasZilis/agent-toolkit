@@ -1,36 +1,23 @@
 # agent-toolkit
 
-agent-toolkit provides installable skills for concise communication, coding
-standards, planning, implementation, and review, with support for Claude and Codex.
+agent-toolkit gives Codex and Claude reusable skills for everyday
+development tasks such concise communication, coding
+standards, turning a feature request into implementation plan and code review.
 
-## How the repo fits together
+## Start with two skills
 
-Write each skill once in `.agents/skills/`, then install it locally or publish
-it as a native plugin. Provider adapters handle the differences between Codex
-and Claude.
+The starter selection includes:
 
-```mermaid
-flowchart TD
-    source["Shared skill library"] --> local["Go terminal UI"]
-    source --> publish["Build and publish plugins"]
-    local --> yours["Your installation, linked to the checkout"]
-    publish --> marketplace["Git marketplace: native-plugins branch"]
-    marketplace --> users["Users install through Codex or Claude"]
-```
+- **`commit-message`:** draft a short message describing your staged changes.
+- **`concise-output`:** ask for clear answers with useful detail and less repetition.
 
-The terminal UI uses the Go installation engine. Keep the
-checkout for local installations; hosted plugins contain their supporting files
-and are managed through the provider. Prefer one installation route per skill
-to avoid duplicate copies.
+Try these before exploring the full catalog. Each skill works on its own;
+you do not need to follow a planning workflow.
 
-## Choose an installation route
+## Install the starter selection
 
-- **Native plugins:** install through Codex or Claude without a source checkout.
-  Start with the [native plugin guide](docs/usage/native-packages.md).
-- **Local TUI:** keep a checkout to select skills and configure global guidance
-  and Markdown output. Follow the quick start below.
-
-## Local quick start
+The local terminal UI lets you install the starter skills for Codex, Claude
+Code, or both. It also lets you configure guidance and Markdown output.
 
 **Prerequisites:** Git, the Go version declared in `go.mod`, and an installed,
 signed-in Codex or Claude Code client. Make is optional. Run the following in a
@@ -44,32 +31,38 @@ make run
 
 `make run` opens the [local management TUI](docs/usage/tui.md) from current
 source. Without Make, use `go run ./cmd/agent-toolkit`. The first launch may
-download modules and a compatible toolchain. Local management uses this TUI;
-scripted installation, update, and uninstall commands have been removed.
+download modules and a compatible toolchain.
 
-Choose providers and skills, then review the proposed changes. Keep this clone:
-supporting files link back to it. For options and maintenance, see
-[INSTALL.md](INSTALL.md).
+1. Select Codex, Claude Code, or both. No provider is selected initially.
+2. Keep the preselected starter skills and work through the settings pages.
+3. Review the proposed paths and apply the installation.
+4. Start a new agent session in the repository where you want to use the skills.
 
-Start a new session and try `$concise-output` in Codex or `/concise-output` in
-Claude Code. See the [worked examples](EXAMPLES.md) for sample prompts.
+Keep this clone: supporting files link back to it. For controls and settings,
+see the [TUI guide](docs/usage/tui.md) and [installation guide](INSTALL.md).
 
-## Everyday workflow
+Prefer provider-managed plugins without a source checkout? See the
+[native plugin guide](docs/usage/native-packages.md) for installation and recorded
+compatibility. Codex CLI runtime checks are recorded there; Claude client runtime
+acceptance remains unverified. Choose one installation route per skill.
 
-1. **Create or improve a skill** in `.agents/skills/`. Keep its instructions
-   usable by both providers and follow [CONTRIBUTING.md](CONTRIBUTING.md).
-2. **Validate it** with `make verify` and try the changed behavior in an agent
-   session.
-3. **Use it locally:** select it through `make run`.
-   Run `git pull --ff-only` separately, then choose **Refresh installation**
-   in the TUI to reapply saved selections.
-   Start a new agent session afterward.
-4. **Publish when ready:** generate and validate a versioned snapshot, review
-   it in a separate publication checkout, then publish to `native-plugins`
-   with a version tag. Follow the [publication guide](docs/maintenance/publish-native.md).
+## Try your first task
 
-Local changes do not automatically update published plugins. Publishing is a
-separate release decision.
+In a repository with changes you have already reviewed and staged, ask your
+agent to draft a commit message:
+
+| Local installation | Prompt |
+| --- | --- |
+| Codex | `$commit-message Draft a message for my staged changes.` |
+| Claude Code | `/commit-message Draft a message for my staged changes.` |
+
+Expect one copyable message describing only the staged changes. The skill does
+not stage files or create a commit. Compare the message with `git diff --cached`
+before using it.
+
+Nothing staged? Try the [writing example](docs/examples/concise-output.md).
+See the [commit-message example](docs/examples/commit-message.md) for a sample
+result, or [browse examples by task](EXAMPLES.md).
 
 ## Highlights
 
@@ -117,41 +110,23 @@ separate release decision.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and validation rules.
 
-## Chaining skills for software development
+## Development workflows
 
-Choose the steps your change needs:
+Skills work independently or pass results to one another. Use a short
+combination for a focused task, or take a ticket through planning,
+implementation, validation, and review.
 
-```mermaid
-flowchart TD
-    brief[Feature brief] --> tickets[requirements-to-tickets]
-    brief -. Feasibility unclear .-> quick[quick-plan]
-    quick --> tickets
-    tickets --> context[ticket-context]
-    context --> plan[ticket-to-plan]
-    plan --> review[plan-review]
-    review --> build[next-commit or next-phase]
-    build --> tests[test-cases]
-    tests --> branch[review-branch]
-    branch --> description[pr-description]
-    branch --> comment[pr-comment]
-```
-
-- `next-commit` implements one planned unit without committing.
-- `next-phase` completes a phase with local commits.
-- `review-branch` reviews committed changes.
-- Use coding standards and security review where relevant.
-- Optional conventions and standards apply when installed; workflows otherwise
-  use local defaults and repository guidance.
-- PR-writing skills return Markdown. Use `to-clipboard` separately to copy it.
-
-See the [worked workflow](EXAMPLES.md#chain-skills-from-a-feature-brief-to-delivery)
-for a full example.
+See [skill combinations and development workflows](docs/usage/workflows.md)
+for handoffs, optional steps, and the choice between implementing one unit
+with `next-commit` or a phase with `next-phase`.
 
 ## Guides
 
 See [INSTALL.md](INSTALL.md) for local setup and maintenance, or
 [native packages](docs/usage/native-packages.md) for provider plugins. The
 [documentation index](docs/README.md) covers setup, plugin use, and publishing.
+See the [repository overview](docs/overview.md) for how the shared skill library,
+installation routes, and development workflow fit together.
 
 ## Contributing
 
