@@ -41,6 +41,25 @@ type Request struct {
 // Operation names a proposed change or ownership conflict at Path.
 type Operation struct{ Provider, Action, Name, Path string }
 
+// ContentState describes a reviewed file, directory, or legacy resource link.
+// Size and SHA256 describe file bytes (the target bytes for a verified link).
+type ContentState struct {
+	Type   string
+	Mode   uint32
+	Size   int
+	SHA256 string
+}
+
+// ContentChange describes installed content independently of executable actions.
+// A nil state means absent. Lines contain bounded, prefixed text changes;
+// Binary and Truncated explain why full text is unavailable.
+type ContentChange struct {
+	Provider, Name, Path, Kind string
+	Before, After              *ContentState
+	Lines                      []string
+	Binary, Truncated          bool
+}
+
 // Selection describes why a skill is included in a preview.
 type Selection struct{ Name, Role string }
 
@@ -67,6 +86,7 @@ type Preview struct {
 	Revision              string
 	Selection             []Selection
 	Operations, Conflicts []Operation
+	Changes               []ContentChange
 	Confirmation          bool
 	Native                NativeOverlap
 	Source                Provenance

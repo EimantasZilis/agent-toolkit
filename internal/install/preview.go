@@ -334,6 +334,10 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	if err != nil {
 		return Preview{}, err
 	}
+	preview.Changes, err = s.contentChanges(preview, legacyCatalog)
+	if err != nil {
+		return Preview{}, err
+	}
 	if err := s.checkFailure("after-payload"); err != nil {
 		return Preview{}, err
 	}

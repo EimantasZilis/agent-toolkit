@@ -147,3 +147,27 @@ func (s *Service) planGuidance(provider string, desired Settings, expected strin
 	}
 	return &Operation{provider, action, "guidance", path}, nil
 }
+
+func (s *Service) guidanceChange(p Preview, op Operation) (ContentChange, error) {
+	_, current, count, err := s.guidanceParts(op.Path)
+	if err != nil {
+		return ContentChange{}, err
+	}
+	// Review managed blocks only; surrounding user guidance is private.
+	old := []byte(strings.Repeat(current, count))
+	next := []byte(p.guidance)
+	if op.Action != "write-guidance" {
+		next = nil
+	}
+	var mode os.FileMode = 0644
+	if count > 0 {
+		info, err := os.Lstat(op.Path)
+		if err != nil {
+			return ContentChange{}, err
+		}
+		mode = info.Mode().Perm()
+	}
+	before := contentState(payloadFile{Data: old, Mode: mode}, count > 0)
+	after := contentState(payloadFile{Data: next, Mode: 0644}, len(next) > 0)
+	return describeChange(op, op.Path, before, after, old, next), nil
+}
