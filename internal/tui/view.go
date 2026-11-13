@@ -14,7 +14,11 @@ func (m model) wrappedLines() []string {
 	width, _ := m.viewportSize()
 
 	for _, line := range m.viewLines() {
-		lines = append(lines, strings.Split(ansi.Hardwrap(ansi.Strip(line), width, true), "\n")...)
+		// Newlines here separate trusted layout rows. Escape every other control
+		// before wrapping; stripping ANSI alone would silently hide source bytes.
+		for _, row := range strings.Split(line, "\n") {
+			lines = append(lines, strings.Split(ansi.Hardwrap(terminalText(row), width, true), "\n")...)
+		}
 	}
 
 	return lines

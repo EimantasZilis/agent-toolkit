@@ -31,6 +31,7 @@ type response struct {
 	Bundles               []bundle
 	Selection             []selection
 	Operations, Conflicts []operation
+	Changes               []install.ContentChange
 	Confirmation          bool
 	Native                install.NativeOverlap
 	Plan                  install.Preview
@@ -62,7 +63,7 @@ func statusResponse(s install.Status) response {
 }
 
 func previewResponse(p install.Preview) response {
-	return response{Desired: p.Desired, Selection: p.Selection, Operations: p.Operations, Conflicts: p.Conflicts, Confirmation: p.Confirmation, Native: p.Native, Revision: p.Revision, Plan: p}
+	return response{Desired: p.Desired, Selection: p.Selection, Operations: p.Operations, Conflicts: p.Conflicts, Changes: p.Changes, Confirmation: p.Confirmation, Native: p.Native, Revision: p.Revision, Plan: p}
 }
 
 // trackedBackend prevents new mutations after shutdown and waits for an active

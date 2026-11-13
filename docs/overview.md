@@ -35,15 +35,22 @@ plugin guide records provider compatibility and runtime verification.
 
 1. **Create or improve a skill** in `.agents/skills/`. Keep its instructions
    usable by both providers and follow [CONTRIBUTING.md](../CONTRIBUTING.md).
-2. **Validate it** with `make verify` and try the changed behavior in an agent
-   session.
-3. **Use it locally:** select it through `make run`.
-   Run `git pull --ff-only` separately, then choose **Refresh installation**
-   in the TUI to reapply saved selections.
-   Start a new agent session afterward.
-4. **Publish when ready:** generate and validate a versioned snapshot, review
-   it in a separate publication checkout, then publish to `native-plugins`
-   with a version tag. Follow the [publication guide](maintenance/publish-native.md).
+2. **Use it locally without committing:** run `make run` or
+   `go run ./cmd/agent-toolkit` from the edited checkout. Select skills initially,
+   or choose **Refresh installation** to preserve saved preferences. Review
+   changed paths, text, and permissions, then apply.
+3. **Test and repeat:** start a new agent session for each selected provider.
+   Edit instructions and resources again, review, apply, and test before
+   committing. Source edits leave installed copies unchanged until apply. Drafts
+   stay selectable; Development requires no eligibility change. Pull upstream
+   changes separately when wanted.
+4. **Validate and publish when ready:** run `make verify`. Existing native tools
+   build and validate packages for publication through a separate checkout to
+   `native-plugins`. Follow the [publication guide](maintenance/publish-native.md).
 
 Local changes do not automatically update published plugins. Publishing is a
 separate release decision.
+
+Committed, eligible versioned snapshots for the planned lifecycle are future
+work. They do not change the current Development loop or existing native tools.
+See the [TUI guide](usage/tui.md) for review controls and retry behavior.

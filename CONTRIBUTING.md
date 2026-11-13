@@ -81,6 +81,27 @@ category, follow the workflow order where one exists; otherwise, order skills
 alphabetically by name. Put shared guidance before the workflow steps it
 supports, and order independent skills alphabetically.
 
+## Test skill changes locally
+
+Use Development to try instruction and resource edits before committing. Draft
+skills remain selectable, and no eligibility change is required.
+
+1. Edit the skill and its resources in your checkout without committing.
+2. Run `make run` or `go run ./cmd/agent-toolkit` from that checkout.
+3. Select the skill in initial setup, or choose **Refresh installation** to reuse
+   saved preferences. Review content changes and permission modes, then apply.
+4. Start a new agent session for each selected provider and test the behavior.
+5. Repeat the loop before committing. Run the required repository checks before
+   reporting the change complete.
+
+Source edits leave installed copies unchanged until apply. Pull upstream changes
+separately when needed. The [TUI guide](docs/usage/tui.md) explains scrolling,
+cancellation, conflicts, and stale-review retries.
+
+Committed, eligible versioned snapshots for a later lifecycle workflow are
+future work. Current native package builds and publication remain separate;
+follow the existing [build guide](docs/maintenance/build-native.md).
+
 ## Skill examples
 
 Keep examples in `docs/examples/` focused on the skill's value, an example

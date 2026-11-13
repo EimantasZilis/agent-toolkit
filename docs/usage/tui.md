@@ -47,23 +47,46 @@ Removing skills or providers and creating an output directory require explicit
 confirmation. Enter, No, and Escape cancel; the default is No. Apply checks that
 source files and installed content still match the preview.
 
-## Refresh source changes
+## Repeat the Development loop
 
-1. Run `git pull --ff-only` separately to update the checkout.
-2. Run `make run` and choose **Refresh installation**.
-3. Review the proposed paths and confirm.
-4. Start a new agent session.
+Development installs the current working tree without a commit or eligibility
+change. Draft skills remain selectable. Installed copies stay unchanged while
+you edit source.
 
-Fresh installations contain owned copies of instructions, supporting references,
-scripts, and provider adapters. Source edits, including uncommitted changes and
-new resources, take effect only after a reviewed refresh. Installed skills work
-without access to the checkout. Running the manager still requires the checkout
-and its saved `config/` state.
+1. Edit skill instructions and resources without committing.
+2. Run `make run` or `go run ./cmd/agent-toolkit` from that checkout.
+3. Select skills in initial setup, or choose **Refresh installation** to keep
+   saved providers, skills, helper selections, and guidance/output preferences.
+4. Inspect the content review and press `y` to apply. Enter, No, and Escape cancel.
+5. Start a new agent session for each selected provider and test the skill.
+6. Repeat before committing. Pulling upstream changes is an optional, separate
+   source-management step.
 
-Refresh preserves saved preferences. If a saved skill is unavailable or refresh
-would remove managed content, use Configure to review the selection. Edited
+The review groups changes by provider and skill or guidance. Each changed path
+shows its action, before/after type, and permission mode. Instructions,
+references, scripts, and Codex adapters include text changes. Binary resources
+show sizes and SHA-256 checksums. Excerpts are limited to 100 lines or 8192 bytes
+per file and show a truncation notice; the path list remains complete. Guidance
+shows verified managed blocks and excludes surrounding user text. Terminal
+control characters appear as visible escapes.
+
+Use Page Up and Page Down to inspect long reviews, including in narrow windows.
+An unchanged review says **Installed content: unchanged.** Existing agent
+sessions do not reload automatically. Copied skills work without the checkout;
+the manager still needs the checkout and its saved `config/` state.
+
+Refresh can remove resources within retained skills. Use Configure to remove
+whole skills or providers, or resolve an unavailable saved selection. Edited
 installed files, changed modes, missing files, and unexpected content cause
 ownership conflicts. Installation rollback cannot undo checkout changes.
+
+If source, destination, or saved state changes after review, apply refuses.
+Choose **Refresh installation** again for a new refresh review. Migration retries
+through **Migrate linked installation**. Setup and Configure preserve the draft;
+press `s` to preview it again. Each new preview requires confirmation.
+
+Committed, eligible versioned snapshots belong to future lifecycle work. They
+are separate from the existing [native plugin tools](native-packages.md).
 
 ## Migrate a linked installation
 
@@ -73,7 +96,8 @@ and Uninstall never convert links automatically.
 
 1. Back up managed provider directories, guidance and its markers, and both
    saved state files together. Keep the original checkout available.
-2. Choose **Migrate linked installation**. Review conversion paths, saved
+2. Choose **Migrate linked installation**. Review link-to-copy changes, resource
+   content and modes, rendered instruction changes, managed guidance, and saved
    providers, requested skills, retained and required helpers, output preferences,
    and guidance settings. Use Page Up and Page Down to inspect long previews.
 3. Press `y` to convert. Enter, No, and Escape cancel without writes.

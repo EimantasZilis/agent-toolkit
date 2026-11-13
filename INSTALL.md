@@ -24,7 +24,7 @@ modules and a compatible toolchain. The TUI always runs current source.
 Redirected startup fails clearly before changing installations.
 
 Fresh setup starts with no provider selected and the starter skills preselected.
-Work through the settings pages and review the proposed paths before applying.
+Work through the settings pages and review the content changes before applying.
 Later launches open a management
 menu with Configure, Refresh installation, and Uninstall. Linked installations
 also offer Migrate linked installation. See the
@@ -142,20 +142,43 @@ not delete them. When a skill consumes earlier workflow output, it checks:
 3. Its configured shared-directory equivalent.
 4. A documented legacy location.
 
-## Refresh source changes
+## Develop and refresh without committing
 
-1. Review source changes and run `git pull --ff-only` in the checkout.
-2. Run `make run` or `go run ./cmd/agent-toolkit`.
-3. Choose Refresh installation and review the proposed paths.
-4. Start a new agent session after applying.
+The Development installation reads your current working tree. Instructions,
+resources, and provider adapters become installed copies only when you accept a
+review. Draft skills remain selectable; Development needs no eligibility change.
 
-Refresh reapplies saved providers, skills, retained helpers, and guidance/output
-preferences from current source. It does not pull Git changes. Missing state,
-unavailable saved skills, proposed removals, or ownership conflicts require
-Configure to review the installation.
+1. Edit skill instructions and resources in the checkout without committing.
+2. Run `make run` or `go run ./cmd/agent-toolkit` from that checkout.
+3. Select skills during initial setup, or choose **Refresh installation** to use
+   your saved selection and preferences.
+4. Review additions, edits, removals, and permission transitions. Use Page Up and
+   Page Down to inspect every changed path. Press `y` to apply; Enter, No, and
+   Escape cancel.
+5. Test the skill in a new agent session for each selected provider.
+6. Repeat the edit, review, apply, and new-session test loop before committing.
 
-Copied resources remain unchanged until refresh applies reviewed source bytes
-and modes. Rollback of an installation cannot undo checkout changes.
+The review includes instructions, nested resources, scripts, Codex adapters, and
+managed guidance blocks. It shows text changes and old/new file types and modes.
+Binary changes show byte counts and SHA-256 checksums. Text excerpts are limited
+to 100 lines or 8192 bytes per file, with a visible truncation notice. Every
+changed path remains listed. Surrounding user guidance stays outside the review.
+
+Refresh preserves saved providers, skills, retained helpers, and guidance/output
+preferences. Source edits leave installed copies unchanged until apply. Removing
+a resource from a retained skill is a reviewed update. Removing whole skills or
+providers requires Configure. Missing state, unavailable saved skills, and
+ownership conflicts also require attention before apply.
+
+Pull upstream changes separately with `git pull --ff-only` when wanted. Refresh
+itself reads current source and does not pull. A stale review requires another
+preview through **Refresh installation**, **Migrate linked installation**, or the
+preserved Configure/setup draft, as appropriate. A new preview never applies
+automatically. Installation rollback cannot undo checkout changes.
+
+Committed, eligible versioned snapshots for a later lifecycle workflow are
+future work. Existing native plugin build and publication tools remain a
+separate workflow; see the [native plugin guide](docs/usage/native-packages.md).
 
 ## Conflicts and recovery
 

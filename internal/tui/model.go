@@ -228,7 +228,8 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	}
 	if key == "pgdown" || key == "pgup" {
 		m.scroll = m.viewOffset()
-		step := max(1, m.height-4)
+		_, height := m.viewportSize()
+		step := max(1, height-1)
 		if key == "pgup" {
 			step = -step
 		}
@@ -426,6 +427,9 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		m.err = msg.err.Error()
 		m.depart = false
 		m.notice = "Draft preserved. Press s to preview again and retry."
+		if m.applyRequest.Intent == install.Refresh {
+			m.notice = "Refresh did not complete. Select Refresh installation to preview again."
+		}
 		if m.applyRequest.Intent == install.Migrate {
 			m.notice = "Migration did not complete. Select Migrate linked installation to preview again."
 		}
@@ -437,7 +441,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		if len(m.preview.Conflicts) > 0 {
 			m.err = "Resolve ownership conflicts before applying:"
 			for _, conflict := range m.preview.Conflicts {
-				m.err += "\n" + conflict.Path
+				m.err += "\n" + terminalText(conflict.Path)
 			}
 			m.depart = false
 			return m, nil
@@ -537,7 +541,7 @@ func (m model) viewLines() []string {
 			for i, name := range m.managementActions() {
 				lines = append(lines, row(i == m.cursor, name))
 			}
-			lines = append(lines, "", "Run git pull --ff-only separately before refreshing source changes.")
+			lines = append(lines, "", "Refresh reads the current Development working tree, including uncommitted edits.")
 		} else if m.page < 0 {
 			for i, name := range pageNames[:4] {
 				lines = append(lines, row(i == m.cursor, name))
@@ -597,9 +601,14 @@ func (m model) operationLines() []string {
 	}
 	for _, op := range m.preview.Operations {
 		if op.Action != "keep" {
-			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name+"\n  "+op.Path)
+			lines = append(lines, terminalText(op.Provider+": "+op.Action+" "+op.Name), "  "+terminalText(op.Path))
 		}
 	}
+	// Saved preferences can contain untrusted paths as well as resource text.
+	for i := range lines {
+		lines[i] = terminalText(lines[i])
+	}
+	lines = append(lines, contentReviewLines(m.preview.Changes)...)
 	return lines
 }
 
