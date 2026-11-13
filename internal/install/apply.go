@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 )
 
 // Apply rechecks a sealed preview under an exclusive lock and commits provider
@@ -55,9 +52,7 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 	if current.Revision != p.Revision || current.seal != p.seal {
 		return Status{}, problem("stale_revision", "", "request a new preview before applying")
 	}
-	if err := s.validateSources(); err != nil {
-		return Status{}, err
-	}
+	p = current
 	tx, err := newTransaction(s.fail)
 	if err != nil {
 		return Status{}, err
@@ -82,10 +77,6 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 			return Status{}, err
 		}
 	}
-	c, err := s.Catalog()
-	if err != nil {
-		return Status{}, err
-	}
 	for _, provider := range []string{"codex", "claude"} {
 		for _, op := range p.Operations {
 			if err := ctx.Err(); err != nil {
@@ -94,7 +85,7 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 			if op.Provider != provider || op.Action == "keep" {
 				continue
 			}
-			if err := s.applyOperation(tx, c, p, op); err != nil {
+			if err := s.applyOperation(tx, p, op); err != nil {
 				return Status{}, err
 			}
 		}
@@ -125,7 +116,7 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 		}
 	} else {
 		settings := settingsBytes(p.Desired)
-		inv, err := inventoryBytes(settings, applied)
+		inv, err := inventoryBytes(settings, applied, p.Source)
 		if err != nil {
 			return Status{}, err
 		}
@@ -163,38 +154,15 @@ func (s *Service) checkFailure(point string) error {
 	return nil
 }
 
-func (s *Service) validateSources() error {
-	return filepath.WalkDir(filepath.Join(s.Root, ".agents"), func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			return problem("unsafe_source", path, "source resources must be regular files")
-		}
-		return nil
-	})
-}
-
-func (s *Service) applyOperation(tx *transaction, c *catalog.Catalog, p Preview, op Operation) error {
+func (s *Service) applyOperation(tx *transaction, p Preview, op Operation) error {
 	if err := tx.mkdir(filepath.Dir(op.Path)); err != nil {
 		return err
 	}
 	if strings.Contains(op.Action, "guidance") {
 		return s.applyGuidance(tx, p, op)
 	}
-	skill, err := c.Lookup(op.Name)
-	if err != nil {
-		return err
-	}
-	if exists(op.Path) && !s.safeSkill(skill, op.Provider, op.Path) {
-		return problem("ownership_conflict", op.Path, "ownership changed since preview")
+	if exists(op.Path) && !s.safeCopied(op.Path) {
+		return problem("ownership_conflict", op.Path, "copied ownership changed; linked installations require a separate migration")
 	}
 	if err := tx.backup(op.Path); err != nil {
 		return err
@@ -211,47 +179,18 @@ func (s *Service) applyOperation(tx *transaction, c *catalog.Catalog, p Preview,
 	if err := os.Mkdir(op.Path, 0755); err != nil {
 		return err
 	}
-	var selected []string
-	for _, item := range p.Selection {
-		selected = append(selected, item.Name)
+	files := p.payloads[op.Provider+"/"+op.Name]
+	if files == nil {
+		return problem("invalid_operation", op.Path, "missing reviewed payload")
 	}
-	manifest, err := expectedManifest(c, op.Name, op.Provider, filepath.Dir(op.Path), p.Desired, selected)
+	if err := writePayload(op.Path, files); err != nil {
+		return err
+	}
+	marker, err := ownershipBytes(files, p.Source)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(op.Path, "SKILL.md"), []byte(manifest), 0644); err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(op.Path, markerName), []byte(s.Root+"\nSKILL.md "+digest([]byte(manifest))+"\n"), 0644); err != nil {
-		return err
-	}
-	err = filepath.WalkDir(skill.Source, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() || path == filepath.Join(skill.Source, "SKILL.md") {
-			return nil
-		}
-		rel, err := filepath.Rel(skill.Source, path)
-		if err != nil {
-			return err
-		}
-		destination := filepath.Join(op.Path, rel)
-		if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
-			return err
-		}
-		return os.Symlink(path, destination)
-	})
-	if err != nil {
-		return err
-	}
-	if op.Provider == "codex" && skill.CodexAdapter != "" {
-		if err := os.MkdirAll(filepath.Join(op.Path, "agents"), 0755); err != nil {
-			return err
-		}
-		return os.Symlink(skill.CodexAdapter, filepath.Join(op.Path, "agents/openai.yaml"))
-	}
-	return nil
+	return atomicWrite(filepath.Join(op.Path, markerName), marker, 0644)
 }
 
 func (s *Service) applyGuidance(tx *transaction, p Preview, op Operation) error {
@@ -280,10 +219,7 @@ func (s *Service) applyGuidance(tx *transaction, p Preview, op Operation) error 
 	if op.Action != "write-guidance" {
 		return problem("invalid_operation", op.Path, op.Action)
 	}
-	block, err := guidanceBlock(s.Root, p.Desired)
-	if err != nil {
-		return err
-	}
+	block := p.guidance
 	if user != "" {
 		user += "\n"
 	}

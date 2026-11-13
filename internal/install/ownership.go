@@ -2,7 +2,6 @@ package install
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +25,8 @@ func realDirectoryPath(path, boundary string) bool {
 			return false
 		}
 	}
-	return true
+	info, err := os.Lstat(boundary)
+	return os.IsNotExist(err) || err == nil && info.IsDir() && info.Mode()&os.ModeSymlink == 0
 }
 
 func (s *Service) owned(path string) bool {
@@ -39,7 +39,14 @@ func (s *Service) owned(path string) bool {
 		return false
 	}
 	data, err := os.ReadFile(marker)
-	return err == nil && strings.HasPrefix(string(data), s.Root+"\n")
+	if err != nil {
+		return false
+	}
+	if strings.HasPrefix(string(data), s.Root+"\n") {
+		return true
+	}
+	_, ok := s.copiedRecord(path)
+	return ok
 }
 
 func sameLink(path, expected string) bool {
@@ -60,75 +67,7 @@ func sameLink(path, expected string) bool {
 }
 
 func (s *Service) safeSkill(skill catalog.Skill, provider, destination string) bool {
-	if !s.owned(destination) {
-		return false
-	}
-	manifest := filepath.Join(destination, "SKILL.md")
-	if err := regularOrAbsent(manifest); err != nil {
-		return false
-	}
-	data, err := os.ReadFile(manifest)
-	if err != nil {
-		return false
-	}
-	marker, err := os.ReadFile(filepath.Join(destination, markerName))
-	if err != nil || string(marker) != s.Root+"\nSKILL.md "+digest(data)+"\n" {
-		return false
-	}
-	err = filepath.WalkDir(destination, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(destination, path)
-		if err != nil {
-			return err
-		}
-		if rel == "." || rel == "SKILL.md" || rel == markerName {
-			return nil
-		}
-		expected := filepath.Join(skill.Source, rel)
-		if provider == "codex" && rel == "agents/openai.yaml" {
-			expected = skill.CodexAdapter
-		}
-		if entry.IsDir() {
-			info, err := os.Stat(expected)
-			if err == nil && info.IsDir() {
-				return nil
-			}
-			if rel == "agents" && provider == "codex" && skill.CodexAdapter != "" {
-				return nil
-			}
-			return fmt.Errorf("unexpected directory: %s", path)
-		}
-		if expected == "" || !sameLink(path, expected) {
-			return fmt.Errorf("unexpected resource: %s", path)
-		}
-		return nil
-	})
-	return err == nil
-}
-
-func resourcesComplete(skill catalog.Skill, provider, destination string) bool {
-	err := filepath.WalkDir(skill.Source, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() || path == filepath.Join(skill.Source, "SKILL.md") {
-			return nil
-		}
-		rel, err := filepath.Rel(skill.Source, path)
-		if err != nil {
-			return err
-		}
-		if !sameLink(filepath.Join(destination, rel), path) {
-			return fmt.Errorf("missing resource")
-		}
-		return nil
-	})
-	if err != nil {
-		return false
-	}
-	return provider != "codex" || skill.CodexAdapter == "" || sameLink(filepath.Join(destination, "agents/openai.yaml"), skill.CodexAdapter)
+	return s.safeCopied(destination)
 }
 
 func (s *Service) observed(provider string) ([]string, error) {

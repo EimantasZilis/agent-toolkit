@@ -12,11 +12,11 @@ import (
 	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 )
 
-// Mode distinguishes checkout links from portable package references.
+// Mode distinguishes local installations from portable package references.
 type Mode string
 
 const (
-	// Local renders manifests while supporting resources remain linked to source.
+	// Local renders every Markdown file for a self-contained local installation.
 	Local Mode = "local"
 	// Native renders every Markdown file for a self-contained package.
 	Native Mode = "native"
@@ -34,7 +34,6 @@ var scheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 var invocations = regexp.MustCompile(`\$[a-z0-9]+(-[a-z0-9]+)*`)
 
 // Markdown renders one source-relative Markdown file without writing files.
-// Local supporting Markdown is returned unchanged because it remains source-linked.
 func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (string, error) {
 	if opts.Mode != Local && opts.Mode != Native {
 		return "", fmt.Errorf("unknown rendering mode: %s", opts.Mode)
@@ -48,9 +47,6 @@ func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (st
 	}
 	if filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(filepath.Clean(relative), ".."+string(filepath.Separator)) {
 		return "", fmt.Errorf("invalid source-relative path: %s", relative)
-	}
-	if opts.Mode == Local && relative != "SKILL.md" {
-		return text, nil
 	}
 	selected := map[string]bool{}
 	for _, item := range opts.Selected {
@@ -67,29 +63,33 @@ func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (st
 		if scheme.MatchString(reference) || strings.HasPrefix(reference, "#") {
 			return link
 		}
-		if opts.Mode == Local && (!strings.HasPrefix(reference, "../") || !strings.HasSuffix(reference, "/SKILL.md")) {
-			return link
+		referencePath, fragment, hasFragment := strings.Cut(reference, "#")
+		suffix := ""
+		if hasFragment {
+			suffix = "#" + fragment
 		}
-		resolved := filepath.Clean(filepath.Join(filepath.Dir(source), strings.SplitN(reference, "#", 2)[0]))
+		resolved := filepath.Clean(filepath.Join(filepath.Dir(source), referencePath))
 		for _, target := range c.Skills {
-			if resolved != filepath.Join(target.Source, "SKILL.md") {
+			rel, err := filepath.Rel(target.Source, resolved)
+			if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 				continue
 			}
-			if opts.Mode == Native && !selected[target.Name] {
+			if !selected[target.Name] && target.Name != name {
 				return "`" + target.Name + "` (optional integration)"
 			}
-			path := filepath.Join(target.Source, "SKILL.md")
-			if selected[target.Name] {
-				path = filepath.Join(opts.SkillsRoot, target.Name, "SKILL.md")
-			}
+			destination := filepath.Join(opts.SkillsRoot, target.Name, rel)
 			if opts.Mode == Local {
-				return "[" + parts[1] + "](<" + path + ">)"
+				return "[" + parts[1] + "](<" + destination + suffix + ">)"
 			}
-			rel, relErr := filepath.Rel(filepath.Dir(output), path)
-			if relErr != nil {
+			local, err := filepath.Rel(filepath.Dir(output), destination)
+			if err != nil {
 				return link
 			}
-			return "[" + parts[1] + "](" + filepath.ToSlash(rel) + ")"
+			result := filepath.ToSlash(local) + suffix
+			if strings.Contains(result, " ") {
+				result = "<" + result + ">"
+			}
+			return "[" + parts[1] + "](" + result + ")"
 		}
 		return link
 	})
@@ -108,15 +108,19 @@ func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (st
 			return "`" + name + "`"
 		})
 	}
-	if opts.Mode == Native {
+	{
 		original := ".agents/skills/coding/python-standards/scripts/check_function_size.py"
 		if strings.Contains(text, original) {
 			checker, err := filepath.Rel(filepath.Dir(output), filepath.Join(opts.SkillsRoot, name, "scripts/check_function_size.py"))
 			if err != nil {
 				return "", err
 			}
-			text = strings.ReplaceAll(text, original, `"<loaded-reference-directory>/`+filepath.ToSlash(checker)+`"`)
-			text += "\nResolve `<loaded-reference-directory>` to the directory containing this loaded reference before running the bundled checker.\n"
+			if opts.Mode == Local {
+				text = strings.ReplaceAll(text, original, "`"+filepath.Join(opts.SkillsRoot, name, "scripts/check_function_size.py")+"`")
+			} else {
+				text = strings.ReplaceAll(text, original, `"<loaded-reference-directory>/`+filepath.ToSlash(checker)+`"`)
+				text += "\nResolve `<loaded-reference-directory>` to the directory containing this loaded reference before running the bundled checker.\n"
+			}
 		}
 	}
 	if relative != "SKILL.md" {

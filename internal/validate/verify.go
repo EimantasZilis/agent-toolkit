@@ -10,8 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"bytes"
 	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 	"github.com/EimantasZilis/agent-toolkit/internal/install"
+	"github.com/EimantasZilis/agent-toolkit/internal/render"
 )
 
 // Verify validates source and exercises selective/full installs, refresh and
@@ -159,13 +161,13 @@ func checkInstallation(c *catalog.Catalog, provider, skills string, names []stri
 			if err != nil {
 				return err
 			}
-			return checkLink(filepath.Join(path, rel), source)
+			return checkCopy(c, provider, skills, names, name, rel, filepath.Join(path, rel), source)
 		})
 		if err != nil {
 			return err
 		}
 		if provider == "codex" && skill.CodexAdapter != "" {
-			if err := checkLink(filepath.Join(path, "agents/openai.yaml"), skill.CodexAdapter); err != nil {
+			if err := checkCopy(c, provider, skills, names, name, "agents/openai.yaml", filepath.Join(path, "agents/openai.yaml"), skill.CodexAdapter); err != nil {
 				return err
 			}
 		}
@@ -173,24 +175,35 @@ func checkInstallation(c *catalog.Catalog, provider, skills string, names []stri
 	return nil
 }
 
-func checkLink(path, source string) error {
-	info, err := os.Lstat(path)
+func checkCopy(c *catalog.Catalog, provider, root string, selected []string, name, rel, destination, source string) error {
+	info, err := os.Lstat(destination)
 	if err != nil {
 		return err
 	}
-	if info.Mode()&os.ModeSymlink == 0 {
-		return fmt.Errorf("resource is not linked: %s", path)
-	}
-	target, err := filepath.EvalSymlinks(path)
+	sourceInfo, err := os.Lstat(source)
 	if err != nil {
 		return err
 	}
-	expected, err := filepath.EvalSymlinks(source)
+	if !info.Mode().IsRegular() || info.Mode().Perm() != sourceInfo.Mode().Perm() {
+		return fmt.Errorf("resource is not a regular copy with source modes: %s", destination)
+	}
+	expected, err := os.ReadFile(source)
 	if err != nil {
 		return err
 	}
-	if target != expected {
-		return fmt.Errorf("resource link mismatch: %s", path)
+	if strings.EqualFold(filepath.Ext(source), ".md") {
+		text, err := render.Markdown(c, name, rel, string(expected), render.Options{Mode: render.Local, Provider: provider, SkillsRoot: root, Selected: selected})
+		if err != nil {
+			return err
+		}
+		expected = []byte(text)
+	}
+	actual, err := os.ReadFile(destination)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(actual, expected) {
+		return fmt.Errorf("resource copy mismatch: %s", destination)
 	}
 	return nil
 }

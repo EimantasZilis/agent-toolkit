@@ -90,7 +90,10 @@ func TestStaleForgedAndUnconfirmedApply(t *testing.T) {
 				if err := os.Symlink("/missing", filepath.Join(s.Root, ".agents/unsafe")); err != nil {
 					t.Fatal(err)
 				}
-				p = previewFor(t, s, p.Request)
+				if _, err := s.Preview(context.Background(), p.Request); err == nil {
+					t.Fatal("accepted unsafe source preview")
+				}
+				return
 			}
 			if _, err := s.Apply(context.Background(), p, Confirmations{}); err == nil {
 				t.Fatal("accepted invalid apply")

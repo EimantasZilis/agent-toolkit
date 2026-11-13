@@ -66,6 +66,9 @@ type Preview struct {
 	Operations, Conflicts []Operation
 	Confirmation          bool
 	Native                NativeOverlap
+	Source                Provenance
+	payloads              map[string]payload
+	guidance              string
 	seal                  string
 }
 
@@ -115,7 +118,11 @@ func New(root string, homes Homes) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{Root: abs, Homes: homes}, nil
+	canonical, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return nil, err
+	}
+	return &Service{Root: canonical, Homes: homes}, nil
 }
 
 // Catalog reads the current validated catalog.

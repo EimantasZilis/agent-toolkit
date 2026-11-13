@@ -107,7 +107,19 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	if err != nil {
 		return Preview{}, err
 	}
-	c, err := s.Catalog()
+	inputs, source, err := s.captureSource()
+	if err != nil {
+		return Preview{}, err
+	}
+	snapshot, err := os.MkdirTemp("", "agent-toolkit-source-")
+	if err != nil {
+		return Preview{}, err
+	}
+	defer os.RemoveAll(snapshot)
+	if err := writePayload(filepath.Join(snapshot, ".agents"), inputs); err != nil {
+		return Preview{}, err
+	}
+	c, err := catalog.Load(snapshot)
 	if err != nil {
 		return Preview{}, err
 	}
@@ -186,7 +198,11 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 			return Preview{}, problem("required_helper", "", "remove parents requiring "+name+" first")
 		}
 	}
-	preview := Preview{Request: request, Desired: desired, Revision: status.Revision}
+	preview := Preview{Request: request, Desired: desired, Revision: status.Revision, Source: source, payloads: map[string]payload{}}
+	preview.guidance, err = guidanceBlock(snapshot, desired)
+	if err != nil {
+		return Preview{}, err
+	}
 	for _, name := range selected {
 		role := "required"
 		if contains(desired.Requested, name) {
@@ -226,25 +242,23 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		}
 		if contains(desired.Providers, provider) {
 			for _, name := range selected {
-				skill, err := c.Lookup(name)
+				expected, err := skillPayload(c, name, provider, root, desired, selected)
 				if err != nil {
 					return Preview{}, err
 				}
+				preview.payloads[provider+"/"+name] = expected
 				path := filepath.Join(root, name)
 				action := "install"
 				if exists(path) {
 					action = "conflict"
-					if s.safeSkill(skill, provider, path) {
+					if s.safeCopied(path) {
 						action = "update"
-						expected, err := expectedManifest(c, name, provider, root, desired, selected)
+						actual, err := readTree(path)
 						if err != nil {
 							return Preview{}, err
 						}
-						actual, err := os.ReadFile(filepath.Join(path, "SKILL.md"))
-						if err != nil {
-							return Preview{}, err
-						}
-						if expected == string(actual) && resourcesComplete(skill, provider, path) {
+						delete(actual, markerName)
+						if payloadDigest(expected) == payloadDigest(actual) {
 							action = "keep"
 						}
 					}
@@ -252,14 +266,13 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 				add(Operation{provider, action, name, path})
 			}
 		}
-		for _, name := range status.Observed[provider] {
+		for _, name := range unique(append(append([]string(nil), status.Observed[provider]...), status.Applied[provider]...)) {
 			if contains(desired.Providers, provider) && contains(selected, name) {
 				continue
 			}
 			path := filepath.Join(root, name)
 			action := "conflict"
-			skill, err := c.Lookup(name)
-			if err == nil && s.safeSkill(skill, provider, path) {
+			if s.safeCopied(path) {
 				action = "remove"
 			}
 			if request.Intent == Refresh {
@@ -267,7 +280,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 			}
 			add(Operation{provider, action, name, path})
 		}
-		op, err := s.planGuidance(provider, desired)
+		op, err := s.planGuidance(provider, desired, preview.guidance)
 		if err != nil {
 			return Preview{}, err
 		}
@@ -282,12 +295,29 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		return Preview{}, problem("setup_required", "", "refresh would remove managed content; review setup")
 	}
 	preview.Native, err = s.nativeNotice(c, selected)
+	if err != nil {
+		return Preview{}, err
+	}
+	if err := s.checkFailure("after-payload"); err != nil {
+		return Preview{}, err
+	}
+	revision, err := s.revision()
+	if err != nil {
+		return Preview{}, err
+	}
+	if revision != status.Revision {
+		return Preview{}, problem("stale_revision", "", "source or destination changed during payload preparation")
+	}
 	preview.seal = previewSignature(preview)
-	return preview, err
+	return preview, nil
 }
 
 func previewSignature(p Preview) string {
-	data, err := json.Marshal(p)
+	data, err := json.Marshal(struct {
+		Preview  Preview
+		Payloads map[string]payload
+		Guidance string
+	}{p, p.payloads, p.guidance})
 	if err != nil {
 		return ""
 	}

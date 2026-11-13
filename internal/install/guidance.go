@@ -118,15 +118,11 @@ func (s *Service) guidanceParts(path string) (user, block string, count int, err
 	return outside.String(), block, count, nil
 }
 
-func (s *Service) planGuidance(provider string, desired Settings) (*Operation, error) {
+func (s *Service) planGuidance(provider string, desired Settings, expected string) (*Operation, error) {
 	_, path := s.destinations(provider)
 	block := ""
-	var err error
 	if contains(desired.Providers, provider) {
-		block, err = guidanceBlock(s.Root, desired)
-		if err != nil {
-			return nil, err
-		}
+		block = expected
 	}
 	user, current, count, err := s.guidanceParts(path)
 	if err != nil {

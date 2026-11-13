@@ -150,7 +150,9 @@ func TestManifestOwnershipAndResources(t *testing.T) {
 		t.Run(change, func(t *testing.T) {
 			s := testService(t)
 			settings := Settings{Providers: []string{"codex"}, Requested: []string{"python-standards"}}
-			path := installedFixture(t, s, "codex", "python-standards", settings, settings.Requested)
+			applyFor(t, s, previewFor(t, s, Request{Intent: Configure, Desired: settings}))
+			root, _ := s.destinations("codex")
+			path := filepath.Join(root, "python-standards")
 			resource := filepath.Join(path, "scripts/check_function_size.py")
 			switch change {
 			case "modified":
@@ -183,9 +185,6 @@ func TestManifestOwnershipAndResources(t *testing.T) {
 			want := "conflict"
 			if change == "keep" {
 				want = "keep"
-			}
-			if change == "missing" {
-				want = "update"
 			}
 			if p.Operations[0].Action != want {
 				t.Fatalf("got %s want %s", p.Operations[0].Action, want)

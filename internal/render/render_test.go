@@ -81,8 +81,8 @@ func TestSupportingMarkdownAndOutputPolicy(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if mode == Local && got != text {
-			t.Fatal("changed linked supporting Markdown")
+		if mode == Local && !strings.Contains(got, "`/package/skills/python-standards/scripts/check_function_size.py`") {
+			t.Fatal(got)
 		}
 		if mode == Native && !strings.Contains(got, `"<loaded-reference-directory>/../scripts/check_function_size.py"`) {
 			t.Fatal(got)

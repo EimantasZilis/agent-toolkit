@@ -16,6 +16,7 @@ import (
 var validName = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 type inventory struct {
+	Source    *Provenance         `json:"source,omitempty"`
 	Version   int                 `json:"schema_version"`
 	Revision  string              `json:"revision"`
 	Providers map[string][]string `json:"providers"`
@@ -141,7 +142,7 @@ func (s *Service) state() (Settings, map[string][]string, bool, error) {
 	if err := decoder.Decode(&inv); err != nil {
 		return settings, nil, true, fmt.Errorf("decode inventory: %w", err)
 	}
-	if inv.Version != 1 || len(inv.Providers) != 2 {
+	if (inv.Version != 1 && inv.Version != 2) || (inv.Version == 1 && inv.Source != nil) || (inv.Version == 2 && (inv.Source == nil || !validProvenance(*inv.Source))) || len(inv.Providers) != 2 {
 		return settings, nil, true, problem("invalid_state", inventoryPath, "invalid inventory schema")
 	}
 	for _, provider := range []string{"codex", "claude"} {
@@ -173,14 +174,19 @@ func settingsBytes(settings Settings) []byte {
 	return []byte(fmt.Sprintf("STATE_VERSION=1\nPROVIDERS=%s\nREQUESTED_SKILLS=%s\nRETAINED_HELPERS=%s\nMARKDOWN_OUTPUT_PATH=%s\nCONCISE_OUTPUT=%t\nGLOBAL_GUIDANCE=%t\n", strings.Join(unique(settings.Providers), " "), strings.Join(unique(settings.Requested), " "), strings.Join(unique(settings.Retained), " "), settings.Output, settings.Concise, settings.FullTemplate))
 }
 
-func inventoryBytes(settings []byte, applied map[string][]string) ([]byte, error) {
+func inventoryBytes(settings []byte, applied map[string][]string, source ...Provenance) ([]byte, error) {
 	// Preserve the version 1 state format, including empty provider rows.
 	for _, provider := range []string{"codex", "claude"} {
 		if applied[provider] == nil {
 			applied[provider] = []string{}
 		}
 	}
-	data, err := json.MarshalIndent(inventory{1, digest(settings), applied}, "", "  ")
+	inv := inventory{Version: 1, Revision: digest(settings), Providers: applied}
+	if len(source) > 0 {
+		inv.Version = 2
+		inv.Source = &source[0]
+	}
+	data, err := json.MarshalIndent(inv, "", "  ")
 	if err != nil {
 		return nil, err
 	}
