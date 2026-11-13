@@ -161,7 +161,18 @@ func (s *Service) applyOperation(tx *transaction, p Preview, op Operation) error
 	if strings.Contains(op.Action, "guidance") {
 		return s.applyGuidance(tx, p, op)
 	}
-	if exists(op.Path) && !s.safeCopied(op.Path) {
+	if op.Action == "convert" {
+		if p.Request.Intent != Migrate {
+			return problem("invalid_operation", op.Path, "conversion requires explicit migration")
+		}
+		c, err := s.Catalog()
+		if err != nil {
+			return err
+		}
+		if err := s.validateLegacy(c, op.Provider, op.Name); err != nil {
+			return err
+		}
+	} else if exists(op.Path) && !s.safeCopied(op.Path) {
 		return problem("ownership_conflict", op.Path, "copied ownership changed; linked installations require a separate migration")
 	}
 	if err := tx.backup(op.Path); err != nil {
@@ -173,7 +184,7 @@ func (s *Service) applyOperation(tx *transaction, p Preview, op Operation) error
 	if op.Action == "remove" {
 		return nil
 	}
-	if op.Action != "install" && op.Action != "update" {
+	if op.Action != "install" && op.Action != "update" && op.Action != "convert" {
 		return problem("invalid_operation", op.Path, op.Action)
 	}
 	if err := os.Mkdir(op.Path, 0755); err != nil {

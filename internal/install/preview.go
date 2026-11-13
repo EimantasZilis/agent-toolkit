@@ -101,7 +101,7 @@ func (s *Service) nativeNotice(c *catalog.Catalog, selected []string) (NativeOve
 	return notice, nil
 }
 
-// Preview resolves configure, refresh or uninstall without filesystem mutations.
+// Preview resolves configure, refresh, migration or uninstall without mutations.
 func (s *Service) Preview(ctx context.Context, request Request) (Preview, error) {
 	status, err := s.Status(ctx)
 	if err != nil {
@@ -129,7 +129,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	desired := request.Desired
 	switch request.Intent {
 	case Configure:
-	case Refresh:
+	case Refresh, Migrate:
 		if !status.Installed {
 			return Preview{}, problem("setup_required", "", "no saved installation")
 		}
@@ -153,6 +153,8 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 				return Preview{}, problem("setup_required", "", err.Error())
 			}
 		}
+	}
+	if request.Intent != Uninstall && request.Intent != Migrate {
 		var required []string
 		if len(desired.Requested) > 0 {
 			required, err = c.Select(strings.Join(desired.Requested, " "), desired.Concise)
@@ -196,6 +198,16 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	for _, name := range request.Removed {
 		if contains(selected, name) {
 			return Preview{}, problem("required_helper", "", "remove parents requiring "+name+" first")
+		}
+	}
+	var legacyCatalog *catalog.Catalog
+	if request.Intent == Migrate {
+		if err := s.migrationSelection(status, selected); err != nil {
+			return Preview{}, err
+		}
+		legacyCatalog, err = s.Catalog()
+		if err != nil {
+			return Preview{}, err
 		}
 	}
 	preview := Preview{Request: request, Desired: desired, Revision: status.Revision, Source: source, payloads: map[string]payload{}}
@@ -258,9 +270,14 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 							return Preview{}, err
 						}
 						delete(actual, markerName)
-						if payloadDigest(expected) == payloadDigest(actual) {
+						if request.Intent == Migrate || payloadDigest(expected) == payloadDigest(actual) {
 							action = "keep"
 						}
+					} else if request.Intent == Migrate {
+						if err := s.validateLegacy(legacyCatalog, provider, name); err != nil {
+							return Preview{}, err
+						}
+						action = "convert"
 					}
 				}
 				add(Operation{provider, action, name, path})

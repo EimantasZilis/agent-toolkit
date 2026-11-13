@@ -25,6 +25,8 @@ const (
 	Configure Intent = "configure"
 	// Refresh reapplies saved preferences without removing installed skills.
 	Refresh Intent = "refresh"
+	// Migrate converts verified linked skills using unchanged saved preferences.
+	Migrate Intent = "migrate"
 	// Uninstall removes verified managed content and forgets saved state.
 	Uninstall Intent = "uninstall"
 )

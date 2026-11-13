@@ -13,7 +13,7 @@ import (
 func legacyFixture(t *testing.T) (*Service, Settings, map[string][]string) {
 	t.Helper()
 	s := copiedService(t)
-	settings := Settings{Providers: []string{"codex", "claude"}, Requested: []string{"commit-message", "python-standards"}, Output: filepath.Join(s.Root, "custom output"), Concise: true, FullTemplate: true}
+	settings := Settings{Providers: []string{"codex", "claude"}, Requested: []string{"commit-message", "python-standards", "ticket-to-plan"}, Retained: []string{"plan-writing-conventions"}, Output: filepath.Join(s.Root, "custom output"), Concise: true, FullTemplate: true}
 	// Include a nested executable resource and a directory that the historical
 	// installer never materialized because it contained no files.
 	c, err := s.Catalog()
@@ -31,7 +31,7 @@ func legacyFixture(t *testing.T) (*Service, Settings, map[string][]string) {
 	if err := os.Mkdir(filepath.Join(skill.Source, "empty"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	selected, err := c.Select(strings.Join(settings.Requested, " "), settings.Concise)
+	selected, err := c.Select(strings.Join(append(append([]string(nil), settings.Requested...), settings.Retained...), " "), settings.Concise)
 	if err != nil {
 		t.Fatal(err)
 	}
