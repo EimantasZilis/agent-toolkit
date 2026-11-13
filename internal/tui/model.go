@@ -58,6 +58,7 @@ type model struct {
 	createOutput                bool
 	scroll                      int
 	manualScroll                bool
+	conflictReview              bool
 	themeIndex                  int
 }
 
@@ -225,6 +226,30 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	}
 	if m.editingPath {
 		return m.editPath(key)
+	}
+	if m.conflictReview {
+		switch key {
+		case "up", "k", "down", "j":
+			step := 1
+			if key == "up" || key == "k" {
+				step = -1
+			}
+			m.scroll = max(0, m.viewOffset()+step)
+			m.manualScroll = true
+			return m, nil
+		case "esc", "enter", "q", "ctrl+c":
+			m.conflictReview = false
+			m.err, m.notice = "", "Nothing applied; draft preserved."
+			m.scroll, m.manualScroll = 0, false
+			if key == "q" || key == "ctrl+c" {
+				return m.navigate(-2)
+			}
+			return m, nil
+		default:
+			if key != "pgup" && key != "pgdown" {
+				return m, nil
+			}
+		}
 	}
 	if key == "pgdown" || key == "pgup" {
 		m.scroll = m.viewOffset()
@@ -440,6 +465,9 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		m.notice = "Review the proposed changes before accepting."
 		if len(m.preview.Conflicts) > 0 {
 			m.err = "Resolve ownership conflicts before applying:"
+			m.dialogs = nil
+			m.conflictReview = true
+			m.scroll, m.manualScroll = 0, true
 			for _, conflict := range m.preview.Conflicts {
 				m.err += "\n" + terminalText(conflict.Path)
 			}
@@ -533,6 +561,13 @@ func (m model) edit(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) viewLines() []string {
+	if m.conflictReview {
+		lines := []string{"Installation blocked. Nothing applied.", "Esc or Enter returns; Up/Down or Page Up/Page Down scroll.", ""}
+		if m.status.Linked && m.applyRequest.Intent != install.Migrate {
+			lines = append(lines, "Legacy linked skills require migration before configure, refresh, or uninstall.", "Return to the management menu and choose Migrate linked installation.", "")
+		}
+		return append(lines, m.err)
+	}
 	lines := []string{}
 	if !m.loaded {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")

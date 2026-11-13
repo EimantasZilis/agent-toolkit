@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,6 +11,53 @@ import (
 
 	"github.com/EimantasZilis/agent-toolkit/internal/install"
 )
+
+func TestLongConflictReviewCanScrollAndReturn(t *testing.T) {
+	for _, intent := range []install.Intent{install.Configure, install.Uninstall} {
+		t.Run(string(intent), func(t *testing.T) {
+			m, b := readyModel(t, false)
+			m.page, m.cursor = managementPage, 2
+			m.width, m.height = 100, 18
+			m.status.Installed, m.status.Linked = true, true
+			m.applyRequest.Intent = intent
+			m.draft.Concise = true
+			before := clone(m.draft)
+			preview := response{}
+			for i := 0; i < 40; i++ {
+				preview.Conflicts = append(preview.Conflicts, operation{Path: fmt.Sprintf("/home/user/.claude/skills/skill-%02d", i)})
+			}
+			next, cmd := m.result(resultMsg{action: "preview", response: preview})
+			m = next.(model)
+			if cmd != nil || !strings.Contains(m.View().Content, "Installation blocked") || !strings.Contains(m.View().Content, "Migrate linked installation") {
+				t.Fatal("conflict explanation or recovery hidden on entry")
+			}
+			for _, key := range []string{"s", "y", "space"} {
+				m, cmd = press(m, key)
+				if cmd != nil || !m.conflictReview || !reflect.DeepEqual(m.draft, before) {
+					t.Fatal("conflict review changed settings or started an operation")
+				}
+			}
+			m, _ = press(m, "down")
+			if m.viewOffset() != 1 || m.cursor != 2 {
+				t.Fatal("down moved the underlying menu instead of scrolling")
+			}
+			m, _ = press(m, "up")
+			if m.viewOffset() != 0 {
+				t.Fatal("up did not scroll back")
+			}
+			for i := 0; i < 50; i++ {
+				m, _ = press(m, "pgdown")
+			}
+			if !strings.Contains(m.View().Content, "skill-39") {
+				t.Fatal("last conflicting path is unreachable")
+			}
+			m, cmd = press(m, "esc")
+			if cmd != nil || m.conflictReview || m.err != "" || m.page != managementPage || !reflect.DeepEqual(m.draft, before) || len(b.calls) != 0 {
+				t.Fatal("back did not restore menu and preserve draft without I/O")
+			}
+		})
+	}
+}
 
 func finishDialogs(t *testing.T, m model) model {
 	t.Helper()

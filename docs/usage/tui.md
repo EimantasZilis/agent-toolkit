@@ -28,6 +28,9 @@ Saved installations open a management menu; choose **Configure** to edit setting
 | `q` | Quit; changed drafts offer Save or Discard |
 
 Errors preserve your draft. Conflicts show the affected paths and stop apply.
+The conflict screen starts with the reason and any migration guidance. Use
+Up/Down or Page Up/Page Down to scroll paths, then Enter or Escape to return
+without applying changes.
 Wait for installation or rollback to finish before quitting. Handled signals
 also let an active transaction finish or roll back. Failed recovery reports the
 location of retained backups.

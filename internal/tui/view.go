@@ -67,6 +67,9 @@ func (m model) View() tea.View {
 	}
 
 	footer := "↑/↓ move · space toggle · tab next · s save · esc back · q quit"
+	if m.conflictReview {
+		footer = "↑/↓ scroll · Enter/Esc back · q quit"
+	}
 	if m.editingPath {
 		footer = "Enter accepts path · Esc restores · Ctrl+u clears"
 	}
