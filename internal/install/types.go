@@ -51,8 +51,9 @@ type NativeOverlap struct {
 }
 
 // Status contains saved settings and independently observed installations.
+// Linked reports marker candidates; migration still verifies their full trees.
 type Status struct {
-	Installed         bool
+	Installed, Linked bool
 	Desired           Settings
 	Applied, Observed map[string][]string
 	Revision          string

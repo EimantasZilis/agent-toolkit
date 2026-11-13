@@ -26,7 +26,8 @@ Redirected startup fails clearly before changing installations.
 Fresh setup starts with no provider selected and the starter skills preselected.
 Work through the settings pages and review the proposed paths before applying.
 Later launches open a management
-menu with Configure, Refresh installation, and Uninstall. See the
+menu with Configure, Refresh installation, and Uninstall. Linked installations
+also offer Migrate linked installation. See the
 [TUI controls](docs/usage/tui.md).
 
 Local management is interactive. The former Bash scripts and the `install`,
@@ -69,9 +70,9 @@ provider adapters. They remain usable without the checkout. Source edits take
 effect through a reviewed refresh. Keep the checkout and its saved `config/`
 state to run the manager. Provider-home overrides still select destinations.
 
-Legacy linked installations require their original checkout and matching
-manager. This version recognizes them but refuses conversion or removal;
-migration is deferred.
+Legacy linked installations require their original checkout until you review
+and apply migration to owned copies. Configure, Refresh installation, and
+Uninstall refuse linked skills; use the separate migration action first.
 
 The TUI preserves:
 
@@ -83,6 +84,43 @@ Settings are read as data
 without shell evaluation. Change preferences through Configure; avoid editing
 state files directly. Inventory records observations and cannot grant ownership
 of user files.
+
+## Migrate linked installations
+
+Migration converts the linked layout created by the previous Go installer into
+owned Development copies. It preserves saved provider choices, requested skills,
+retained and required helpers, guidance settings, and Markdown output preferences.
+It uses the current checkout and can update rendered instructions during conversion.
+Source switching is outside migration.
+
+1. Back up the managed skill directories, provider guidance files and their
+   ownership markers, and both files under `config/` together.
+2. Keep the original checkout available and start the current TUI from it.
+3. Choose **Migrate linked installation**. Review every conversion path and the
+   saved preferences. Page Up and Page Down scroll long previews.
+4. Press `y` to apply. Enter, No, and Escape cancel without writes.
+5. Start a new agent session. Future source edits require a reviewed refresh.
+
+Supported linked skills have real directories, a regular rendered `SKILL.md`,
+an exact checkout marker with its manifest checksum, and individual resource
+links to canonical paths in this checkout. Nested resources and Codex adapter
+links are supported. Saved settings and inventory must match the installed
+selection and current dependency closure. Mixed copied and linked installations
+are supported; migration keeps verified copied skills unchanged.
+
+Missing state, unavailable selections, altered manifests, missing or unexpected
+resources, foreign targets, and symlinked destination parents block conversion.
+The diagnostic identifies the affected path. Refusal preserves both providers
+and their state. Keep the checkout available while resolving the diagnostic;
+inventory alone cannot authorize adopting user content.
+
+Apply rechecks the review under the installation lock. Changes to source,
+installed links, guidance, or saved state require a new preview. Failed or
+cancelled apply restores the old links, guidance, modes, and both state files.
+If rollback fails, retain the reported recovery directory and restore the
+complete pre-migration provider and state backup before retrying. Reverting the
+manager does not reverse migration; use the matching copied-format manager or
+restore the complete backup. Do not downgrade ownership records in place.
 
 ## Markdown output
 

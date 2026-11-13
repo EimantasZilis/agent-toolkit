@@ -28,6 +28,16 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 			return Status{}, err
 		}
 		status.Observed[provider] = names
+		root, _ := s.destinations(provider)
+		for _, name := range names {
+			data, err := os.ReadFile(filepath.Join(root, name, markerName))
+			if err != nil {
+				return Status{}, err
+			}
+			if installed && strings.HasPrefix(string(data), s.Root+"\n") {
+				status.Linked = true
+			}
+		}
 	}
 	status.Revision, err = s.revision()
 	if err != nil {
@@ -310,6 +320,15 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 	}
 	if request.Intent == Refresh && preview.Confirmation {
 		return Preview{}, problem("setup_required", "", "refresh would remove managed content; review setup")
+	}
+	if request.Intent == Migrate && len(preview.Conflicts) == 0 {
+		converts := false
+		for _, op := range preview.Operations {
+			converts = converts || op.Action == "convert"
+		}
+		if !converts {
+			return Preview{}, problem("already_copied", "", "no linked skills remain; use reviewed refresh for source changes")
+		}
 	}
 	preview.Native, err = s.nativeNotice(c, selected)
 	if err != nil {

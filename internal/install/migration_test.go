@@ -88,13 +88,21 @@ func TestMigrationPreservesPreferencesAndCopies(t *testing.T) {
 	if treeDigest(t, root) != installed {
 		t.Fatal("source edit changed installed copy")
 	}
-	again := previewFor(t, s, Request{Intent: Migrate})
-	for _, op := range again.Operations {
-		if op.Action != "keep" {
-			t.Fatalf("repeat migration changed copies: %+v", op)
-		}
+	guidanceSource := filepath.Join(s.Root, ".agents/global/instructions.md")
+	data, err := os.ReadFile(guidanceSource)
+	if err != nil {
+		t.Fatal(err)
 	}
-	applyFor(t, s, again)
+	write(t, guidanceSource, string(data)+"\nNew checkout guidance\n")
+	beforeRepeat := installationSnapshot(t, s)
+	_, err = s.Preview(context.Background(), Request{Intent: Migrate})
+	var diagnostic *Error
+	if !errors.As(err, &diagnostic) || diagnostic.Code != "already_copied" {
+		t.Fatalf("repeat migration = %v", err)
+	}
+	if installationSnapshot(t, s) != beforeRepeat {
+		t.Fatal("repeat migration changed copies, guidance or state")
+	}
 	applyFor(t, s, previewFor(t, s, Request{Intent: Refresh}))
 	applyFor(t, s, previewFor(t, s, Request{Intent: Uninstall}))
 	if _, err := os.Stat(filepath.Join(root, "python-standards")); !os.IsNotExist(err) {

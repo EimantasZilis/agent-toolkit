@@ -86,7 +86,7 @@ func TestLegacyRecognitionIsReadOnly(t *testing.T) {
 }
 
 func TestLegacyRejectsUnverifiedTrees(t *testing.T) {
-	for _, change := range []string{"marker", "manifest", "missing", "extra-file", "extra-directory", "foreign", "dangling", "resource-file", "directory-link", "parent-link", "manifest-link", "missing-state", "forged-inventory", "foreign-marker", "adapter", "special"} {
+	for _, change := range []string{"marker", "manifest", "missing", "extra-file", "extra-directory", "foreign", "dangling", "resource-file", "directory-link", "parent-link", "manifest-link", "missing-state", "forged-inventory", "foreign-marker", "adapter", "special", "privileged-mode"} {
 		t.Run(change, func(t *testing.T) {
 			s, _, _ := legacyFixture(t)
 			root, _ := s.destinations("codex")
@@ -106,6 +106,8 @@ func TestLegacyRejectsUnverifiedTrees(t *testing.T) {
 				write(t, filepath.Join(path, markerName), "/foreign\nSKILL.md bad\n")
 			case "adapter":
 				replaceLink(filepath.Join(path, "agents/openai.yaml"), filepath.Join(s.Root, "missing-adapter"))
+			case "privileged-mode":
+				chmod(t, filepath.Join(path, "SKILL.md"), os.ModeSetuid|0644)
 			case "special":
 				if err := unix.Mkfifo(filepath.Join(path, "pipe"), 0600); err != nil {
 					t.Fatal(err)
@@ -166,9 +168,33 @@ func TestLegacyRejectsUnverifiedTrees(t *testing.T) {
 			} else if !strings.Contains(err.Error(), path) && change != "missing-state" {
 				t.Fatalf("missing affected path: %v", err)
 			}
+			p, err := s.Preview(context.Background(), Request{Intent: Migrate})
+			if err == nil && len(p.Conflicts) == 0 {
+				t.Fatal("migration preview accepted invalid legacy installation")
+			}
 			if installationSnapshot(t, s) != before {
 				t.Fatal("validation mutated files")
 			}
 		})
+	}
+}
+
+func TestLegacyRejectsHomeAncestorLink(t *testing.T) {
+	s, _, _ := legacyFixture(t)
+	alias := filepath.Join(t.TempDir(), "home-parent")
+	if err := os.Symlink(filepath.Dir(s.Homes.Agents), alias); err != nil {
+		t.Fatal(err)
+	}
+	s.Homes.Agents = filepath.Join(alias, filepath.Base(s.Homes.Agents))
+	before := installationSnapshot(t, s)
+	c, err := s.Catalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.validateLegacy(c, "codex", "python-standards"); err == nil {
+		t.Fatal("accepted symlink above configured home")
+	}
+	if installationSnapshot(t, s) != before {
+		t.Fatal("ancestor refusal changed tree")
 	}
 }

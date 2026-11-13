@@ -27,7 +27,7 @@ func (s *Service) validateLegacy(c *catalog.Catalog, provider, name string) erro
 	if provider == "claude" {
 		base = s.Homes.Claude
 	}
-	if !realDirectoryPath(destination, base) {
+	if !realDirectoryPath(destination, base) || !realDirectoryPath(destination, filepath.VolumeName(destination)+string(filepath.Separator)) {
 		return reject(destination)
 	}
 	skill, err := c.Lookup(name)
@@ -76,6 +76,10 @@ func (s *Service) validateLegacy(c *catalog.Catalog, provider, name string) erro
 		if walkErr != nil {
 			return reject(path)
 		}
+		info, err := entry.Info()
+		if err != nil || info.Mode()&(fs.ModeSetuid|fs.ModeSetgid|fs.ModeSticky) != 0 {
+			return reject(path)
+		}
 		if path == destination {
 			return nil
 		}
@@ -107,7 +111,7 @@ func (s *Service) validateLegacy(c *catalog.Catalog, provider, name string) erro
 		if err != nil || canonical != target {
 			return reject(path)
 		}
-		info, err := os.Lstat(target)
+		info, err = os.Lstat(target)
 		if err != nil || !info.Mode().IsRegular() {
 			return reject(path)
 		}

@@ -1,6 +1,6 @@
 # Local management TUI
 
-Run `make run` to configure, refresh, or uninstall local skills for Codex and
+Run `make run` to configure, refresh, migrate, or uninstall local skills for Codex and
 Claude Code. The TUI previews paths and changes before applying them. Native
 plugins remain managed separately by each provider.
 
@@ -65,9 +65,40 @@ would remove managed content, use Configure to review the selection. Edited
 installed files, changed modes, missing files, and unexpected content cause
 ownership conflicts. Installation rollback cannot undo checkout changes.
 
-Older linked installations remain recognizable, but this version refuses to
-convert, refresh, or remove them. Migration is deferred; keep their source
-checkout available and use their matching manager until migration is supported.
+## Migrate a linked installation
+
+Saved linked installations offer **Migrate linked installation** in the
+management menu. Migration is a separate review; Configure, Refresh installation,
+and Uninstall never convert links automatically.
+
+1. Back up managed provider directories, guidance and its markers, and both
+   saved state files together. Keep the original checkout available.
+2. Choose **Migrate linked installation**. Review conversion paths, saved
+   providers, requested skills, retained and required helpers, output preferences,
+   and guidance settings. Use Page Up and Page Down to inspect long previews.
+3. Press `y` to convert. Enter, No, and Escape cancel without writes.
+4. Start a new agent session after successful conversion.
+
+The supported layout is the previous Go installer's real skill directories,
+checksummed rendered manifests, and individual resource and Codex adapter links
+into this checkout. Migration requires intact saved settings and inventory.
+It preserves preferences and the dependency closure. It uses the current
+Development checkout; source switching is outside this action. Missing output
+directories are left alone. In mixed installations, verified copied skills stay
+unchanged while linked skills become complete copies.
+
+Altered manifests, missing or extra resources, foreign links, symlinked parents,
+unavailable skills, and changed dependency selections block migration. Diagnostics
+identify the affected path and preserve the linked installation. Restore matching
+source/state or resolve the affected path, then choose migration again. A stale
+preview also requires another review.
+
+Failure or cancellation during apply restores old links, modes, guidance, and
+both state files. If rollback fails, keep the reported recovery backups and
+restore the complete pre-migration provider/state backup. Reverting manager code
+does not undo conversion. Use the copied-format manager or restore the full
+backup; do not downgrade ownership records in place. After conversion, checkout
+resource edits take effect only through normal reviewed refresh.
 
 ## Uninstall
 
@@ -84,7 +115,8 @@ Keep the checkout and saved state to manage copied installations.
 Settings and provider-home overrides retain their existing formats. Copied
 installations use version 2 ownership and inventory records, including the
 canonical Development checkout and a digest of current `.agents/` inputs.
-Legacy records remain readable without granting permission to convert them.
+Legacy records remain readable. Conversion requires a separate migration review
+and independent verification of every linked skill.
 The TUI reads saved values as data without shell evaluation. Configure changes
 preferences; refresh reapplies them.
 

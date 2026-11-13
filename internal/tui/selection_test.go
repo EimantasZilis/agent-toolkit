@@ -148,7 +148,10 @@ func TestExactRemovalConfirmations(t *testing.T) {
 
 func backendFixture(t *testing.T) (model, string) {
 	t.Helper()
-	root := t.TempDir()
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	source, err := filepath.Abs(filepath.Join("..", ".."))
 	if err != nil {
 		t.Fatal(err)

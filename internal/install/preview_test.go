@@ -10,7 +10,10 @@ import (
 
 func testService(t *testing.T) *Service {
 	t.Helper()
-	base := t.TempDir()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	root := filepath.Join(base, "toolkit")
 	if err := os.MkdirAll(root, 0755); err != nil {
 		t.Fatal(err)

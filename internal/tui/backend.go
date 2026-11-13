@@ -35,6 +35,7 @@ type response struct {
 	Native                install.NativeOverlap
 	Plan                  install.Preview
 	Installed             bool
+	Linked                bool
 	Revision              string
 }
 
@@ -57,7 +58,7 @@ func catalogResponse(c *catalog.Catalog) response {
 }
 
 func statusResponse(s install.Status) response {
-	return response{Desired: s.Desired, Observed: s.Observed, Applied: s.Applied, Native: s.Native, Installed: s.Installed, Revision: s.Revision}
+	return response{Desired: s.Desired, Observed: s.Observed, Applied: s.Applied, Native: s.Native, Installed: s.Installed, Linked: s.Linked, Revision: s.Revision}
 }
 
 func previewResponse(p install.Preview) response {

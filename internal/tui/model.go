@@ -279,6 +279,9 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			m.dialogs = nil
 			m.depart = false
 			m.notice = "Save canceled; draft preserved."
+			if m.applyRequest.Intent == install.Migrate {
+				m.notice = "Migration canceled; linked installations unchanged."
+			}
 		}
 		return m, nil
 	}
@@ -308,7 +311,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			m.cursor = max(0, m.cursor-1)
 		case "down", "j":
-			m.cursor = min(2, m.cursor+1)
+			m.cursor = min(len(m.managementActions())-1, m.cursor+1)
 		case "enter":
 			switch m.cursor {
 			case 0:
@@ -317,6 +320,8 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 				return m.startAction(install.Refresh)
 			case 2:
 				return m.startAction(install.Uninstall)
+			case 3:
+				return m.startAction(install.Migrate)
 			}
 		}
 		return m, nil
@@ -387,7 +392,7 @@ func (m model) startSave() (tea.Model, tea.Cmd) { return m.startAction(install.C
 func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
 	missing := false
 	var err error
-	if intent != install.Uninstall {
+	if intent != install.Uninstall && intent != install.Migrate {
 		missing, err = m.validate()
 	}
 	if err != nil {
@@ -399,6 +404,9 @@ func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
 	m.preview = response{}
 	m.createOutput = missing
 	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
+	if intent == install.Migrate {
+		m.applyRequest = install.Request{Intent: intent}
+	}
 	request := m.applyRequest
 	return m, func() tea.Msg {
 		p, err := m.backend.Preview(context.Background(), request)
@@ -418,10 +426,14 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		m.err = msg.err.Error()
 		m.depart = false
 		m.notice = "Draft preserved. Press s to preview again and retry."
+		if m.applyRequest.Intent == install.Migrate {
+			m.notice = "Migration did not complete. Select Migrate linked installation to preview again."
+		}
 		return m, nil
 	}
 	if msg.action == "preview" {
 		m.preview = msg.response
+		m.notice = "Review the proposed changes before accepting."
 		if len(m.preview.Conflicts) > 0 {
 			m.err = "Resolve ownership conflicts before applying:"
 			for _, conflict := range m.preview.Conflicts {
@@ -441,6 +453,10 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	m.notice = "Settings saved. Start a new agent session to load the changes."
 	if intent == install.Refresh {
 		m.notice = "Installation refreshed. Start a new agent session to load the changes."
+	}
+	if intent == install.Migrate {
+		m.page, m.cursor = managementPage, 0
+		m.notice = "Linked installation migrated to owned copies. Start a new agent session to load the changes."
 	}
 	if intent == install.Uninstall {
 		m.wizard, m.page, m.cursor = true, 0, 0
@@ -471,7 +487,7 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 	return m, func() tea.Msg {
 		missing := false
 		var err error
-		if plan.Request.Intent != install.Uninstall {
+		if plan.Request.Intent != install.Uninstall && plan.Request.Intent != install.Migrate {
 			missing, err = m.validateOutput()
 		}
 		if err != nil {
@@ -486,6 +502,9 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 }
 
 func (m model) confirmations() []dialog {
+	if m.applyRequest.Intent == install.Migrate {
+		return []dialog{{"Convert the reviewed links to owned copies with these saved preferences? [y/N]"}}
+	}
 	if m.applyRequest.Intent == install.Uninstall {
 		return []dialog{{"Uninstall all verified managed skills and guidance, and forget saved settings? [y/N]"}}
 	}
@@ -515,7 +534,7 @@ func (m model) viewLines() []string {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
 		if m.page == managementPage {
-			for i, name := range []string{"Configure", "Refresh installation", "Uninstall"} {
+			for i, name := range m.managementActions() {
 				lines = append(lines, row(i == m.cursor, name))
 			}
 			lines = append(lines, "", "Run git pull --ff-only separately before refreshing source changes.")
@@ -551,14 +570,44 @@ func row(focused bool, text string) string {
 	return "  " + text
 }
 
+func (m model) managementActions() []string {
+	actions := []string{"Configure", "Refresh installation", "Uninstall"}
+	if m.status.Linked {
+		actions = append(actions, "Migrate linked installation")
+	}
+	return actions
+}
+
 func (m model) operationLines() []string {
 	lines := []string{"Proposed changes:"}
+	if m.applyRequest.Intent == install.Migrate {
+		saved := m.preview.Desired
+		lines = append(lines, "Migration uses the current Development checkout.",
+			fmt.Sprintf("Saved providers: %v", saved.Providers),
+			fmt.Sprintf("Requested skills: %v", saved.Requested),
+			fmt.Sprintf("Retained helpers: %v", saved.Retained),
+			"Markdown output: "+outputDescription(saved.Output),
+			fmt.Sprintf("Concise loading: %t", saved.Concise),
+			fmt.Sprintf("Full guidance: %t", saved.FullTemplate))
+		for _, item := range m.preview.Selection {
+			if item.Role == "required" {
+				lines = append(lines, "Required helper: "+item.Name)
+			}
+		}
+	}
 	for _, op := range m.preview.Operations {
 		if op.Action != "keep" {
 			lines = append(lines, op.Provider+": "+op.Action+" "+op.Name+"\n  "+op.Path)
 		}
 	}
 	return lines
+}
+
+func outputDescription(path string) string {
+	if path == "" {
+		return "Repository output"
+	}
+	return path
 }
 
 func (m model) pageLines() []string {
