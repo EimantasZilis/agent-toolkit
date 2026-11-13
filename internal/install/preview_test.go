@@ -221,7 +221,7 @@ func TestGuidanceAndUninstall(t *testing.T) {
 }
 
 func TestMalformedStateAndUnsafeRoots(t *testing.T) {
-	for _, change := range []string{"pair", "version", "boolean", "duplicate", "inventory", "state-link", "provider-link", "unknown-refresh"} {
+	for _, change := range []string{"pair", "version", "boolean", "duplicate", "inventory", "inventory-trailing", "state-link", "provider-link", "unknown-refresh"} {
 		t.Run(change, func(t *testing.T) {
 			s := testService(t)
 			settings := Settings{Providers: []string{"codex"}, Requested: []string{"commit-message"}}
@@ -240,6 +240,13 @@ func TestMalformedStateAndUnsafeRoots(t *testing.T) {
 				write(t, path, string(settingsBytes(settings))+"PROVIDERS=claude\n")
 			case "inventory":
 				write(t, filepath.Join(s.Root, "config/inventory.json"), "{}")
+			case "inventory-trailing":
+				inventoryPath := filepath.Join(s.Root, "config/inventory.json")
+				data, err := os.ReadFile(inventoryPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				write(t, inventoryPath, string(data)+"{}")
 			case "state-link":
 				if err := os.Rename(path, path+".original"); err != nil {
 					t.Fatal(err)

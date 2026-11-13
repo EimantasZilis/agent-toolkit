@@ -54,10 +54,20 @@ source files and installed content still match the preview.
 3. Review the proposed paths and confirm.
 4. Start a new agent session.
 
+Fresh installations contain owned copies of instructions, supporting references,
+scripts, and provider adapters. Source edits, including uncommitted changes and
+new resources, take effect only after a reviewed refresh. Installed skills work
+without access to the checkout. Running the manager still requires the checkout
+and its saved `config/` state.
+
 Refresh preserves saved preferences. If a saved skill is unavailable or refresh
-would remove managed content, use Configure to review the selection. Supporting
-files link to this checkout and may change as soon as you pull. Installation
-rollback cannot undo checkout changes.
+would remove managed content, use Configure to review the selection. Edited
+installed files, changed modes, missing files, and unexpected content cause
+ownership conflicts. Installation rollback cannot undo checkout changes.
+
+Older linked installations remain recognizable, but this version refuses to
+convert, refresh, or remove them. Migration is deferred; keep their source
+checkout available and use their matching manager until migration is supported.
 
 ## Uninstall
 
@@ -67,13 +77,16 @@ managed content and saved settings, then returns to fresh setup. User guidance
 outside managed blocks and existing Markdown artifacts remain in place.
 
 Start a new agent session after configuring, refreshing, or uninstalling.
-Keep the checkout while local installations use its linked supporting files.
+Keep the checkout and saved state to manage copied installations.
 
 ## Saved state and supported entry point
 
-Existing `config/settings.env`, `config/inventory.json`, ownership markers, and
-provider-home overrides remain compatible. The TUI reads saved values as data
-without shell evaluation. Configure changes preferences; refresh reapplies them.
+Settings and provider-home overrides retain their existing formats. Copied
+installations use version 2 ownership and inventory records, including the
+canonical Development checkout and a digest of current `.agents/` inputs.
+Legacy records remain readable without granting permission to convert them.
+The TUI reads saved values as data without shell evaluation. Configure changes
+preferences; refresh reapplies them.
 
 Local management uses the TUI. The former Bash scripts and installation, update,
 and uninstall Make targets have been removed. See [INSTALL.md](../../INSTALL.md)

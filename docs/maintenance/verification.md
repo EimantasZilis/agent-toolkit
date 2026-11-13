@@ -31,13 +31,16 @@ through the typed service and TUI instead.
 | --- | --- |
 | Catalog, bundles, dependency closure, cycles, registries | `internal/catalog/catalog_test.go` |
 | Source layout, front matter, relative links, optional and stale adapters | `internal/validate/source_test.go` |
-| Both providers, selective and full installation, linked resources, metadata, guidance, refresh, uninstall | `internal/validate/verify.go` and `TestIsolatedVerification` |
+| Both providers, selective and full installation, copied resources/adapters, modes, metadata, guidance, refresh, uninstall | `internal/validate/verify.go` and `TestIsolatedVerification` |
 | Selection roles, saved choices, retained helpers, automatic concise guidance, removal confirmation | `internal/install/preview_test.go`, `internal/tui/selection_test.go` |
 | State compatibility, literal paths, malformed state, inventory ownership limits | `internal/install/preview_test.go`, `internal/install/compatibility_test.go` |
 | Edited manifests, missing and dangling resources, foreign paths, symlink boundaries, stale previews | `internal/install/preview_test.go`, `internal/install/apply_test.go` |
 | Transactions, cancellation, locking, both providers, state rollback, retained recovery backups | `internal/install/apply_test.go` |
 | Guidance preservation, duplicate blocks, edited blocks, independent preferences | `internal/install/compatibility_test.go`, `internal/tui/settings_test.go` |
 | Refresh from changed source, missing state, native helper overlap | `internal/install/compatibility_test.go`, `internal/tui/management_test.go` |
+| Dirty Git and non-Git sources, untracked files, source-independent links/helpers, copied provenance, refresh additions/deletions/modes | `TestCopiedDevelopmentWorkingTreeAndIndependence` in `internal/install/copied_test.go` |
+| Copied ownership corruption, unsafe paths, edited resources/adapters/modes, extra files/directories, source links/special files, stale payloads | `TestCopiedConflictsPreserveContent`, `TestCopiedSourceSafetyAndStaleness` |
+| Legacy linked recognition and mutation refusal, fresh/refresh rollback across providers and state | `TestCopiedLegacyRecognitionWithoutConversion`, `TestCopiedFreshAndRefreshRollback` |
 | TUI navigation, conflicts, drafts, output creation, viewport sizing, shutdown | Tests beside `internal/tui` |
 | Local/native rendering, invocations, optional links, output policy | `internal/render/render_test.go` |
 | Archives, manifests, resource bytes and modes, corruption, traversal, historical releases | `internal/native/release_test.go`, `internal/native/resources_test.go` |
@@ -50,3 +53,8 @@ It copies current source into a spaced path, launches `make run`, changes a
 visible source label, and launches it again. Both launches must quit without
 changing provider files or toolkit settings. macOS and Linux implementations
 use the existing `x/sys` dependency; repository tooling needs no Python runtime.
+
+Copied-install coverage applies to fresh Development installations and their
+refreshes. Legacy linked installations remain recognizable but are never
+silently converted; migration is deferred. Native packaging contracts remain
+covered independently by the existing native suite.

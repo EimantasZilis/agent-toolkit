@@ -137,9 +137,7 @@ func (s *Service) state() (Settings, map[string][]string, bool, error) {
 		return settings, nil, true, err
 	}
 	var inv inventory
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&inv); err != nil {
+	if err := decodeStrict(data, &inv); err != nil {
 		return settings, nil, true, fmt.Errorf("decode inventory: %w", err)
 	}
 	if (inv.Version != 1 && inv.Version != 2) || (inv.Version == 1 && inv.Source != nil) || (inv.Version == 2 && (inv.Source == nil || !validProvenance(*inv.Source))) || len(inv.Providers) != 2 {

@@ -42,8 +42,8 @@ commits and accurate planning state intact. If the plan no longer matches
 reality, amend the plan before continuing.
 
 Finish with a phase summary, commit table, remaining work, and the reminder that
-commits are local. The natural next step is [review-branch](<<checkout>/.agents/skills/review/review-branch/SKILL.md>),
-followed by [pr-description](<<checkout>/.agents/skills/productivity/pr-description/SKILL.md>).
+commits are local. The natural next step is `review-branch` (optional integration),
+followed by `pr-description` (optional integration).
 
 ## Markdown artifact outputs
 

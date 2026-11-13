@@ -20,7 +20,7 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 		return Status{}, problem("invalid_preview", "", "request an unchanged preview before applying")
 	}
 	if len(p.Conflicts) > 0 {
-		return Status{}, problem("ownership_conflict", p.Conflicts[0].Path, "resolve conflicts before applying")
+		return Status{}, problem("ownership_conflict", p.Conflicts[0].Path, "resolve conflicts before applying; legacy linked installations require a separate migration")
 	}
 	if p.Confirmation && !confirmed.Removals {
 		return Status{}, problem("confirmation_required", "", "confirm removals")

@@ -61,8 +61,8 @@ func readTree(root string) (payload, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && !info.Mode().IsRegular() {
-			return problem("unsafe_source", file, "only real directories and regular files are supported")
+		if (!info.IsDir() && !info.Mode().IsRegular()) || info.Mode()&(fs.ModeSetuid|fs.ModeSetgid|fs.ModeSticky) != 0 {
+			return problem("unsafe_source", file, "only real directories and regular files with ordinary permissions are supported")
 		}
 		if rel == "." {
 			return nil

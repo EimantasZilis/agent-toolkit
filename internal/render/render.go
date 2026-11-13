@@ -116,7 +116,8 @@ func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (st
 				return "", err
 			}
 			if opts.Mode == Local {
-				text = strings.ReplaceAll(text, original, "`"+filepath.Join(opts.SkillsRoot, name, "scripts/check_function_size.py")+"`")
+				installed := filepath.Join(opts.SkillsRoot, name, "scripts/check_function_size.py")
+				text = strings.ReplaceAll(text, original, "'"+strings.ReplaceAll(installed, "'", "'\"'\"'")+"'")
 			} else {
 				text = strings.ReplaceAll(text, original, `"<loaded-reference-directory>/`+filepath.ToSlash(checker)+`"`)
 				text += "\nResolve `<loaded-reference-directory>` to the directory containing this loaded reference before running the bundled checker.\n"

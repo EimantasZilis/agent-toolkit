@@ -64,14 +64,18 @@ full template is disabled.
 | Codex | `${AGENTS_HOME:-~/.agents}/skills/agent-toolkit/` | `${CODEX_HOME:-~/.codex}/AGENTS.md` |
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
-Skills have generated manifests. Supporting resources link to this checkout,
-so keep it available while the installation is in use. Restore the checkout
-or reinstall from its new location if those links break. Provider-home
-environment overrides continue to select installation destinations.
+Fresh installations contain owned copies of rendered Markdown, resources, and
+provider adapters. They remain usable without the checkout. Source edits take
+effect through a reviewed refresh. Keep the checkout and its saved `config/`
+state to run the manager. Provider-home overrides still select destinations.
+
+Legacy linked installations require their original checkout and matching
+manager. This version recognizes them but refuses conversion or removal;
+migration is deferred.
 
 The TUI preserves:
 
-- The `config/settings.env` and `config/inventory.json` formats.
+- The `config/settings.env` preferences and legacy inventory readability.
 - Provider paths and home overrides.
 - Existing ownership markers.
 
@@ -112,15 +116,15 @@ preferences from current source. It does not pull Git changes. Missing state,
 unavailable saved skills, proposed removals, or ownership conflicts require
 Configure to review the installation.
 
-Linked resources may change as soon as Git updates the checkout. Rollback of
-an installation cannot undo those source changes.
+Copied resources remain unchanged until refresh applies reviewed source bytes
+and modes. Rollback of an installation cannot undo checkout changes.
 
 ## Conflicts and recovery
 
 The TUI shows affected paths and preserves your draft when a conflict prevents
-apply. Edited manifests, managed guidance, foreign content, and dangling resource
-links can require review. Back up user changes outside provider skill directories
-before resolving the affected paths.
+apply. Edited manifests, resources, modes, managed guidance, missing files, and
+foreign content require review. Back up user changes outside provider skill
+directories before resolving the affected paths.
 
 Removing skills or providers and creating output directories require explicit
 confirmation. The default is No. A stale preview is rejected if source or
@@ -130,6 +134,11 @@ Failed operations restore provider files and saved state together. Wait for
 installation or rollback to finish. If recovery fails, the error reports retained
 backup paths for manual recovery. Filesystem rollback does not cover machine
 loss or uncatchable termination.
+
+Copied ownership and inventory use schema version 2. Before reverting to a
+manager that only understands linked installations, uninstall copied content
+with the matching manager or restore a complete provider and state backup from
+before installation. Do not downgrade ownership records in place.
 
 ## Uninstall local skills
 
