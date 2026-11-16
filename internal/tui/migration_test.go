@@ -182,8 +182,9 @@ func TestMigrationReviewCancelAndApply(t *testing.T) {
 			m, base := linkedModel(t, mixed)
 			saved := clone(m.saved)
 			before := migrationSnapshot(t, base)
-			for _, cancel := range []string{"enter", "esc", "n"} {
+			for _, cancel := range []string{"enter", "backspace", "esc", "n"} {
 				m = reviewMigration(t, m)
+				m, _ = press(m, "v")
 				review := strings.Join(m.viewLines(), "\n")
 				for _, text := range []string{"convert", "Saved providers:", "Retained helpers:", "Required helper: plan-review", saved.Output, "Concise loading: true", "Full guidance: true", "[y/N]"} {
 					if !strings.Contains(review, text) {

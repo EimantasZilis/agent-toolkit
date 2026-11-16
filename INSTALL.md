@@ -48,15 +48,17 @@ Required helpers are included automatically: `plan-review` for `ticket-to-plan`
 and `ruby-standards` for `ruby-rails-standards`. Optional integrations are separate.
 Removing a parent keeps installed helpers; remove unused helpers individually.
 
-Automatic concise-output loading adds a standing instruction and installs the
-skill. Disabling the instruction keeps the skill installed. Installing the skill
-alone does not make it a standing instruction.
+The **Global guidance and concise-output** setting adds shared coding,
+documentation, and Markdown artifact instructions from
+[instructions.md](.agents/global/instructions.md), installs concise-output,
+and loads it automatically each session. Disabling removes the instructions
+and keeps the skill installed. Installing the skill alone does not make it a
+standing instruction.
 
-The full global guidance template is an independent choice. It adds shared
-coding and documentation guidance from
-[instructions.md](.agents/global/instructions.md). A shared output directory or
-concise loading can require a smaller managed guidance block even when the
-full template is disabled.
+Existing separate preferences are combined when saving Configure: if either
+was enabled, both are enabled. Refresh and migration preserve saved preferences.
+A shared output directory still adds its output-location guidance when this
+setting is disabled.
 
 ## Installed files and checkout lifetime
 
@@ -98,7 +100,7 @@ Source switching is outside migration.
 2. Keep the original checkout available and start the current TUI from it.
 3. Choose **Migrate linked installation**. Review every conversion path and the
    saved preferences. Page Up and Page Down scroll long previews.
-4. Press `y` to apply. Enter, No, and Escape cancel without writes.
+4. Press `y` to apply. ↵, No, Esc, and Backspace cancel without writes.
 5. Start a new agent session. Future source edits require a reviewed refresh.
 
 Supported linked skills have real directories, a regular rendered `SKILL.md`,
@@ -152,9 +154,9 @@ review. Draft skills remain selectable; Development needs no eligibility change.
 2. Run `make run` or `go run ./cmd/agent-toolkit` from that checkout.
 3. Select skills during initial setup, or choose **Refresh installation** to use
    your saved selection and preferences.
-4. Review additions, edits, removals, and permission transitions. Use Page Up and
-   Page Down to inspect every changed path. Press `y` to apply; Enter, No, and
-   Escape cancel.
+4. Review the change summary. Press `v` for paths, file diffs, and permission
+   transitions; use Page Up and Page Down to inspect the details. Press `y` to apply; ↵, No, Esc, and
+   Backspace cancel.
 5. Test the skill in a new agent session for each selected provider.
 6. Repeat the edit, review, apply, and new-session test loop before committing.
 

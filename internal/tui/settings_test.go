@@ -89,7 +89,7 @@ func TestOutputEditingAndModes(t *testing.T) {
 	m.draft.Providers = []string{"codex", "claude"}
 	m.syncOutput()
 	m, _ = press(m, "down")
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	if !m.globalOutput || m.draft.Output == "" {
 		t.Fatal("global selection did not reveal the path")
 	}
@@ -119,7 +119,7 @@ func TestOutputEditingAndModes(t *testing.T) {
 	if m.err == "" || strings.Contains(m.outputPath, "\n") {
 		t.Fatal("multiline paste accepted")
 	}
-	m, _ = press(m, "esc")
+	m, _ = press(m, "ctrl+c")
 	if m.editingPath || m.outputPath != m.originalPath {
 		t.Fatal("cancel did not restore the path")
 	}
@@ -128,14 +128,14 @@ func TestOutputEditingAndModes(t *testing.T) {
 		t.Fatal("missing provider-specific output guidance")
 	}
 	m.cursor = 0
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	if m.globalOutput || m.draft.Output != "" || strings.Contains(strings.Join(m.settingsLines(), "\n"), "Path:") {
 		t.Fatal("repo-local did not hide and clear path")
 	}
 }
 
 func TestCreationConfirmationAndCancellation(t *testing.T) {
-	for _, key := range []string{"enter", "n", "esc"} {
+	for _, key := range []string{"enter", "n", "backspace", "esc"} {
 		t.Run(key, func(t *testing.T) {
 			m, b := readyModel(t, false)
 			path := filepath.Join(t.TempDir(), "missing", "output")
@@ -163,7 +163,7 @@ func TestBlankGlobalModeIsDirtyAndDiscardable(t *testing.T) {
 	if !m.dirty() {
 		t.Fatal("blank global mode lost its draft state")
 	}
-	m, _ = press(m, "esc")
+	m, _ = press(m, "backspace")
 	if !m.unsaved {
 		t.Fatal("leaving a blank global mode skipped Save/Discard")
 	}
@@ -221,12 +221,12 @@ func TestBackendOutputAndConcise(t *testing.T) {
 		if err != nil || !strings.Contains(string(data), path) || !strings.Contains(string(data), "agent-toolkit:concise-output:start") {
 			t.Fatalf("missing output/concise guidance: %s: %s: %v", file, data, err)
 		}
-		if strings.Contains(string(data), "## Code readability") {
-			t.Fatal("TUI enabled full template")
+		if !strings.Contains(string(data), "## Code readability") {
+			t.Fatal("combined guidance omitted full template")
 		}
 	}
 	m.page, m.cursor = 3, 0
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	m = saveFixture(t, m)
 	for _, file := range guidance {
 		data, err := os.ReadFile(file)
@@ -237,7 +237,7 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	assertFile(t, filepath.Join(root, "agents", "skills", "agent-toolkit", "concise-output", "SKILL.md"), true)
 	assertFile(t, filepath.Join(root, "claude", "skills", "concise-output", "SKILL.md"), true)
 	m.page, m.cursor = 2, 0
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	m = saveFixture(t, m)
 	for _, file := range guidance {
 		assertFile(t, file, false)
@@ -245,19 +245,35 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	assertFile(t, artifact, true)
 }
 
-func TestFullTemplatePreferenceIsIndependent(t *testing.T) {
-	m, _ := readyModel(t, false)
-	m.draft.FullTemplate, m.page = true, 3
-	m, _ = press(m, "space")
-	if !m.draft.FullTemplate || !m.draft.Concise || !strings.Contains(strings.Join(m.settingsLines(), "\n"), "Full guidance template") {
-		t.Fatal("full-template preference was changed or hidden")
+func TestConfigureCombinesLegacyGuidancePreferences(t *testing.T) {
+	for _, concise := range []bool{false, true} {
+		for _, full := range []bool{false, true} {
+			m, _ := readyModel(t, false)
+			m.saved.Concise, m.saved.FullTemplate = concise, full
+			m.draft = clone(m.saved)
+			m.page = 3
+			if m.dirty() {
+				t.Fatal("loading legacy preferences created unsaved changes")
+			}
+			lines := strings.Join(m.settingsLines(), "\n")
+			if !strings.Contains(lines, check(concise || full)+"Global guidance and concise-output") {
+				t.Fatal("combined setting does not reflect saved preferences")
+			}
+			next, cmd := m.startSave()
+			m = next.(model)
+			desired := m.applyRequest.Desired
+			if cmd == nil || desired.Concise != (concise || full) || desired.FullTemplate != (concise || full) {
+				t.Fatalf("legacy preferences (%t, %t) not combined: %+v", concise, full, desired)
+			}
+			// The same setting turns both features off, including mixed legacy values.
+			m.busy = false
+			m.draft.Concise, m.draft.FullTemplate = concise, full
+			m, _ = press(m, "enter")
+			if m.draft.Concise != !(concise || full) || m.draft.FullTemplate != !(concise || full) {
+				t.Fatal("toggle did not change both preferences together")
+			}
+		}
 	}
-	next, cmd := m.startSave()
-	m = next.(model)
-	if cmd == nil || !m.applyRequest.Desired.FullTemplate {
-		t.Fatal("full template lost at typed boundary")
-	}
-
 }
 
 func TestViewportResizeLongListsAndDialogs(t *testing.T) {

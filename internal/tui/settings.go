@@ -108,17 +108,10 @@ func (m model) editPath(key string) (tea.Model, tea.Cmd) {
 
 func (m *model) editSettings(key string) {
 	if m.page == 3 {
-		switch key {
-		case "up", "k":
-			m.cursor = max(0, m.cursor-1)
-		case "down", "j":
-			m.cursor = min(1, m.cursor+1)
-		case "space":
-			if m.cursor == 0 {
-				m.draft.Concise = !m.draft.Concise
-			} else {
-				m.draft.FullTemplate = !m.draft.FullTemplate
-			}
+		m.cursor = 0
+		if key == "enter" {
+			enabled := !m.guidanceEnabled()
+			m.draft.Concise, m.draft.FullTemplate = enabled, enabled
 		}
 		return
 	}
@@ -134,7 +127,7 @@ func (m *model) editSettings(key string) {
 		m.cursor = max(0, m.cursor-1)
 	case "down", "j":
 		m.cursor = min(last, m.cursor+1)
-	case "space":
+	case "enter":
 		if m.cursor < 2 {
 			m.globalOutput = m.cursor == 1
 			m.draft.Output = ""
@@ -144,6 +137,10 @@ func (m *model) editSettings(key string) {
 			m.err = ""
 		}
 	}
+}
+
+func (m model) guidanceEnabled() bool {
+	return m.draft.Concise || m.draft.FullTemplate
 }
 
 func (m model) outputSummary() string {
@@ -160,12 +157,11 @@ func (m model) settingsLines() []string {
 	}
 	if m.page == 3 {
 		return []string{
-			"Select skills to load automatically each session in " + strings.Join(providers, ", ") + " global configuration.",
-			"Enabling installs concise-output and its standing instruction. Disabling removes only the instruction.",
+			"Add shared instructions to " + strings.Join(providers, ", ") + " global configuration.",
+			"Includes coding and documentation guidance, Markdown artifact rules, and concise-output automatic loading.",
+			"Disabling removes these instructions; the concise-output skill stays installed.",
 			"",
-			row(m.cursor == 0, check(m.draft.Concise)+"concise-output automatic loading"),
-			row(m.cursor == 1, check(m.draft.FullTemplate)+"Full guidance template"),
-			"Full guidance adds shared coding and documentation instructions separately from concise loading.",
+			row(m.cursor == 0, check(m.guidanceEnabled())+"Global guidance and concise-output"),
 		}
 	}
 	lines := []string{
@@ -183,7 +179,7 @@ func (m model) settingsLines() []string {
 			runes := []rune(path)
 			path = string(runes[:m.pathCursor]) + "│" + string(runes[m.pathCursor:])
 		}
-		lines = append(lines, row(m.cursor == 2, "Path: "+path), "Enter on Path edits · Enter accepts · Esc restores · Ctrl+u clears")
+		lines = append(lines, row(m.cursor == 2, "Path: "+path), "↵ on Path edits · ↵ accepts · Esc/Ctrl+c restores · Ctrl+u clears")
 	}
 	return lines
 }

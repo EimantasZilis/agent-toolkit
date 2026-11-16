@@ -49,6 +49,46 @@ func contentReviewLines(changes []install.ContentChange) []string {
 	return lines
 }
 
+func (m model) reviewSummaryLines() []string {
+	providers := make([]string, 0, len(m.preview.Desired.Providers))
+	for _, id := range m.preview.Desired.Providers {
+		providers = append(providers, providerName(id))
+	}
+	counts := map[string]int{}
+	for _, op := range m.preview.Operations {
+		counts[op.Action]++
+	}
+	lines := []string{
+		"Review changes",
+		"",
+		"Providers: " + strings.Join(providers, ", "),
+		fmt.Sprintf("Skills selected: %d", len(m.preview.Selection)),
+		"Markdown output: " + outputDescription(m.preview.Desired.Output),
+		fmt.Sprintf("Global guidance and concise-output: %t", m.preview.Desired.FullTemplate && m.preview.Desired.Concise),
+		"",
+	}
+	var actions []string
+	for _, action := range []string{"install", "update", "convert", "remove"} {
+		if counts[action] > 0 {
+			actions = append(actions, fmt.Sprintf("%s: %d", action, counts[action]))
+		}
+	}
+	if len(actions) > 0 {
+		lines = append(lines, strings.Join(actions, " · "))
+	}
+	if m.preview.Desired.FullTemplate != m.preview.Desired.Concise {
+		lines = append(lines, fmt.Sprintf("Saved preferences: guidance %t, concise-output %t", m.preview.Desired.FullTemplate, m.preview.Desired.Concise))
+	}
+	lines = append(lines, fmt.Sprintf("Changed paths: %d", len(m.preview.Changes)), "v: view paths and file diffs")
+	if m.preview.Native.Message != "" {
+		lines = append(lines, "", m.preview.Native.Message)
+	}
+	for i := range lines {
+		lines[i] = terminalText(lines[i])
+	}
+	return lines
+}
+
 func reviewMode(state *install.ContentState) string {
 	if state == nil {
 		return "absent"

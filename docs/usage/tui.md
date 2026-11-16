@@ -18,36 +18,47 @@ Saved installations open a management menu; choose **Configure** to edit setting
 | Control | Action |
 | --- | --- |
 | Arrow keys | Move between rows; Left/Right expand skill categories |
-| Space | Toggle a setting, skill, or category |
+| ↵ | Open a menu item or toggle a setting, skill, or category |
+| Tab | Move to the next setup page |
 | `a` | Select or deselect all skills |
 | `s` | Preview and save settings |
-| Enter on Path | Edit the output path; Enter accepts, Escape cancels |
+| ↵ on Path | Edit the output path; ↵ accepts, Esc or Ctrl+C cancels |
 | Page Up / Page Down | Scroll long pages and previews |
-| `t` / `T` | Cycle color themes for this run |
-| Escape | Return to the previous page or menu |
+| `v` in a confirmation | Switch between the change summary and detailed paths/diffs |
+| Esc / Backspace | Return to the previous page or menu |
 | `q` | Quit; changed drafts offer Save or Discard |
+
+When leaving with unsaved changes, a centered dialog overlays the current
+screen. Press `s` to save, `d` to discard, or Esc/Backspace to keep editing.
 
 Errors preserve your draft. Conflicts show the affected paths and stop apply.
 The conflict screen starts with the reason and any migration guidance. Use
-Up/Down or Page Up/Page Down to scroll paths, then Enter or Escape to return
+Up/Down or Page Up/Page Down to scroll paths, then ↵, Esc, or Backspace to return
 without applying changes.
 Wait for installation or rollback to finish before quitting. Handled signals
 also let an active transaction finish or roll back. Failed recovery reports the
 location of retained backups.
 
+While editing a path, Backspace deletes the previous character. Esc or Ctrl+C restores
+the original path and leaves editing.
+
 ## Settings
 
 - **Skills:** required helpers are included automatically. Removing a parent
   keeps its installed helpers; remove unused helpers individually.
+  Use the first row to select or deselect all skills with ↵. The `a` shortcut
+  performs the same action. Automatic concise loading and retained helpers
+  follow the same rules as category selection.
 - **Markdown output:** use each repository or a shared absolute path, grouped
   by repository, branch, and skill. Existing artifacts stay in place.
-- **Automatic concise-output loading:** install the skill and add its standing
-  instruction. Disabling the instruction keeps the skill installed.
-- **Full guidance template:** add shared coding and documentation instructions
-  independently of concise-output loading.
+- **Global guidance and concise-output:** add shared coding, documentation,
+  and Markdown artifact instructions together with concise-output automatic
+  loading. Disabling removes these instructions and keeps the skill installed.
+  When saving Configure, either enabled legacy option enables both together.
+  Refresh and migration preserve the existing saved preferences.
 
 Removing skills or providers and creating an output directory require explicit
-confirmation. Enter, No, and Escape cancel; the default is No. Apply checks that
+confirmation. ↵, No, Esc, and Backspace cancel; the default is No. Apply checks that
 source files and installed content still match the preview.
 
 ## Repeat the Development loop
@@ -60,13 +71,18 @@ you edit source.
 2. Run `make run` or `go run ./cmd/agent-toolkit` from that checkout.
 3. Select skills in initial setup, or choose **Refresh installation** to keep
    saved providers, skills, helper selections, and guidance/output preferences.
-4. Inspect the content review and press `y` to apply. Enter, No, and Escape cancel.
+4. Inspect the content review and press `y` to apply. ↵, No, Esc, and Backspace cancel.
 5. Start a new agent session for each selected provider and test the skill.
 6. Repeat before committing. Pulling upstream changes is an optional, separate
    source-management step.
 
-The review groups changes by provider and skill or guidance. Each changed path
-shows its action, before/after type, and permission mode. Instructions,
+Confirmations open a compact summary with the selected-skill count, output
+location, guidance settings, and change counts. Press `v` to inspect paths and
+file diffs, then `v` again to return to the summary. Up/Down and Page Up/Page
+Down scroll the details. Each confirmation still requires `y`.
+
+The detailed review groups changes by provider and skill or guidance. Each
+changed path shows its action, before/after type, and permission mode. Instructions,
 references, scripts, and Codex adapters include text changes. Binary resources
 show sizes and SHA-256 checksums. Excerpts are limited to 100 lines or 8192 bytes
 per file and show a truncation notice; the path list remains complete. Guidance
@@ -103,7 +119,7 @@ and Uninstall never convert links automatically.
    content and modes, rendered instruction changes, managed guidance, and saved
    providers, requested skills, retained and required helpers, output preferences,
    and guidance settings. Use Page Up and Page Down to inspect long previews.
-3. Press `y` to convert. Enter, No, and Escape cancel without writes.
+3. Press `y` to convert. ↵, No, Esc, and Backspace cancel without writes.
 4. Start a new agent session after successful conversion.
 
 The supported layout is the previous Go installer's real skill directories,

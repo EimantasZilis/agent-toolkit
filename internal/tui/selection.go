@@ -60,7 +60,7 @@ func (m model) selected() map[string]string {
 			}
 		}
 	}
-	if m.draft.Concise {
+	if m.guidanceEnabled() {
 		roles["concise-output"] = "automatic"
 	}
 
@@ -88,7 +88,7 @@ func (m model) selected() map[string]string {
 func (m *model) toggleSkill(name string) {
 	roles := m.selected()
 	if roles[name] == "automatic" {
-		m.notice = "Disable concise-output automatic loading on Page 4 before removing this skill."
+		m.notice = "Disable global guidance and concise-output on Page 4 before removing this skill."
 		return
 	}
 	if roles[name] == "required" {
@@ -144,6 +144,7 @@ func (m *model) toggleGroup(names []string) {
 type skillRow struct {
 	category, name string
 	members        []string
+	all            bool
 }
 
 func (m model) skillRows() []skillRow {
@@ -155,6 +156,13 @@ func (m model) skillRows() []skillRow {
 	}
 	sort.Strings(categories)
 	rows := []skillRow{}
+	if len(m.catalog.Skills) > 0 {
+		names := make([]string, 0, len(m.catalog.Skills))
+		for _, s := range m.catalog.Skills {
+			names = append(names, s.Name)
+		}
+		rows = append(rows, skillRow{all: true, members: names})
+	}
 	for _, category := range categories {
 		members := []string{}
 		for _, s := range m.catalog.Skills {
@@ -179,7 +187,7 @@ func (m *model) editSelection(key string) {
 			m.cursor = max(0, m.cursor-1)
 		case "down", "j":
 			m.cursor = min(1, m.cursor+1)
-		case "space":
+		case "enter":
 			id := providerIDs[m.cursor]
 			if slices.Contains(m.draft.Providers, id) {
 				m.draft.Providers = without(m.draft.Providers, id)
@@ -207,7 +215,7 @@ func (m *model) editSelection(key string) {
 		if rows[m.cursor].category != "" {
 			m.expanded[rows[m.cursor].category] = key == "right"
 		}
-	case "space":
+	case "enter":
 		r := rows[m.cursor]
 		if r.name != "" {
 			m.toggleSkill(r.name)
@@ -215,11 +223,7 @@ func (m *model) editSelection(key string) {
 			m.toggleGroup(r.members)
 		}
 	case "a":
-		names := []string{}
-		for _, s := range m.catalog.Skills {
-			names = append(names, s.Name)
-		}
-		m.toggleGroup(names)
+		m.toggleGroup(rows[0].members)
 	}
 }
 
@@ -238,7 +242,7 @@ func (m model) selectionLines() []string {
 		}
 		return lines
 	}
-	lines := []string{"Select skills to install. Required helpers are selected automatically.", "←/→ collapse/expand category · space toggle bundle/skill · a toggle all", ""}
+	lines := []string{"Select skills to install. Required helpers are selected automatically.", "←/→ collapse/expand category · ↵ toggle bundle/skill · a toggle all", ""}
 	roles := m.selected()
 	for i, r := range m.skillRows() {
 		text := ""
@@ -251,6 +255,14 @@ func (m model) selectionLines() []string {
 			all := true
 			for _, name := range r.members {
 				all = all && roles[name] != ""
+			}
+			if r.all {
+				text = "Select all skills"
+				if all {
+					text = "Deselect all skills"
+				}
+				lines = append(lines, row(i == m.cursor, text))
+				continue
 			}
 			arrow := "▸ "
 			if m.expanded[r.category] {

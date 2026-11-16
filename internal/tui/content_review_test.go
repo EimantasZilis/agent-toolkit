@@ -98,7 +98,7 @@ func TestDevelopmentReviewRepeatedWorkingTreeLoop(t *testing.T) {
 					if strings.Contains(strings.Join(providers, ","), "codex") && !strings.Contains(review, "agents/openai.yaml") {
 						t.Fatal("adapter missing from review")
 					}
-					for _, cancel := range []string{"enter", "n", "esc"} {
+					for _, cancel := range []string{"enter", "n", "backspace", "esc"} {
 						snapshot := migrationSnapshot(t, base)
 						next, cmd := press(m, cancel)
 						m = next
@@ -231,6 +231,7 @@ func TestContentReviewControlsAndScrolling(t *testing.T) {
 			t.Fatalf("missing %q", text)
 		}
 	}
+	m, _ = press(m, "v")
 	all := m.wrappedLines()
 	covered := make([]bool, len(all))
 	m.manualScroll, m.scroll = true, 0
@@ -266,6 +267,44 @@ func TestContentReviewControlsAndScrolling(t *testing.T) {
 	}
 }
 
+func TestReviewDefaultsToCompactSummary(t *testing.T) {
+	m, b := readyModel(t, true)
+	m.page = 4
+	m.preview.Desired = settings{Providers: []string{"codex", "claude"}, Output: "/tmp/output", Concise: true, FullTemplate: true}
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("skill-%03d", i)
+		m.preview.Selection = append(m.preview.Selection, selection{Name: name})
+		m.preview.Operations = append(m.preview.Operations, operation{Provider: "codex", Action: "install", Name: name, Path: "/skills/" + name})
+		m.preview.Changes = append(m.preview.Changes, install.ContentChange{Provider: "codex", Name: name, Path: "/skills/" + name, Lines: []string{"+ detailed guidance text"}})
+	}
+	m.dialogs = []dialog{{"Create the Markdown output directory?\n/tmp/output\n[y/N]"}, {"Apply the reviewed changes? [y/N]"}}
+	before := m.View().Content
+	for _, text := range []string{"Review changes", "Codex, Claude Code", "Skills selected: 100", "Changed paths: 100", "Create the Markdown output directory?", "[y/N]", "v view details"} {
+		if !strings.Contains(before, text) {
+			t.Fatalf("compact review hides %q", text)
+		}
+	}
+	if strings.Contains(before, "skill-000") || strings.Contains(before, "+ detailed guidance text") {
+		t.Fatal("compact review includes the skill list or file diffs")
+	}
+	m, cmd := press(m, "v")
+	if cmd != nil || !m.reviewDetails || m.viewOffset() != 0 || !strings.Contains(strings.Join(m.viewLines(), "\n"), "+ detailed guidance text") {
+		t.Fatal("details did not open at the beginning of the review")
+	}
+	m, _ = press(m, "down")
+	if m.viewOffset() != 1 {
+		t.Fatal("arrow key did not scroll details")
+	}
+	m, cmd = press(m, "v")
+	if cmd != nil || m.reviewDetails || m.View().Content != before || len(b.calls) != 0 {
+		t.Fatal("returning to summary changed the preview or started an operation")
+	}
+	m, cmd = press(m, "y")
+	if cmd != nil || len(m.dialogs) != 1 || m.reviewDetails {
+		t.Fatal("directory confirmation bypassed the final apply confirmation")
+	}
+}
+
 func TestMigrationReviewKeepsCopiedMembersAbsent(t *testing.T) {
 	m, base := linkedModel(t, true)
 	m = reviewMigration(t, m)
@@ -285,7 +324,7 @@ func TestMigrationReviewKeepsCopiedMembersAbsent(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot := migrationSnapshot(t, base)
-	m, cmd := press(m, "esc")
+	m, cmd := press(m, "backspace")
 	after, err := m.backend.Status(context.Background())
 	if err != nil || cmd != nil || before.Revision != after.Revision || migrationSnapshot(t, base) != snapshot {
 		t.Fatal("migration review cancellation changed installation")

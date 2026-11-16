@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 	"github.com/EimantasZilis/agent-toolkit/internal/install"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -97,20 +98,51 @@ func TestWizardStagesAndAppliesOnce(t *testing.T) {
 	}
 }
 
+func TestWizardEnterSelectsAndBackspaceReturns(t *testing.T) {
+	for _, page := range []int{0, 1, 2, 3} {
+		m, b := readyModel(t, true)
+		m.catalog, m.page = selectionCatalog(), page
+		if page == 2 {
+			m.cursor, m.outputPath = 1, t.TempDir()
+		}
+		before := clone(m.draft)
+		m, cmd := press(m, "enter")
+		if cmd != nil || m.page != page || reflect.DeepEqual(m.draft, before) {
+			t.Fatalf("page %d: Enter did not toggle the focused option in place", page)
+		}
+		selected := clone(m.draft)
+		if page > 0 {
+			m, cmd = press(m, "backspace")
+			if cmd != nil || m.page != page-1 || !reflect.DeepEqual(m.draft, selected) {
+				t.Fatalf("page %d: Backspace did not return while preserving choices", page)
+			}
+		}
+		if len(b.calls) != 0 {
+			t.Fatal("selection or navigation performed I/O")
+		}
+	}
+}
+
 func TestDirtyDeparture(t *testing.T) {
-	for _, key := range []string{"esc", "q", "ctrl+c"} {
+	for _, key := range []string{"backspace", "esc", "q", "ctrl+c"} {
 		t.Run(key, func(t *testing.T) {
 			m, _ := readyModel(t, false)
 			m.draft.Concise = true
 			m, cmd := press(m, key)
 			// Ignore frame characters and wrapping when checking visible wording.
-			visible := strings.ReplaceAll(ansi.Strip(m.View().Content), "│", "")
+			boxWidth := min(72, m.width)
+			left := (m.width - boxWidth) / 2
+			var dialog strings.Builder
+			for _, line := range strings.Split(m.View().Content, "\n") {
+				dialog.WriteString(ansi.Cut(ansi.Strip(line), left, left+boxWidth))
+			}
+			visible := strings.ReplaceAll(dialog.String(), "│", "")
 			visible = strings.Join(strings.Fields(visible), "")
 			prompt := strings.Join(strings.Fields(unsavedPrompt), "")
 			if !m.unsaved || cmd != nil || !strings.Contains(visible, prompt) {
 				t.Fatal("missing exact unsaved prompt")
 			}
-			canceled, cmd := press(m, "esc")
+			canceled, cmd := press(m, "backspace")
 			if canceled.unsaved || !canceled.dirty() || cmd != nil {
 				t.Fatal("cancel lost draft")
 			}
@@ -118,13 +150,69 @@ func TestDirtyDeparture(t *testing.T) {
 			if m.dirty() {
 				t.Fatal("discard did not restore saved values")
 			}
-			if key == "esc" && m.page != -1 {
+			if (key == "backspace" || key == "esc") && m.page != -1 {
 				t.Fatal("did not navigate back")
 			}
-			if key != "esc" && cmd == nil {
+			if key != "backspace" && key != "esc" && cmd == nil {
 				t.Fatal("did not quit")
 			}
 		})
+	}
+}
+
+func TestQuitWithoutGenuineChanges(t *testing.T) {
+	for _, scenario := range []string{"fresh defaults", "saved settings", "equivalent lists", "restored provider", "restored skill", "navigation only"} {
+		t.Run(scenario, func(t *testing.T) {
+			b := &fakeBackend{}
+			m := newModel(b, t.TempDir())
+			loaded := loadedMsg{catalog: selectionCatalog()}
+			if scenario != "fresh defaults" {
+				loaded.installed = true
+				loaded.status.Desired = settings{Providers: []string{"claude", "codex"}, Requested: []string{"commit-message"}}
+			}
+			next, _ := m.Update(loaded)
+			m = next.(model)
+			switch scenario {
+			case "equivalent lists":
+				m.draft.Providers = []string{"codex", "claude"}
+				m.draft.Retained = []string{}
+			case "restored provider":
+				m.page, m.cursor = 0, 0
+				m, _ = press(m, "enter")
+				m, _ = press(m, "enter")
+			case "restored skill":
+				m.toggleSkill("ticket-to-plan")
+				m.toggleSkill("ticket-to-plan")
+			case "navigation only":
+				m.page = 1
+				m, _ = press(m, "down")
+				m, _ = press(m, "right")
+			}
+			m, cmd := press(m, "q")
+			if m.unsaved || m.dirty() || cmd == nil || len(b.calls) != 0 {
+				t.Fatal("unchanged settings prompted or performed I/O instead of quitting")
+			}
+			if _, ok := cmd().(tea.QuitMsg); !ok {
+				t.Fatal("quit command was not returned")
+			}
+		})
+	}
+}
+
+func TestFreshSetupPromptsOnlyAfterEditing(t *testing.T) {
+	m := newModel(&fakeBackend{}, t.TempDir())
+	next, _ := m.Update(loadedMsg{catalog: selectionCatalog()})
+	m = next.(model)
+	m, _ = press(m, "enter")
+	m, cmd := press(m, "q")
+	if !m.unsaved || cmd != nil {
+		t.Fatal("fresh setup edit did not prompt")
+	}
+	m, _ = press(m, "backspace")
+	m, _ = press(m, "enter")
+	m, cmd = press(m, "q")
+	if m.unsaved || cmd == nil {
+		t.Fatal("restoring fresh defaults still prompted")
 	}
 }
 
@@ -185,7 +273,7 @@ func TestWizardQuitSaveReturnsToReview(t *testing.T) {
 }
 
 func TestRemovalConfirmationDeferredAndCanceled(t *testing.T) {
-	for _, key := range []string{"enter", "n", "esc"} {
+	for _, key := range []string{"enter", "n", "backspace", "esc"} {
 		t.Run(key, func(t *testing.T) {
 			m, b := readyModel(t, false)
 			m.draft.Concise = true

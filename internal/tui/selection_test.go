@@ -43,7 +43,7 @@ func TestFreshProvidersAndStarter(t *testing.T) {
 
 			for _, id := range providers {
 				m.cursor = slices.Index(providerIDs, id)
-				m, _ = press(m, "space")
+				m, _ = press(m, "enter")
 			}
 			m, cmd = press(m, "tab")
 			if cmd != nil || m.page != 1 || len(m.draft.Providers) != len(providers) {
@@ -69,20 +69,21 @@ func TestBundlesChildrenAndRequiredHelpers(t *testing.T) {
 	m, b := readyModel(t, false)
 	m.catalog, m.page = selectionCatalog(), 1
 	rows := m.skillRows()
-	if len(rows) != 3 || rows[0].category != "productivity" {
+	if len(rows) != 4 || !rows[0].all || rows[1].category != "productivity" {
 		t.Fatal("categories not grouped")
 	}
+	m, _ = press(m, "down")
 	m, _ = press(m, "right")
-	if len(m.skillRows()) != 5 {
+	if len(m.skillRows()) != 6 {
 		t.Fatal("category did not expand")
 	}
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	if m.selected()["commit-message"] == "" || m.selected()["concise-output"] == "" {
 		t.Fatal("bundle did not select children")
 	}
 	m, _ = press(m, "down")
-	m, _ = press(m, "space")
-	if m.selected()["commit-message"] != "" || strings.Contains(m.selectionLines()[3], "[x]") {
+	m, _ = press(m, "enter")
+	if m.selected()["commit-message"] != "" || strings.Contains(m.selectionLines()[4], "[x]") {
 		t.Fatal("child deselection did not clear bundle checkbox")
 	}
 
@@ -106,6 +107,30 @@ func TestBundlesChildrenAndRequiredHelpers(t *testing.T) {
 	m.toggleSkill("plan-review")
 	if m.selected()["plan-review"] != "" || !slices.Contains(m.removed, "plan-review") {
 		t.Fatal("unused helper cannot be explicitly removed")
+	}
+}
+
+func TestSelectAllRow(t *testing.T) {
+	for _, key := range []string{"enter", "a"} {
+		t.Run(key, func(t *testing.T) {
+			m, b := readyModel(t, false)
+			m.catalog, m.page = selectionCatalog(), 1
+			m.draft.Requested = []string{"commit-message"}
+			if !strings.Contains(m.selectionLines()[3], "> Select all skills") {
+				t.Fatal("missing focused select-all action above categories")
+			}
+			m, cmd := press(m, key)
+			if cmd != nil || len(m.selected()) != len(m.catalog.Skills) || !strings.Contains(m.selectionLines()[3], "> Deselect all skills") {
+				t.Fatal("select-all did not select the catalog and update its label")
+			}
+			m, cmd = press(m, key)
+			if cmd != nil || len(m.selected()) != 0 || !strings.Contains(m.selectionLines()[3], "> Select all skills") {
+				t.Fatal("deselect-all did not clear choices and restore its label")
+			}
+			if len(b.calls) != 0 {
+				t.Fatal("bulk selection applied changes before save")
+			}
+		})
 	}
 }
 

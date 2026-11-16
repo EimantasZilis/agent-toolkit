@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"reflect"
+	"slices"
 	"syscall"
 
 	tea "charm.land/bubbletea/v2"
@@ -38,6 +38,7 @@ type model struct {
 	loaded, wizard, busy        bool
 	page, cursor, width, height int
 	saved, draft                settings
+	initial                     *settings
 	catalog                     response
 	status                      response
 	removed                     []string
@@ -58,32 +59,19 @@ type model struct {
 	createOutput                bool
 	scroll                      int
 	manualScroll                bool
+	reviewDetails               bool
 	conflictReview              bool
-	themeIndex                  int
 }
 
 type uiTheme struct {
-	name                                    string
 	accent, heading, selectedFG, selectedBG string
 	error, notice, warning, muted           string
 }
 
-var uiThemes = []uiTheme{
-	{
-		name: "Midnight", accent: "#89DDFF", heading: "#C792EA",
-		selectedFG: "#F8F8F2", selectedBG: "#34495E", error: "#FF6B6B",
-		notice: "#A6E3A1", warning: "#F9C74F", muted: "#7F849C",
-	},
-	{
-		name: "Ocean", accent: "#80CBC4", heading: "#82AAFF",
-		selectedFG: "#102A43", selectedBG: "#B2DFDB", error: "#C62828",
-		notice: "#2E7D32", warning: "#8D6E00", muted: "#52606D",
-	},
-	{
-		name: "Daylight", accent: "#005F87", heading: "#7F3FBF",
-		selectedFG: "#17212B", selectedBG: "#D9E9F2", error: "#B42318",
-		notice: "#207547", warning: "#8B5E00", muted: "#5D6873",
-	},
+var defaultTheme = uiTheme{
+	accent: "#89DDFF", heading: "#C792EA",
+	selectedFG: "#F8F8F2", selectedBG: "#34495E", error: "#FF6B6B",
+	notice: "#A6E3A1", warning: "#F9C74F", muted: "#7F849C",
 }
 
 // Run starts the source TUI with real terminal descriptors. Mutations finish
@@ -155,7 +143,38 @@ func clone(s settings) settings {
 }
 
 func (m model) dirty() bool {
-	return !reflect.DeepEqual(m.saved, m.draft) || len(m.removed) > 0 || m.globalOutput != (m.saved.Output != "")
+	baseline := m.originalSettings()
+	if !sameNames(baseline.Providers, m.draft.Providers) ||
+		!sameNames(baseline.Requested, m.draft.Requested) ||
+		!sameNames(baseline.Retained, m.draft.Retained) ||
+		baseline.Output != m.draft.Output || baseline.Concise != m.draft.Concise ||
+		baseline.FullTemplate != m.draft.FullTemplate || m.globalOutput != (baseline.Output != "") {
+		return true
+	}
+	for _, inventory := range []map[string][]string{m.status.Observed, m.status.Applied} {
+		for _, names := range inventory {
+			for _, name := range m.removed {
+				if slices.Contains(names, name) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (m model) originalSettings() settings {
+	if m.wizard && m.initial != nil {
+		return *m.initial
+	}
+	return m.saved
+}
+
+func sameNames(a, b []string) bool {
+	a, b = slices.Clone(a), slices.Clone(b)
+	slices.Sort(a)
+	slices.Sort(b)
+	return slices.Equal(slices.Compact(a), slices.Compact(b))
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -191,6 +210,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.wizard {
 			m.globalOutput = true
 			m.draft.Output = m.outputPath
+			initial := clone(m.draft)
+			m.initial = &initial
 		}
 		return m, nil
 	case resultMsg:
@@ -215,17 +236,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	if m.busy {
 		return m, nil
 	}
-	if key == "t" || key == "T" {
-		step := 1
-		if key == "T" {
-			step = -1
-		}
-		m.themeIndex = (m.themeIndex + step + len(uiThemes)) % len(uiThemes)
-		m.notice = "Theme: " + uiThemes[m.themeIndex].name
-		return m, nil
-	}
 	if m.editingPath {
 		return m.editPath(key)
+	}
+	if key == "esc" {
+		key = "backspace"
 	}
 	if m.conflictReview {
 		switch key {
@@ -237,7 +252,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			m.scroll = max(0, m.viewOffset()+step)
 			m.manualScroll = true
 			return m, nil
-		case "esc", "enter", "q", "ctrl+c":
+		case "backspace", "enter", "q", "ctrl+c":
 			m.conflictReview = false
 			m.err, m.notice = "", "Nothing applied; draft preserved."
 			m.scroll, m.manualScroll = 0, false
@@ -252,6 +267,9 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		}
 	}
 	if key == "pgdown" || key == "pgup" {
+		if m.unsaved {
+			return m, nil
+		}
 		m.scroll = m.viewOffset()
 		_, height := m.viewportSize()
 		step := max(1, height-1)
@@ -259,6 +277,15 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			step = -step
 		}
 		m.scroll = max(0, m.scroll+step)
+		m.manualScroll = true
+		return m, nil
+	}
+	if len(m.dialogs) > 0 && m.reviewDetails && (key == "up" || key == "down" || key == "k" || key == "j") {
+		step := 1
+		if key == "up" || key == "k" {
+			step = -1
+		}
+		m.scroll = max(0, m.viewOffset()+step)
 		m.manualScroll = true
 		return m, nil
 	}
@@ -285,23 +312,29 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			return m.startSave()
 		case "d", "D":
 			m.unsaved = false
-			m.draft = clone(m.saved)
+			m.draft = clone(m.originalSettings())
 			m.removed = nil
 			m.syncOutput()
 			return m.leave()
-		case "esc":
+		case "backspace":
 			m.unsaved = false
 			m.depart = false
 		}
 		return m, nil
 	}
 	if len(m.dialogs) > 0 {
+		if key == "v" {
+			m.reviewDetails = !m.reviewDetails
+			m.scroll, m.manualScroll = 0, m.reviewDetails
+			return m, nil
+		}
 		if key == "y" || key == "Y" {
 			m.dialogs = m.dialogs[1:]
+			m.reviewDetails = false
 			if len(m.dialogs) == 0 {
 				return m.apply()
 			}
-		} else if key == "n" || key == "enter" || key == "esc" {
+		} else if key == "n" || key == "enter" || key == "backspace" {
 			m.dialogs = nil
 			m.depart = false
 			m.notice = "Save canceled; draft preserved."
@@ -314,7 +347,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	if key == "ctrl+c" || key == "q" {
 		return m.navigate(-2)
 	}
-	if key == "esc" {
+	if key == "backspace" {
 		if m.page == managementPage {
 			return m.navigate(-2)
 		}
@@ -370,16 +403,14 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		m.depart = false
 		return m.startSave()
 	}
-	if key == "tab" || key == "enter" {
-		if key == "enter" && m.page == 2 && m.globalOutput && m.cursor == 2 {
-			m.editingPath = true
-			m.originalPath = m.outputPath
-			m.pathCursor = len([]rune(m.outputPath))
-			return m, nil
-		}
-		if m.wizard && m.page < 4 {
-			return m.navigate(m.page + 1)
-		}
+	if key == "enter" && m.page == 2 && m.globalOutput && m.cursor == 2 {
+		m.editingPath = true
+		m.originalPath = m.outputPath
+		m.pathCursor = len([]rune(m.outputPath))
+		return m, nil
+	}
+	if key == "tab" && m.wizard && m.page < 4 {
+		return m.navigate(m.page + 1)
 	}
 	return m.edit(key)
 }
@@ -426,8 +457,13 @@ func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
 		m.depart = false
 		return m, nil
 	}
+	if intent == install.Configure {
+		enabled := m.guidanceEnabled()
+		m.draft.Concise, m.draft.FullTemplate = enabled, enabled
+	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
 	m.preview = response{}
+	m.reviewDetails = false
 	m.createOutput = missing
 	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
 	if intent == install.Migrate {
@@ -462,6 +498,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	}
 	if msg.action == "preview" {
 		m.preview = msg.response
+		m.reviewDetails = false
 		m.notice = "Review the proposed changes before accepting."
 		if len(m.preview.Conflicts) > 0 {
 			m.err = "Resolve ownership conflicts before applying:"
@@ -479,6 +516,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	}
 	intent := m.applyRequest.Intent
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
+	m.initial = nil
 	m.syncOutput()
 	m.status = msg.response
 	m.removed, m.preview, m.applyRequest = nil, response{}, install.Request{}
@@ -499,6 +537,8 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 		}
 		m.globalOutput = true
 		m.draft.Output = m.outputPath
+		initial := clone(m.draft)
+		m.initial = &initial
 		m.notice = "Managed installation removed. Start a new agent session. Setup is ready for a new installation."
 		return m, nil
 	}
@@ -562,11 +602,18 @@ func (m model) edit(key string) (tea.Model, tea.Cmd) {
 
 func (m model) viewLines() []string {
 	if m.conflictReview {
-		lines := []string{"Installation blocked. Nothing applied.", "Esc or Enter returns; Up/Down or Page Up/Page Down scroll.", ""}
+		lines := []string{"Installation blocked. Nothing applied.", "Esc, ⌫ or ↵ returns; Up/Down or Page Up/Page Down scroll.", ""}
 		if m.status.Linked && m.applyRequest.Intent != install.Migrate {
 			lines = append(lines, "Legacy linked skills require migration before configure, refresh, or uninstall.", "Return to the management menu and choose Migrate linked installation.", "")
 		}
 		return append(lines, m.err)
+	}
+	if len(m.dialogs) > 0 {
+		lines := m.reviewSummaryLines()
+		if m.reviewDetails {
+			lines = m.operationLines()
+		}
+		return append(lines, "", m.dialogs[0].text, "↵/No/Esc/⌫ cancels; y confirms")
 	}
 	lines := []string{}
 	if !m.loaded {
@@ -589,14 +636,6 @@ func (m model) viewLines() []string {
 			if message != "" {
 				lines = append(lines, "", message)
 			}
-		}
-		if m.unsaved {
-			lines = append(lines, "", unsavedPrompt, "Esc cancels")
-		}
-		if len(m.dialogs) > 0 {
-			lines = append(lines, "")
-			lines = append(lines, m.operationLines()...)
-			lines = append(lines, m.dialogs[0].text, "Enter/No/Esc cancels; y confirms")
 		}
 	}
 	return lines
@@ -659,7 +698,7 @@ func (m model) pageLines() []string {
 		return m.selectionLines()
 	}
 	if m.page == 4 {
-		return []string{fmt.Sprintf("Providers: %v\nSkills: %v\nOutput: %s\nConcise loading: %t\nFull guidance: %t\nPress s to preview and apply setup.", m.draft.Providers, m.draft.Requested, m.outputSummary(), m.draft.Concise, m.draft.FullTemplate)}
+		return []string{fmt.Sprintf("Providers: %v\nSkills selected: %d\nOutput: %s\nGlobal guidance and concise-output: %t\nPress s to preview and apply setup.", m.draft.Providers, len(m.selected()), m.outputSummary(), m.guidanceEnabled())}
 	}
 	return m.settingsLines()
 }

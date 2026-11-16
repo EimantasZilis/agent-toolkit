@@ -70,17 +70,17 @@ func SmokeSource(ctx context.Context, source string) error {
 	if err != nil {
 		return err
 	}
-	for _, theme := range []string{"Midnight", "SourceChanged"} {
-		if theme == "SourceChanged" {
-			path := filepath.Join(root, "internal/tui/model.go")
+	for _, title := range []string{"agent-toolkit · setup and settings", "SourceChanged"} {
+		if title == "SourceChanged" {
+			path := filepath.Join(root, "internal/tui/view.go")
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
-			if !strings.Contains(string(data), "Midnight") {
-				return fmt.Errorf("source smoke theme fixture is missing")
+			if !strings.Contains(string(data), "agent-toolkit · setup and settings") {
+				return fmt.Errorf("source smoke title fixture is missing")
 			}
-			if err := os.WriteFile(path, []byte(strings.ReplaceAll(string(data), "Midnight", theme)), 0644); err != nil {
+			if err := os.WriteFile(path, []byte(strings.ReplaceAll(string(data), "agent-toolkit · setup and settings", title)), 0644); err != nil {
 				return err
 			}
 		}
@@ -90,7 +90,7 @@ func SmokeSource(ctx context.Context, source string) error {
 		quitting, discarded := false, false
 		output, err := testutil.RunTerminal(launch, cmd, func(output string) string {
 			plain := ansi.Strip(output)
-			if !quitting && strings.Contains(plain, "LLM providers") && strings.Contains(plain, "q quit") && strings.Contains(plain, theme) {
+			if !quitting && strings.Contains(plain, "LLM providers") && strings.Contains(plain, "q quit") && strings.Contains(plain, title) {
 				quitting = true
 				return "q"
 			}
@@ -105,7 +105,7 @@ func SmokeSource(ctx context.Context, source string) error {
 			if len(output) > 4000 {
 				output = output[len(output)-4000:]
 			}
-			return fmt.Errorf("source startup/quit failed (%s, quit=%t): %v\n%s", theme, quitting, err, output)
+			return fmt.Errorf("source startup/quit failed (%s, quit=%t): %v\n%s", title, quitting, err, output)
 		}
 		after, err := testutil.Fingerprint(watched...)
 		if err != nil {

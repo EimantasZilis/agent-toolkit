@@ -51,7 +51,7 @@ func TestLongConflictReviewCanScrollAndReturn(t *testing.T) {
 			if !strings.Contains(m.View().Content, "skill-39") {
 				t.Fatal("last conflicting path is unreachable")
 			}
-			m, cmd = press(m, "esc")
+			m, cmd = press(m, "backspace")
 			if cmd != nil || m.conflictReview || m.err != "" || m.page != managementPage || !reflect.DeepEqual(m.draft, before) || len(b.calls) != 0 {
 				t.Fatal("back did not restore menu and preserve draft without I/O")
 			}
@@ -184,17 +184,16 @@ func TestSetupCanForgetUnavailableSavedSkill(t *testing.T) {
 	}
 }
 
-func TestFullGuidanceToggleIsSeparate(t *testing.T) {
+func TestGlobalGuidanceToggleControlsBothFeatures(t *testing.T) {
 	m, _ := readyModel(t, false)
 	m.page = 3
-	m, _ = press(m, "space")
+	m, _ = press(m, "enter")
 	m, _ = press(m, "down")
-	m, _ = press(m, "space")
-	if !m.draft.Concise || !m.draft.FullTemplate {
-		t.Fatal("settings did not enable independently")
+	if m.cursor != 0 || !m.draft.Concise || !m.draft.FullTemplate {
+		t.Fatal("combined setting did not enable both features or retained an extra row")
 	}
-	m, _ = press(m, "space")
-	if !m.draft.Concise || m.draft.FullTemplate {
-		t.Fatal("full guidance changed concise loading")
+	m, _ = press(m, "enter")
+	if m.draft.Concise || m.draft.FullTemplate {
+		t.Fatal("combined setting did not disable both features")
 	}
 }
