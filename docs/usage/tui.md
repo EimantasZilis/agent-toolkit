@@ -55,10 +55,13 @@ location of retained backups.
 While editing a path, Backspace deletes the previous character. Esc or Ctrl+C restores
 the original path and leaves editing.
 
-The header and footer stay visible while content scrolls. At 110 columns or
-wider, Skills shows selection details beside the list. Smaller terminals show
-the details below it. Partially selected categories use `[-]` and show selection
-counts. Review keeps its confirmation visible while paths and diffs scroll.
+The header and footer stay visible while content scrolls. At 150 columns or
+wider, Skills shows three panes: the skill list, its description, and selection
+details. Descriptions come from each skill’s `SKILL.md` metadata and change as
+you move through the list. At 110–149 columns, the description and selection
+details share a pane beside the list. Smaller terminals show them below it. Long
+descriptions wrap to the pane width; an ellipsis marks text that does not fit.
+Partially selected categories use `[-]` and show selection counts. Review keeps its confirmation visible while paths and diffs scroll.
 
 ## Settings
 

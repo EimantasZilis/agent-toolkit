@@ -249,7 +249,7 @@ func (m model) selectionLines() []string {
 		text := ""
 		if r.name != "" {
 			text = "  " + check(roles[r.name] != "") + r.name
-			if roles[r.name] != "" {
+			if roles[r.name] == "required" || roles[r.name] == "retained" {
 				text += " (" + roles[r.name] + ")"
 			}
 		} else {

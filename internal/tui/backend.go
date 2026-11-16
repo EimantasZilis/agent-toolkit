@@ -15,8 +15,8 @@ type operation = install.Operation
 type selection = install.Selection
 
 type skill struct {
-	Name, Category string
-	Helpers        []string
+	Name, Category, Description string
+	Helpers                     []string
 }
 type bundle struct {
 	Name   string
@@ -50,7 +50,7 @@ type backend interface {
 func catalogResponse(c *catalog.Catalog) response {
 	r := response{}
 	for _, s := range c.Skills {
-		r.Skills = append(r.Skills, skill{s.Name, s.Category, s.Helpers})
+		r.Skills = append(r.Skills, skill{Name: s.Name, Category: s.Category, Description: s.Description, Helpers: s.Helpers})
 	}
 	for _, name := range c.BundleNames() {
 		r.Bundles = append(r.Bundles, bundle{name, c.Bundles[name]})

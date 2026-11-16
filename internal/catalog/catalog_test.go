@@ -111,3 +111,30 @@ func TestInvalidRegistries(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadSkillDescriptions(t *testing.T) {
+	for _, tc := range []struct{ metadata, want string }{
+		{"description: A short explanation.", "A short explanation."},
+		{"description: >-\n  Create a plan\n  from a ticket.", "Create a plan from a ticket."},
+		{"description: |\n  First line.\n  Second line.", "First line. Second line."},
+		{`description: "Quoted description."`, "Quoted description."},
+		{`description: 'It''s a skill.'`, "It's a skill."},
+		{"", ""},
+	} {
+		t.Run(tc.metadata, func(t *testing.T) {
+			root := fixture(t)
+			writeFixture(t, root, "skills/a/one/SKILL.md", "---\nname: one\n"+tc.metadata+"\n---\nBody text must not become the description.")
+			c, err := Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			one, err := c.Lookup("one")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if one.Description != tc.want {
+				t.Fatalf("description = %q, want %q", one.Description, tc.want)
+			}
+		})
+	}
+}

@@ -34,10 +34,9 @@ func (m model) viewportSize() (width, height int) {
 		return max(1, m.width), max(1, m.height-1)
 	}
 	if len(m.skillDetails()) > 0 {
-		if m.width >= 110 {
-			width -= 37
-		} else {
-			height -= 4
+		width, _, _ = m.skillPaneWidths()
+		if m.width < 110 {
+			height -= m.skillPanelHeight() + 1
 		}
 	}
 	return max(1, width), max(1, height)
@@ -92,14 +91,30 @@ func (m model) View() tea.View {
 	bodyWidth := inner
 	details := m.skillDetails()
 	split := width >= 110 && len(details) > 0
+	_, descriptionWidth, detailsWidth := m.skillPaneWidths()
 	if split {
-		bodyWidth = inner - 37
+		bodyWidth, _, _ = m.skillPaneWidths()
 	}
 	bodyHeight := height - 8
 	if len(details) > 0 && !split {
-		bodyHeight -= 4
+		bodyHeight -= m.skillPanelHeight() + 1
 	}
 	bodyHeight = max(1, bodyHeight)
+	var description []string
+	if split {
+		description = m.skillDescriptionRows(descriptionWidth)
+		limit := bodyHeight
+		if detailsWidth == 0 {
+			limit -= len(details) + 1
+		}
+		description = clippedRows(description, max(1, limit), descriptionWidth)
+	}
+	if split && detailsWidth == 0 {
+		description = append(description, "")
+		for i, detail := range details {
+			description = append(description, m.detailLine(detail, i))
+		}
+	}
 	rows := m.bodyRows(bodyWidth)
 	start := min(m.scroll, max(0, len(rows)-bodyHeight))
 	if !m.manualScroll {
@@ -122,23 +137,38 @@ func (m model) View() tea.View {
 		}
 		if split {
 			detail := ""
-			if i < len(details) {
-				detail = m.detailLine(details[i], i)
+			if i < len(description) {
+				detail = description[i]
 			}
-			text = padLine(text, bodyWidth) + " " + border + " " + padLine(detail, 34)
+			text = padLine(text, bodyWidth) + " " + border + " " + padLine(detail, descriptionWidth)
+			if detailsWidth > 0 {
+				detail = ""
+				if i < len(details) {
+					detail = m.detailLine(details[i], i)
+				}
+				text += " " + border + " " + padLine(detail, detailsWidth)
+			}
 		}
 		out = append(out, line(text))
 	}
 	if len(details) > 0 && !split {
 		out = append(out, rule("├", "┤"))
-		for i := 0; i < 3; i++ {
+		panel := clippedRows(m.skillDescriptionRows(inner), m.skillPanelHeight()-2, inner)
+		for i, detail := range details[1:] {
+			panel = append(panel, m.detailLine(detail, i+1))
+		}
+		for i := 0; i < m.skillPanelHeight(); i++ {
 			text := ""
-			if i < len(details) {
-				text = m.detailLine(details[i], i)
+			if i < len(panel) {
+				text = panel[i]
+			}
+			if i == m.skillPanelHeight()-1 && len(panel) > i+1 {
+				text = ansi.Truncate(text, inner-1, "") + "…"
 			}
 			out = append(out, line(text))
 		}
 	}
+
 	status := "Saved configuration"
 	if m.wizard {
 		status = "Setup · Choose providers, skills, output, and guidance"
@@ -366,6 +396,57 @@ func (m model) detailLine(line string, index int) string {
 	return m.style(line, "muted")
 }
 
+func clippedRows(rows []string, height, width int) []string {
+	if len(rows) <= height {
+		return rows
+	}
+	rows = append([]string(nil), rows[:height]...)
+	rows[height-1] = ansi.Truncate(rows[height-1], max(0, width-1), "") + "…"
+	return rows
+}
+
+func (m model) skillPaneWidths() (list, description, details int) {
+	inner := max(1, m.width-4)
+	if m.width >= 150 {
+		list = min(56, inner/3)
+		return list, inner - list - 40, 34
+	}
+	if m.width >= 110 {
+		return inner - 37, 34, 0
+	}
+	return inner, 0, 0
+}
+
+func (m model) skillPanelHeight() int {
+	return min(10, max(4, (m.height-8)/2))
+}
+
+func (m model) skillDescriptionRows(width int) []string {
+	rows := m.skillRows()
+	if m.cursor < 0 || m.cursor >= len(rows) {
+		return nil
+	}
+	r := rows[m.cursor]
+	description := "Select a skill to read what it does."
+	if r.name != "" {
+		description = "No description available."
+		for _, item := range m.catalog.Skills {
+			if item.Name == r.name && strings.TrimSpace(item.Description) != "" {
+				description = item.Description
+				break
+			}
+		}
+	}
+	// Escape metadata before adding our own ANSI styles or wrapping it.
+	text := strings.Join(strings.Fields(terminalText(description)), " ")
+	wrapped := strings.Split(ansi.Wrap(text, width, ""), "\n")
+	out := []string{m.sectionHeading("Description", width), ""}
+	for _, row := range wrapped {
+		out = append(out, m.style(row, "value"))
+	}
+	return out
+}
+
 func (m model) skillDetails() []string {
 	if m.height < 14 || m.page != 1 || m.unsaved || m.conflictReview || m.help || len(m.dialogs) > 0 {
 		return nil
@@ -399,7 +480,11 @@ func (m model) skillDetails() []string {
 	if role == "automatic" {
 		reason = "Enabled by global guidance"
 	}
-	return []string{r.name, "Selection: " + role, reason}
+	status := role
+	if role == "requested" || role == "automatic" {
+		status = "Selected"
+	}
+	return []string{r.name, "Selection: " + status, reason}
 }
 
 func (m model) unsavedOverlay(background string) string {

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -82,7 +83,7 @@ func TestWorkspaceTabsPreserveDraftAndFocus(t *testing.T) {
 }
 
 func TestWorkspaceFitsAndKeepsActionsVisible(t *testing.T) {
-	for _, size := range [][2]int{{80, 24}, {120, 35}, {40, 12}} {
+	for _, size := range [][2]int{{24, 14}, {80, 24}, {109, 24}, {110, 24}, {120, 35}, {149, 24}, {150, 24}, {180, 35}, {40, 12}} {
 		m, _ := readyModel(t, false)
 		m.width, m.height, m.page = size[0], size[1], 1
 		m.catalog = selectionCatalog()
@@ -192,6 +193,85 @@ func TestSharedPresentationFitsEveryScreen(t *testing.T) {
 					}
 				}
 			})
+		}
+	}
+}
+
+func TestSkillDescriptionFollowsFocus(t *testing.T) {
+	c, err := catalog.Load("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, width := range []int{80, 120, 180} {
+		m, _ := readyModel(t, false)
+		m.width, m.height, m.page = width, 35, 1
+		m.catalog = catalogResponse(c)
+		for _, item := range m.catalog.Skills {
+			m.expanded[item.Category] = true
+		}
+		for _, name := range []string{"commit-message", "ticket-to-plan"} {
+			for i, row := range m.skillRows() {
+				if row.name == name {
+					m.cursor = i
+				}
+			}
+			item, err := c.Lookup(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			content := ansi.Strip(m.View().Content)
+			phrase := strings.Join(strings.Fields(item.Description)[:5], " ")
+			if !strings.Contains(content, "Description") || !strings.Contains(content, phrase) {
+				t.Fatalf("description for %s missing at width %d", name, width)
+			}
+		}
+		if width >= 150 && strings.Count(strings.Split(ansi.Strip(m.View().Content), "\n")[4], "│") != 4 {
+			t.Fatal("wide Skills view does not have three panes")
+		}
+		for i, row := range m.skillRows() {
+			if row.name == "" {
+				m.cursor = i
+				break
+			}
+		}
+		if !strings.Contains(ansi.Strip(m.View().Content), "Select a skill") {
+			t.Fatal("category focus left a stale description")
+		}
+	}
+}
+
+func TestSkillDescriptionEscapesControlsAndHandlesMissingMetadata(t *testing.T) {
+	m, _ := readyModel(t, false)
+	m.catalog, m.page, m.width, m.height = selectionCatalog(), 1, 180, 35
+	for _, item := range m.catalog.Skills {
+		m.expanded[item.Category] = true
+	}
+	for i, row := range m.skillRows() {
+		if row.name == "ticket-to-plan" {
+			m.cursor = i
+		}
+	}
+	if !strings.Contains(ansi.Strip(m.View().Content), "No description available.") {
+		t.Fatal("missing description has no fallback")
+	}
+	m.catalog.Skills[0].Description = "Text with \x1b[31m control."
+	if !strings.Contains(ansi.Strip(m.View().Content), `\x1b[31m`) {
+		t.Fatal("description interpreted a terminal control")
+	}
+	m.catalog.Skills[0].Description = strings.Repeat("説明 long description with words. ", 100)
+	for _, width := range []int{40, 80, 110, 150, 180} {
+		m.width, m.height = width, 24
+		content := m.View().Content
+		if !strings.Contains(ansi.Strip(content), "…") {
+			t.Fatalf("clipped description has no ellipsis at width %d", width)
+		}
+		for _, row := range strings.Split(content, "\n") {
+			if ansi.StringWidth(row) > width {
+				t.Fatalf("long description exceeds width %d", width)
+			}
+		}
+		if !strings.Contains(ansi.Strip(content), "Selection:") {
+			t.Fatalf("long description hid selection details at width %d", width)
 		}
 	}
 }

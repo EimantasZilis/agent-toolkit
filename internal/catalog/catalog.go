@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,7 @@ var identity = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 // Skill identifies a source directory and its provider metadata.
 type Skill struct {
 	Name, Category, Key, Source, CodexAdapter string
+	Description                               string
 	Helpers                                   []string
 	Output, Explicit                          bool
 }
@@ -55,7 +57,11 @@ func Load(root string) (*Catalog, error) {
 		}
 		key := category + "/" + name
 		c.byName[name] = len(c.Skills)
-		c.Skills = append(c.Skills, Skill{Name: name, Category: category, Key: key, Source: source})
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read skill %s: %w", key, err)
+		}
+		c.Skills = append(c.Skills, Skill{Name: name, Category: category, Key: key, Source: source, Description: skillDescription(string(data))})
 		c.Bundles[category] = append(c.Bundles[category], name)
 		c.Bundles["all"] = append(c.Bundles["all"], name)
 	}
@@ -234,4 +240,45 @@ func (c *Catalog) Select(selection string, concise bool) ([]string, error) {
 		}
 	}
 	return selected, nil
+}
+
+// skillDescription reads the source format's plain, quoted, or indented block
+// description. Missing descriptions leave browsing available for draft skills.
+func skillDescription(text string) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	if !strings.HasPrefix(text, "---\n") {
+		return ""
+	}
+	front, _, ok := strings.Cut(strings.TrimPrefix(text, "---\n"), "\n---")
+	if !ok {
+		return ""
+	}
+	lines := strings.Split(front, "\n")
+	for i, line := range lines {
+		value, found := strings.CutPrefix(line, "description:")
+		if !found {
+			continue
+		}
+		value = strings.TrimSpace(value)
+		if value == ">" || value == ">-" || value == ">+" || value == "|" || value == "|-" || value == "|+" {
+			var parts []string
+			for _, next := range lines[i+1:] {
+				if next != "" && !strings.HasPrefix(next, " ") && !strings.HasPrefix(next, "\t") {
+					break
+				}
+				parts = append(parts, strings.TrimSpace(next))
+			}
+			return strings.Join(strings.Fields(strings.Join(parts, " ")), " ")
+		}
+		if strings.HasPrefix(value, `"`) {
+			if decoded, err := strconv.Unquote(value); err == nil {
+				return decoded
+			}
+		}
+		if strings.HasPrefix(value, "'") && strings.HasSuffix(value, "'") && len(value) >= 2 {
+			return strings.ReplaceAll(value[1:len(value)-1], "''", "'")
+		}
+		return value
+	}
+	return ""
 }
