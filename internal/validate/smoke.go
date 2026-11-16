@@ -70,17 +70,17 @@ func SmokeSource(ctx context.Context, source string) error {
 	if err != nil {
 		return err
 	}
-	for _, title := range []string{"agent-toolkit · setup and settings", "SourceChanged"} {
+	for _, title := range []string{"agent-toolkit", "SourceChanged"} {
 		if title == "SourceChanged" {
 			path := filepath.Join(root, "internal/tui/view.go")
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
-			if !strings.Contains(string(data), "agent-toolkit · setup and settings") {
+			if !strings.Contains(string(data), "agent-toolkit") {
 				return fmt.Errorf("source smoke title fixture is missing")
 			}
-			if err := os.WriteFile(path, []byte(strings.ReplaceAll(string(data), "agent-toolkit · setup and settings", title)), 0644); err != nil {
+			if err := os.WriteFile(path, []byte(strings.ReplaceAll(string(data), "agent-toolkit", title)), 0644); err != nil {
 				return err
 			}
 		}

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/EimantasZilis/agent-toolkit/internal/install"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func previewAction(t *testing.T, m model, intent install.Intent) model {
@@ -280,7 +281,7 @@ func TestReviewDefaultsToCompactSummary(t *testing.T) {
 	m.dialogs = []dialog{{"Create the Markdown output directory?\n/tmp/output\n[y/N]"}, {"Apply the reviewed changes? [y/N]"}}
 	before := m.View().Content
 	for _, text := range []string{"Review changes", "Codex, Claude Code", "Skills selected: 100", "Changed paths: 100", "Create the Markdown output directory?", "[y/N]", "v view details"} {
-		if !strings.Contains(before, text) {
+		if !strings.Contains(ansi.Strip(before), text) {
 			t.Fatalf("compact review hides %q", text)
 		}
 	}

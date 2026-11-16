@@ -13,13 +13,26 @@ an interactive terminal and fails without changing installations when redirected
 
 Fresh setup starts with no provider selected and the starter skills preselected.
 Choose Codex, Claude Code, or both. Complete the settings pages and final review.
-Saved installations open a management menu; choose **Configure** to edit settings.
+Saved installations open the Overview tab. Section headings and rules separate
+installation settings, source information, and actions. Muted labels distinguish
+settings from bold values; enabled guidance uses green text. The focused action
+has a filled background and a `>` marker. The same styles apply to settings
+pages, keyboard help, review summaries, and unsaved-change dialogs. Skill categories use accent headings; checked items use
+green markers. Detailed reviews show additions in green and removals in red,
+while retaining their `+` and `-` markers. Font and text size follow your terminal
+settings.
+
+Use the Providers, Skills, Storage, and Guidance tabs to edit settings. Tabs share one draft and remember the focused
+row. Switching tabs does not apply changes or prompt to save.
 
 | Control | Action |
 | --- | --- |
 | Arrow keys | Move between rows; Left/Right expand skill categories |
 | ↵ | Open a menu item or toggle a setting, skill, or category |
-| Tab | Move to the next setup page |
+| Tab / Shift+Tab | Move to the next / previous tab |
+| `1`–`5` | Open Overview, Providers, Skills, Storage, or Guidance |
+| Space | Toggle the focused selection |
+| `?` | Open or close keyboard help |
 | `a` | Select or deselect all skills |
 | `s` | Preview and save settings |
 | ↵ on Path | Edit the output path; ↵ accepts, Esc or Ctrl+C cancels |
@@ -41,6 +54,11 @@ location of retained backups.
 
 While editing a path, Backspace deletes the previous character. Esc or Ctrl+C restores
 the original path and leaves editing.
+
+The header and footer stay visible while content scrolls. At 110 columns or
+wider, Skills shows selection details beside the list. Smaller terminals show
+the details below it. Partially selected categories use `[-]` and show selection
+counts. Review keeps its confirmation visible while paths and diffs scroll.
 
 ## Settings
 

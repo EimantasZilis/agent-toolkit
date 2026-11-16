@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -268,7 +269,17 @@ func (m model) selectionLines() []string {
 			if m.expanded[r.category] {
 				arrow = "▾ "
 			}
-			text = check(all) + arrow + r.category
+			mark := check(all)
+			count := 0
+			for _, name := range r.members {
+				if roles[name] != "" {
+					count++
+				}
+			}
+			if count > 0 && !all {
+				mark = "[-] "
+			}
+			text = fmt.Sprintf("%s%s%s  %d / %d", mark, arrow, r.category, count, len(r.members))
 		}
 		lines = append(lines, row(i == m.cursor, text))
 	}

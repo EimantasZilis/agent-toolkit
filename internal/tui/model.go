@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strings"
 	"syscall"
 
 	tea "charm.land/bubbletea/v2"
@@ -59,6 +60,8 @@ type model struct {
 	createOutput                bool
 	scroll                      int
 	manualScroll                bool
+	help                        bool
+	positions                   [5]int
 	reviewDetails               bool
 	conflictReview              bool
 }
@@ -69,7 +72,7 @@ type uiTheme struct {
 }
 
 var defaultTheme = uiTheme{
-	accent: "#89DDFF", heading: "#C792EA",
+	accent: "#89DDFF", heading: "#89DDFF",
 	selectedFG: "#F8F8F2", selectedBG: "#34495E", error: "#FF6B6B",
 	notice: "#A6E3A1", warning: "#F9C74F", muted: "#7F849C",
 }
@@ -344,6 +347,53 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if key == "?" {
+		m.help = !m.help
+		return m, nil
+	}
+	if m.help {
+		if key == "backspace" {
+			m.help = false
+		}
+		return m, nil
+	}
+	if key == "s" {
+		m.depart = false
+		return m.startSave()
+	}
+	if key == "tab" || key == "shift+tab" || (key >= "1" && key <= "5") {
+		pages := []int{managementPage, 0, 1, 2, 3}
+		index := 0
+		for i, page := range pages {
+			if m.page == page {
+				index = i
+			}
+		}
+		next := (index + 1) % len(pages)
+		if key == "shift+tab" {
+			next = (index + len(pages) - 1) % len(pages)
+		}
+		if len(key) == 1 {
+			next = int(key[0] - '1')
+		}
+		if m.wizard && m.page == 0 && next > 1 && len(m.draft.Providers) == 0 {
+			m.err = "Select at least one LLM provider before continuing."
+			return m, nil
+		}
+		if m.wizard && m.page == 2 && next > 3 {
+			if _, err := m.validateOutput(); err != nil {
+				m.err = err.Error()
+				return m, nil
+			}
+		}
+		m.positions[index] = m.cursor
+		m.page, m.cursor = pages[next], m.positions[next]
+		m.scroll, m.manualScroll, m.err = 0, false, ""
+		return m, nil
+	}
+	if key == "space" || key == " " {
+		key = "enter"
+	}
 	if key == "ctrl+c" || key == "q" {
 		return m.navigate(-2)
 	}
@@ -374,7 +424,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		case "enter":
 			switch m.cursor {
 			case 0:
-				m.page, m.cursor = -1, 0
+				m.page, m.cursor = 0, 0
 			case 1:
 				return m.startAction(install.Refresh)
 			case 2:
@@ -396,21 +446,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	if key == "s" {
-		if m.wizard && m.page < 4 {
-			return m.navigate(m.page + 1)
-		}
-		m.depart = false
-		return m.startSave()
-	}
 	if key == "enter" && m.page == 2 && m.globalOutput && m.cursor == 2 {
 		m.editingPath = true
 		m.originalPath = m.outputPath
 		m.pathCursor = len([]rune(m.outputPath))
 		return m, nil
-	}
-	if key == "tab" && m.wizard && m.page < 4 {
-		return m.navigate(m.page + 1)
 	}
 	return m.edit(key)
 }
@@ -620,6 +660,12 @@ func (m model) viewLines() []string {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
 		if m.page == managementPage {
+			lines = append(lines, "Installation", "",
+				fmt.Sprintf("Providers       %s", strings.Join(m.saved.Providers, ", ")),
+				fmt.Sprintf("Skills          %d selected", len(m.selected())),
+				"Markdown        "+outputDescription(m.saved.Output),
+				"Guidance        "+guidanceStatus(m.saved.FullTemplate || m.saved.Concise),
+				"", "Source", "Development checkout", m.root, "", "Actions")
 			for i, name := range m.managementActions() {
 				lines = append(lines, row(i == m.cursor, name))
 			}
@@ -629,7 +675,7 @@ func (m model) viewLines() []string {
 				lines = append(lines, row(i == m.cursor, name))
 			}
 		} else {
-			lines = append(lines, fmt.Sprintf("%d. %s", m.page+1, pageNames[m.page]), "")
+			lines = append(lines, pageNames[m.page], "")
 			lines = append(lines, m.pageLines()...)
 		}
 		for _, message := range []string{m.status.Native.Message, m.notice, m.err} {
@@ -639,6 +685,13 @@ func (m model) viewLines() []string {
 		}
 	}
 	return lines
+}
+
+func guidanceStatus(enabled bool) string {
+	if enabled {
+		return "Enabled"
+	}
+	return "Disabled"
 }
 
 func row(focused bool, text string) string {
