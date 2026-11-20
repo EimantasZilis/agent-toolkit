@@ -16,10 +16,11 @@ import (
 )
 
 const managementPage = -3
+const workflowsPage = 4
 
 const unsavedPrompt = "There are unsaved changes in the configuration. Would you like to save them? [S]ave / Discard"
 
-var pageNames = []string{"Agents", "Skills", "Global settings", "Review setup"}
+var pageNames = []string{"Agents", "Skills", "Global settings", "Review setup", "Workflows"}
 
 type loadedMsg struct {
 	catalog, status response
@@ -67,7 +68,7 @@ type model struct {
 	scroll                         int
 	manualScroll                   bool
 	help                           bool
-	positions                      [4]int
+	positions                      [5]int
 	reviewDetails                  bool
 	conflictReview                 bool
 	errorReview                    bool
@@ -78,6 +79,7 @@ type model struct {
 	filters                        map[string]int
 	editingSearch                  bool
 	searchProvider, originalSearch string
+	workflowIndex                  int
 }
 
 type uiTheme struct {
@@ -498,8 +500,8 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		m.depart = false
 		return m.startSave()
 	}
-	if key == "tab" || key == "shift+tab" || (key >= "1" && key <= "4") {
-		pages := []int{managementPage, 0, 1, 2}
+	if key == "tab" || key == "shift+tab" || (key >= "1" && key <= "5") {
+		pages := []int{managementPage, 0, 1, 2, workflowsPage}
 		index := 0
 		for i, page := range pages {
 			if m.page == page {
@@ -535,6 +537,10 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		return m.navigate(-2)
 	}
 	if key == "backspace" {
+		if m.page == workflowsPage {
+			m.page, m.cursor = managementPage, 0
+			return m, nil
+		}
 		if m.page == managementPage {
 			return m.navigate(-2)
 		}
@@ -800,6 +806,10 @@ func (m model) validate() (bool, error) {
 }
 
 func (m model) edit(key string) (tea.Model, tea.Cmd) {
+	if m.page == workflowsPage {
+		m.editWorkflow(key)
+		return m, nil
+	}
 	m.editSelection(key)
 	m.editSettings(key)
 	return m, nil
@@ -918,6 +928,9 @@ func outputDescription(path string) string {
 }
 
 func (m model) pageLines() []string {
+	if m.page == workflowsPage {
+		return m.workflowLines()
+	}
 	if m.page < 2 {
 		return m.selectionLines()
 	}

@@ -23,7 +23,7 @@ green markers. Detailed reviews show additions in green and removals in red,
 while retaining their `+` and `-` markers. Font and text size follow your terminal
 settings.
 
-Use the LLMs, Skills, and Global settings tabs to edit settings. Tabs share one
+Use the Agents, Skills, and Global settings tabs to edit settings. Tabs share one
 draft and remember the focused
 row. Switching tabs does not apply changes or prompt to save.
 
@@ -63,7 +63,7 @@ saves the shared policy.
 | Arrow keys | Move between rows; Left/Right expand skill categories |
 | ↵ | Open a menu item or toggle a setting, skill, or category |
 | Tab / Shift+Tab | Move to the next / previous tab |
-| `1`–`4` | Open Overview, LLMs, Skills, or Global settings |
+| `1`–`5` | Open Overview, Agents, Skills, Global settings, or Workflows |
 | Space | Toggle the focused selection |
 | `?` | Open or close keyboard help |
 | `a` | Select or deselect all skills for the provider of the focused row |
@@ -231,3 +231,9 @@ Conflicts show the agent, affected item, path, cause, and recovery guidance. Pre
 On Skills, category and select-all rows use the full browsing area. Below 110 columns, focused skill descriptions use at most five rows. Press `v` on a skill for its full scrollable description; Enter, Esc, or `v` returns to the same browsing position.
 
 The Agents tab selects Codex and Claude Code. On Skills, press `/` to search names and descriptions for the focused agent. Enter accepts, Esc restores the previous query, and Ctrl+u clears it. Press `f` to cycle All, Installed, and Selected filters. Each agent retains its own search and filter. These controls change visibility only: category toggles and `a` still affect their full category or agent selection, including hidden skills.
+
+## Discover a workflow
+
+Open **5 Workflows** to plan a change, implement a reviewed plan, or prepare a pull request. Move through the task names to read their inputs, ordered steps, expected outputs, and example prompts. Prompts run in your agent session, separately from this manager.
+
+Coverage shows installed and draft skill counts for each enabled agent, including required helpers. Focus **Add missing skills for Codex** or **Add missing skills for Claude Code** and press Enter to add missing selections without removing existing ones. Press `s` to review installation changes; installation still requires explicit confirmation. With no agent enabled, the action opens Agents. Esc returns to Overview. The implementation workflow presents `next-phase` as an alternative to the `next-commit` and separate commit sequence.

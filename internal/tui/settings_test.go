@@ -60,7 +60,7 @@ func TestGlobalPathValidationDoesNotWrite(t *testing.T) {
 				t.Fatalf("missing=%t error=%v", missing, err)
 			}
 			next, cmd := press(m, "tab")
-			if cmd != nil || (next.page == managementPage) != tc.valid || len(b.calls) != 0 {
+			if cmd != nil || (next.page == workflowsPage) != tc.valid || len(b.calls) != 0 {
 				t.Fatal("path validation did not control continuation without backend I/O")
 			}
 		})

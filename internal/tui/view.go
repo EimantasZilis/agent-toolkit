@@ -216,6 +216,9 @@ func (m model) screenTitle() string {
 	if len(m.dialogs) > 0 {
 		return "Review changes"
 	}
+	if m.page == workflowsPage {
+		return "Workflows"
+	}
 	if m.page == managementPage {
 		return "Overview"
 	}
@@ -232,11 +235,11 @@ func (m model) tabs(width int) string {
 		}
 		return m.style("[Summary]", "selected") + "   " + m.style("Details", "muted")
 	}
-	names := []string{"Overview", "Agents", "Skills", "Global settings"}
+	names := []string{"Overview", "Agents", "Skills", "Global settings", "Workflows"}
 	if width < 60 {
-		names = []string{"Home", "Agents", "Skills", "Settings"}
+		names = []string{"Home", "Agents", "Skills", "Settings", "Workflows"}
 	}
-	pages := []int{managementPage, 0, 1, 2}
+	pages := []int{managementPage, 0, 1, 2, workflowsPage}
 	tabs := []string{}
 	for i, name := range names {
 		text := fmt.Sprintf("%d %s", i+1, name)
@@ -287,7 +290,7 @@ func (m model) bodyRows(width int) []string {
 	}
 	lines := m.viewLines()
 	if m.help {
-		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–4: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
+		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–5: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
 	}
 	rows := []string{}
 	for index, text := range lines {
