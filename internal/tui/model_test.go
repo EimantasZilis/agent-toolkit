@@ -99,7 +99,7 @@ func TestWizardStagesAndAppliesOnce(t *testing.T) {
 }
 
 func TestWizardEnterSelectsAndBackspaceReturns(t *testing.T) {
-	for _, page := range []int{0, 1, 2, 3} {
+	for _, page := range []int{0, 1, 2} {
 		m, b := readyModel(t, true)
 		m.catalog, m.page = selectionCatalog(), page
 		if page == 2 {
@@ -267,7 +267,7 @@ func TestWizardQuitSaveReturnsToReview(t *testing.T) {
 	m.draft.Concise = true
 	m, _ = press(m, "q")
 	m, cmd := press(m, "s")
-	if cmd != nil || m.page != 4 || m.unsaved || !m.dirty() || len(b.calls) != 0 {
+	if cmd != nil || m.page != 3 || m.unsaved || !m.dirty() || len(b.calls) != 0 {
 		t.Fatal("quitting wizard saved before final review")
 	}
 }

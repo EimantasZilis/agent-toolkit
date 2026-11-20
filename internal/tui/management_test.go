@@ -163,7 +163,7 @@ func TestSetupCanForgetUnavailableSavedSkill(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = []byte(strings.Replace(string(data), "REQUESTED_SKILLS=commit-message", "REQUESTED_SKILLS=commit-message unavailable-skill", 1))
+	data = []byte(strings.ReplaceAll(string(data), `"Requested":["commit-message"]`, `"Requested":["commit-message","unavailable-skill"]`))
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -184,16 +184,23 @@ func TestSetupCanForgetUnavailableSavedSkill(t *testing.T) {
 	}
 }
 
-func TestGlobalGuidanceToggleControlsBothFeatures(t *testing.T) {
+func TestGlobalGuidanceTogglesAreIndependent(t *testing.T) {
 	m, _ := readyModel(t, false)
-	m.page = 3
+	m.page, m.cursor = 2, len(m.storageRows())
 	m, _ = press(m, "enter")
-	m, _ = press(m, "down")
-	if m.cursor != 0 || !m.draft.Concise || !m.draft.FullTemplate {
-		t.Fatal("combined setting did not enable both features or retained an extra row")
+	if !m.draft.FullTemplate || m.draft.Concise || m.selected()["concise-output"] == "automatic" {
+		t.Fatal("coding guidance enabled concise replies")
 	}
+	m, _ = press(m, "down")
+	m, _ = press(m, "down")
 	m, _ = press(m, "enter")
-	if m.draft.Concise || m.draft.FullTemplate {
-		t.Fatal("combined setting did not disable both features")
+	if !m.draft.Concise || !m.draft.FullTemplate || m.selected()["concise-output"] != "automatic" {
+		t.Fatal("concise replies did not install their skill")
+	}
+	m, _ = press(m, "up")
+	m, _ = press(m, "up")
+	m, _ = press(m, "enter")
+	if !m.draft.Concise || m.draft.FullTemplate {
+		t.Fatal("disabling coding guidance changed concise replies")
 	}
 }

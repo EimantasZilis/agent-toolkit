@@ -81,7 +81,7 @@ func TestContentReviewFreshRefreshAndRemoval(t *testing.T) {
 		t.Fatal("non-deterministic review")
 	}
 	want := map[string]string{"SKILL.md": "modified", "references": "mode", "references/core.md": "modified", "scripts/mode.sh": "mode", "references/deleted.txt": "removed", "references/replaced": "replaced", "references/replaced/child.txt": "added", "references/added.txt": "added", "references/binary": "modified", "references/long.txt": "added"}
-	if len(p.Changes) != 2*(len(want)+1)+1 {
+	if len(p.Changes) != 2*len(want)+1 {
 		t.Fatalf("unexpected changed paths (%d): %+v", len(p.Changes), p.Changes)
 	}
 	for _, provider := range settings.Providers {
@@ -107,9 +107,10 @@ func TestContentReviewFreshRefreshAndRemoval(t *testing.T) {
 		if !long.Truncated || len(long.Lines) > 100 {
 			t.Fatal("unbounded excerpt")
 		}
-		guidance := reviewEntry(t, p, provider, "guidance", ".md")
-		if strings.Contains(strings.Join(guidance.Lines, "\n"), "Private user") {
-			t.Fatal("leaked user guidance")
+		for _, change := range p.Changes {
+			if change.Provider == provider && change.Name == "guidance" {
+				t.Fatal("source edits rewrote stable guidance links")
+			}
 		}
 	}
 	// Source has changed, but both installed provider trees and saved state are

@@ -97,7 +97,7 @@ func TestDuplicateGuidanceCollapsesAndEditsConflict(t *testing.T) {
 	_, path := s.destinations("codex")
 	write(t, path, "User instructions\n")
 	applyFor(t, s, previewFor(t, s, Request{Intent: Configure, Desired: settings}))
-	block, err := guidanceBlock(s.Root, settings)
+	block, err := s.guidanceBlockFrom(s.Root, "codex", settings)
 	if err != nil {
 		t.Fatal(err)
 	}

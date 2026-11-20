@@ -85,13 +85,17 @@ func TestDevelopmentReviewRepeatedWorkingTreeLoop(t *testing.T) {
 				saved := clone(m.saved)
 				m = previewAction(t, m, intent)
 				review := strings.Join(m.operationLines(), "\n")
+				if strings.Contains(review, "Changed managed guidance") {
+					t.Fatal("refresh copied linked guidance into provider files")
+				}
+
 				for _, text := range []string{marker, "SKILL.md", "references/current.txt", "Content changes"} {
 					if !strings.Contains(review, text) {
 						t.Fatalf("review missing %q", text)
 					}
 				}
 				if generation == 1 {
-					for _, text := range []string{"scripts/safe.sh", "file mode 0644 -> file mode 0755", "removed", "references/deleted.txt", "references/added.txt", "Changed managed guidance"} {
+					for _, text := range []string{"scripts/safe.sh", "file mode 0644 -> file mode 0755", "removed", "references/deleted.txt", "references/added.txt"} {
 						if !strings.Contains(review, text) {
 							t.Fatalf("refresh missing %q", text)
 						}
@@ -280,6 +284,9 @@ func TestReviewDefaultsToCompactSummary(t *testing.T) {
 	}
 	m.dialogs = []dialog{{"Create the Markdown output directory?\n/tmp/output\n[y/N]"}, {"Apply the reviewed changes? [y/N]"}}
 	before := m.View().Content
+	if !strings.Contains(strings.Join(m.viewLines(), "\n"), "/tmp/output") {
+		t.Fatal("directory confirmation hides the directory path")
+	}
 	for _, text := range []string{"Review changes", "Codex, Claude Code", "Skills selected: 100", "Changed paths: 100", "Create the Markdown output directory?", "[y/N]", "v view details"} {
 		if !strings.Contains(ansi.Strip(before), text) {
 			t.Fatalf("compact review hides %q", text)
@@ -315,6 +322,10 @@ func TestMigrationReviewKeepsCopiedMembersAbsent(t *testing.T) {
 		}
 	}
 	review := strings.Join(m.operationLines(), "\n")
+	if strings.Contains(review, "Changed managed guidance") {
+		t.Fatal("refresh copied linked guidance into provider files")
+	}
+
 	for _, text := range []string{"converted", "symlink mode", "scripts/nested/run.sh", "file mode 0755"} {
 		if !strings.Contains(review, text) {
 			t.Fatalf("conversion detail missing %q", text)

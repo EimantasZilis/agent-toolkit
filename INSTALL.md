@@ -48,17 +48,27 @@ Required helpers are included automatically: `plan-review` for `ticket-to-plan`
 and `ruby-standards` for `ruby-rails-standards`. Optional integrations are separate.
 Removing a parent keeps installed helpers; remove unused helpers individually.
 
-The **Global guidance and concise-output** setting adds shared coding,
-documentation, and Markdown artifact instructions from
-[instructions.md](.agents/global/instructions.md), installs concise-output,
-and loads it automatically each session. Disabling removes the instructions
-and keeps the skill installed. Installing the skill alone does not make it a
-standing instruction.
+In **Global settings**, configure these behaviors independently:
 
-Existing separate preferences are combined when saving Configure: if either
-was enabled, both are enabled. Refresh and migration preserve saved preferences.
-A shared output directory still adds its output-location guidance when this
-setting is disabled.
+- **Coding guidance** loads the internal instructions in
+  [`.agents/global/instructions.md`](.agents/global/instructions.md).
+- **Documentation guidance** loads the internal writing instructions in
+  [`.agents/global/documentation.md`](.agents/global/documentation.md).
+- **Concise replies** installs and loads the existing `concise-output` skill.
+  Disabling automatic loading keeps the skill installed.
+- **Markdown storage** always loads the internal storage and discovery rules,
+  whether you choose repo-local or external output. Explicit user paths win.
+
+Global `AGENTS.md` and `CLAUDE.md` files route agents to these instructions and
+record the effective artifact location. Internal modules do not appear in skill
+menus or installed skill counts. Installing concise-output alone does not make
+it a standing instruction.
+
+Keep the checkout available: internal modules link back to it. Editing a module
+takes effect on its next load without refreshing. Changes to selected settings
+or storage require reviewed apply. Configure, refresh, and migration preserve
+each provider's separate guidance preferences. Existing combined coding and
+documentation preferences initially apply to both controls.
 
 ## Installed files and checkout lifetime
 
@@ -68,9 +78,11 @@ setting is disabled.
 | Claude | `${CLAUDE_HOME:-~/.claude}/skills/<skill-name>/` | `${CLAUDE_HOME:-~/.claude}/CLAUDE.md` |
 
 Fresh installations contain owned copies of rendered Markdown, resources, and
-provider adapters. They remain usable without the checkout. Source edits take
-effect through a reviewed refresh. Keep the checkout and its saved `config/`
-state to run the manager. Provider-home overrides still select destinations.
+provider adapters. Copied skills remain usable without the checkout, and skill
+source edits take effect through a reviewed refresh. Linked global settings
+require the checkout and load its current guidance each session. Keep the
+checkout and its saved `config/` state to run the manager. Provider-home
+overrides still select destinations.
 
 Legacy linked installations require their original checkout until you review
 and apply migration to owned copies. Configure, Refresh installation, and
@@ -128,13 +140,17 @@ restore the complete backup. Do not downgrade ownership records in place.
 
 | Mode | Artifact location |
 | --- | --- |
-| Repository | `<repo-root>/<branch-slug>/<skill-name>/...` |
-| Shared directory | `<output-root>/<repo-slug>/<branch-slug>/<skill-name>/...` |
+| Repository | `<repo-root>/<skill-name>/<branch-slug>/...` |
+| Shared directory | `<output-root>/<repo-slug>/<skill-name>/<branch-slug>/...` |
 
 Fresh TUI setup recommends a shared directory. Choose repository output to
 keep artifacts with each project. Explicit user paths take precedence.
 Slugs use lowercase names with unsafe characters replaced by `-`; detached
 HEADs use `detached-<short-sha>`.
+
+The location is shared by all providers. The saved **Separate by LLM**
+toggle appends `/codex/` or `/claude/` and defaults to off. Changing the enabled
+providers does not change this preference.
 
 Changing the output location does not move existing artifacts. Uninstall does
 not delete them. When a skill consumes earlier workflow output, it checks:
@@ -142,7 +158,11 @@ not delete them. When a skill consumes earlier workflow output, it checks:
 1. An explicit path.
 2. The current repository and branch's producer-skill directory.
 3. Its configured shared-directory equivalent.
-4. A documented legacy location.
+4. Previous branch/skill layouts beneath the same root.
+5. A documented legacy location.
+
+At each location, consider shared artifacts and provider subdirectories together.
+Ask when multiple artifacts match; do not prefer the current provider.
 
 ## Develop and refresh without committing
 

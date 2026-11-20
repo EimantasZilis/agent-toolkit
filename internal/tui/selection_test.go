@@ -83,7 +83,7 @@ func TestBundlesChildrenAndRequiredHelpers(t *testing.T) {
 	}
 	m, _ = press(m, "down")
 	m, _ = press(m, "enter")
-	if m.selected()["commit-message"] != "" || strings.Contains(m.selectionLines()[4], "[x]") {
+	if m.selected()["commit-message"] != "" || strings.Contains(strings.Join(m.selectionLines(), "\n"), "[x] ▾ productivity  2 / 2") {
 		t.Fatal("child deselection did not clear bundle checkbox")
 	}
 
@@ -116,15 +116,15 @@ func TestSelectAllRow(t *testing.T) {
 			m, b := readyModel(t, false)
 			m.catalog, m.page = selectionCatalog(), 1
 			m.draft.Requested = []string{"commit-message"}
-			if !strings.Contains(m.selectionLines()[3], "> Select all skills") {
+			if !strings.Contains(strings.Join(m.selectionLines(), "\n"), "> Select all skills") {
 				t.Fatal("missing focused select-all action above categories")
 			}
 			m, cmd := press(m, key)
-			if cmd != nil || len(m.selected()) != len(m.catalog.Skills) || !strings.Contains(m.selectionLines()[3], "> Deselect all skills") {
+			if cmd != nil || len(m.selected()) != len(m.catalog.Skills) || !strings.Contains(strings.Join(m.selectionLines(), "\n"), "> Deselect all skills") {
 				t.Fatal("select-all did not select the catalog and update its label")
 			}
 			m, cmd = press(m, key)
-			if cmd != nil || len(m.selected()) != 0 || !strings.Contains(m.selectionLines()[3], "> Select all skills") {
+			if cmd != nil || len(m.selected()) != 0 || !strings.Contains(strings.Join(m.selectionLines(), "\n"), "> Select all skills") {
 				t.Fatal("deselect-all did not clear choices and restore its label")
 			}
 			if len(b.calls) != 0 {
@@ -147,7 +147,7 @@ func TestToggleAllAndAutomaticConcise(t *testing.T) {
 		t.Fatal("toggle all removed retained/automatic helpers")
 	}
 	m.toggleSkill("concise-output")
-	if !strings.Contains(m.notice, "Page 4") || m.selected()["concise-output"] != "automatic" {
+	if !strings.Contains(m.notice, "Global settings") || m.selected()["concise-output"] != "automatic" {
 		t.Fatal("automatic concise removal was not blocked")
 	}
 }
@@ -245,7 +245,7 @@ func assertFile(t *testing.T, path string, exists bool) {
 	}
 }
 
-func TestBackendSharedSelectionAndPreservation(t *testing.T) {
+func TestBackendProviderSelectionAndPreservation(t *testing.T) {
 	m, root := backendFixture(t)
 	m.draft.Providers = []string{"codex"}
 	m.draft.Requested = []string{"ticket-to-plan"}
@@ -257,7 +257,11 @@ func TestBackendSharedSelectionAndPreservation(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(user), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(user, []byte("User instructions\n"), 0644); err != nil {
+	managed, err := os.ReadFile(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(user, append([]byte("User instructions\n"), managed...), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -266,17 +270,29 @@ func TestBackendSharedSelectionAndPreservation(t *testing.T) {
 	assertFile(t, filepath.Join(claude, "ticket-to-plan", "SKILL.md"), true)
 	m.toggleSkill("ticket-to-plan")
 	m = saveFixture(t, m)
+	active, other := claude, codex
+	if m.provider() == "codex" {
+		active, other = codex, claude
+	}
+	assertFile(t, filepath.Join(active, "ticket-to-plan"), false)
+	assertFile(t, filepath.Join(other, "ticket-to-plan"), true)
 	for _, dir := range []string{codex, claude} {
-		assertFile(t, filepath.Join(dir, "ticket-to-plan"), false)
 		assertFile(t, filepath.Join(dir, "plan-review", "SKILL.md"), true)
 	}
+	if m.provider() == "codex" {
+		m.focusProvider("claude")
+	} else {
+		m.focusProvider("codex")
+	}
+	m.toggleSkill("ticket-to-plan")
+	m = saveFixture(t, m)
 	m.toggleSkill("plan-review")
 	m.draft.Providers = []string{"codex"}
 	m = saveFixture(t, m)
 	assertFile(t, filepath.Join(codex, "plan-review"), false)
 	assertFile(t, filepath.Join(claude, "plan-review"), false)
 	data, err := os.ReadFile(user)
-	if err != nil || string(data) != "User instructions\n" {
+	if err != nil || !strings.HasPrefix(string(data), "User instructions\n") {
 		t.Fatalf("user guidance changed: %q, %v", data, err)
 	}
 	if m.dirty() {

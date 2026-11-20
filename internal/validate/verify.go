@@ -96,7 +96,7 @@ func Verify(ctx context.Context, root string) error {
 			if err != nil {
 				return err
 			}
-			if !strings.HasPrefix(string(text), "User guidance\n") || !strings.Contains(string(text), "# agent-toolkit guidance") {
+			if !strings.HasPrefix(string(text), "User guidance\n") || !strings.Contains(string(text), "[Coding guidance](") {
 				return fmt.Errorf("guidance was not preserved and installed: %s", guide)
 			}
 

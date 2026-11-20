@@ -25,7 +25,7 @@ packages support both local installation and native plugin builds.
 
 | Route | How it works | Guide |
 | --- | --- | --- |
-| Local TUI | Keep a checkout and select skills, global guidance, and Markdown output settings. Instructions and supporting files are copied; source edits take effect through reviewed refresh. | [Local installation](../INSTALL.md) |
+| Local TUI | Keep a checkout and select skills, global guidance, and Markdown output settings. Skill instructions and supporting files are copied and updated through reviewed refresh. Global settings link to guidance in the checkout; guidance edits apply in the next session. | [Local installation](../INSTALL.md) |
 | Native plugins | Install through Codex or Claude without a source checkout. Published packages contain their supporting files and are managed through the provider. | [Native plugins](usage/native-packages.md) |
 
 Prefer one installation route per skill to avoid duplicate copies. The native

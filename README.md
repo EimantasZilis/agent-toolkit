@@ -17,7 +17,10 @@ you do not need to follow a planning workflow.
 ## Install the starter selection
 
 The local terminal UI lets you install the starter skills for Codex, Claude
-Code, or both. It also lets you configure guidance and Markdown output.
+Code, or both. The Global settings page provides separate controls for coding
+guidance, documentation guidance, and concise replies, plus shared Markdown
+output storage. Global provider files route to internal instruction modules
+and the installed concise-output skill.
 
 **Prerequisites:** Git, the Go version declared in `go.mod`, and an installed,
 signed-in Codex or Claude Code client. Make is optional. Run the following in a

@@ -25,7 +25,7 @@ Each ticket gets its own planning folder with a `README.md` and one file per
 phase. For the invoice ticket, the folder could contain:
 
 ```text
-<repo-root>/<branch-slug>/ticket-to-plan/2026-11-09-invoice-pdf-download/
+<repo-root>/ticket-to-plan/<branch-slug>/2026-11-09-invoice-pdf-download/
 ├── README.md
 └── phase-1.md
 ```

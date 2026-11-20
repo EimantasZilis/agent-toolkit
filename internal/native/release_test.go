@@ -29,7 +29,7 @@ func sourceFixture(t *testing.T) string {
 		".agents/markdown-output-skills.txt":                              "task\n",
 		".agents/providers/claude/explicit-only.txt":                      "workflow/task\n",
 		".agents/providers/codex/skills/workflow/task/agents/openai.yaml": "policy:\n  allow_implicit_invocation: false\n",
-		".agents/global/instructions.md":                                  "## Markdown artifact outputs\nKeep artifacts together.\n",
+		".agents/global/markdown-output.md":                               "## Markdown artifact outputs\nKeep artifacts together.\n",
 		"LICENSE":                                                         "Fixture license\n",
 	} {
 		must(t, writeFile(filepath.Join(root, name), []byte(text), 0644))

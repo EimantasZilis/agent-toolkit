@@ -59,7 +59,20 @@ func contains(names []string, name string) bool {
 }
 
 func validSettings(settings Settings) error {
+	for provider := range settings.ByProvider {
+		if provider != "codex" && provider != "claude" {
+			return problem("invalid_settings", "", "unknown provider: "+provider)
+		}
+		if err := validSettings(settings.ForProvider(provider)); err != nil {
+			return err
+		}
+	}
 	for _, provider := range settings.Providers {
+		if settings.ByProvider != nil {
+			if _, ok := settings.ByProvider[provider]; !ok {
+				return problem("invalid_settings", "", "missing provider settings: "+provider)
+			}
+		}
 		if provider != "codex" && provider != "claude" {
 			return problem("invalid_settings", "", "unknown provider: "+provider)
 		}
@@ -116,7 +129,7 @@ func (s *Service) state() (Settings, map[string][]string, bool, error) {
 			return settings, nil, true, problem("invalid_state", settingsPath, "missing key: "+key)
 		}
 	}
-	if values["STATE_VERSION"] != "1" {
+	if values["STATE_VERSION"] != "1" && values["STATE_VERSION"] != "2" && values["STATE_VERSION"] != "3" && values["STATE_VERSION"] != "4" {
 		return settings, nil, true, problem("invalid_state", settingsPath, "unsupported settings version")
 	}
 	settings.Providers, settings.Requested, settings.Retained = strings.Fields(values["PROVIDERS"]), strings.Fields(values["REQUESTED_SKILLS"]), strings.Fields(values["RETAINED_HELPERS"])
@@ -128,6 +141,36 @@ func (s *Service) state() (Settings, map[string][]string, bool, error) {
 	settings.FullTemplate, err = parseBoolean(values["GLOBAL_GUIDANCE"])
 	if err != nil {
 		return settings, nil, true, err
+	}
+	if value, ok := values["DOCUMENTATION_GUIDANCE"]; ok {
+		enabled, parseErr := parseBoolean(value)
+		if parseErr != nil {
+			return settings, nil, true, parseErr
+		}
+		settings.Documentation = &enabled
+	}
+	if values["STATE_VERSION"] == "2" || values["STATE_VERSION"] == "3" || (values["STATE_VERSION"] == "4" && values["PROVIDER_SETTINGS"] != "") {
+		if err := decodeStrict([]byte(values["PROVIDER_SETTINGS"]), &settings.ByProvider); err != nil {
+			return settings, nil, true, fmt.Errorf("decode provider settings: %w", err)
+		}
+		if values["STATE_VERSION"] == "2" {
+			for id, p := range settings.ByProvider {
+				p.Output = settings.Output
+				settings.ByProvider[id] = p
+			}
+		}
+		for _, provider := range settings.Providers {
+			if _, ok := settings.ByProvider[provider]; !ok {
+				return settings, nil, true, problem("invalid_state", settingsPath, "missing provider settings: "+provider)
+			}
+		}
+	}
+	if values["STATE_VERSION"] == "4" {
+		settings.SharedStorage = true
+		settings.SeparateByProvider, err = parseBoolean(values["SEPARATE_BY_PROVIDER"])
+		if err != nil {
+			return settings, nil, true, err
+		}
 	}
 	if err := validSettings(settings); err != nil {
 		return settings, nil, true, err
@@ -169,7 +212,28 @@ func parseBoolean(value string) (bool, error) {
 }
 
 func settingsBytes(settings Settings) []byte {
-	return []byte(fmt.Sprintf("STATE_VERSION=1\nPROVIDERS=%s\nREQUESTED_SKILLS=%s\nRETAINED_HELPERS=%s\nMARKDOWN_OUTPUT_PATH=%s\nCONCISE_OUTPUT=%t\nGLOBAL_GUIDANCE=%t\n", strings.Join(unique(settings.Providers), " "), strings.Join(unique(settings.Requested), " "), strings.Join(unique(settings.Retained), " "), settings.Output, settings.Concise, settings.FullTemplate))
+	data := []byte(fmt.Sprintf("STATE_VERSION=1\nPROVIDERS=%s\nREQUESTED_SKILLS=%s\nRETAINED_HELPERS=%s\nMARKDOWN_OUTPUT_PATH=%s\nCONCISE_OUTPUT=%t\nGLOBAL_GUIDANCE=%t\n", strings.Join(unique(settings.Providers), " "), strings.Join(unique(settings.Requested), " "), strings.Join(unique(settings.Retained), " "), settings.Output, settings.Concise, settings.FullTemplate))
+	if settings.ByProvider != nil {
+		profiles := settings.ByProvider
+		if settings.SharedStorage {
+			profiles = map[string]ProviderSettings{}
+			for id := range settings.ByProvider {
+				profiles[id] = settings.ProviderPreferences(id)
+			}
+		}
+		preferences, _ := json.Marshal(profiles)
+		data = bytes.Replace(data, []byte("STATE_VERSION=1"), []byte("STATE_VERSION=3"), 1)
+		data = append(data, []byte("PROVIDER_SETTINGS="+string(preferences)+"\n")...)
+	}
+	if settings.SharedStorage {
+		data = bytes.Replace(data, []byte("STATE_VERSION=1"), []byte("STATE_VERSION=4"), 1)
+		data = bytes.Replace(data, []byte("STATE_VERSION=3"), []byte("STATE_VERSION=4"), 1)
+		data = append(data, []byte(fmt.Sprintf("SEPARATE_BY_PROVIDER=%t\n", settings.SeparateByProvider))...)
+	}
+	if settings.Documentation != nil {
+		data = append(data, []byte(fmt.Sprintf("DOCUMENTATION_GUIDANCE=%t\n", *settings.Documentation))...)
+	}
+	return data
 }
 
 func inventoryBytes(settings []byte, applied map[string][]string, source ...Provenance) ([]byte, error) {

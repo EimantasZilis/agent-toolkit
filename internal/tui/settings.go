@@ -12,10 +12,12 @@ import (
 )
 
 func (m *model) syncOutput() {
-	m.globalOutput = m.draft.Output != ""
+	m.globalOutput = m.draft.Output != "" || m.outputModes[m.outputKey()]
 	m.outputPath = m.draft.Output
 	if m.outputPath == "" {
-		if home, err := os.UserHomeDir(); err == nil {
+		if cached, ok := m.outputPaths[m.outputKey()]; ok {
+			m.outputPath = cached
+		} else if home, err := os.UserHomeDir(); err == nil {
 			m.outputPath = filepath.Join(home, "agent-toolkit-output")
 		}
 	}
@@ -29,7 +31,7 @@ func (m model) validateOutput() (bool, error) {
 	}
 	path := m.draft.Output
 	if strings.TrimSpace(path) == "" || !filepath.IsAbs(path) || strings.ContainsFunc(path, unicode.IsControl) {
-		return false, fmt.Errorf("Page 3: enter an absolute, single-line global output path")
+		return false, fmt.Errorf("Global settings: enter an absolute, single-line global output path")
 	}
 
 	missing := false
@@ -38,21 +40,21 @@ func (m model) validateOutput() (bool, error) {
 		if os.IsNotExist(err) {
 			// A dangling symlink is not a directory we can create.
 			if _, linkErr := os.Lstat(current); linkErr == nil {
-				return false, fmt.Errorf("Page 3: output path contains a dangling link: %s", current)
+				return false, fmt.Errorf("Global settings: output path contains a dangling link: %s", current)
 			}
 			missing = true
 			continue
 		}
 		if err != nil {
-			return false, fmt.Errorf("Page 3: inspect output path: %w", err)
+			return false, fmt.Errorf("Global settings: inspect output path: %w", err)
 		}
 		if !info.IsDir() {
-			return false, fmt.Errorf("Page 3: output path is not a directory: %s", current)
+			return false, fmt.Errorf("Global settings: output path is not a directory: %s", current)
 		}
 		// Access checks write and search permissions without creating a probe file.
 		// Supported release targets are macOS and Linux.
 		if err := syscall.Access(current, 3); err != nil {
-			return false, fmt.Errorf("Page 3: output directory is not writable/searchable: %w", err)
+			return false, fmt.Errorf("Global settings: output directory is not writable/searchable: %w", err)
 		}
 		return missing, nil
 	}
@@ -107,29 +109,50 @@ func (m model) editPath(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) editSettings(key string) {
-	if m.page == 3 {
-		m.cursor = 0
-		if key == "enter" {
-			enabled := !m.guidanceEnabled()
-			m.draft.Concise, m.draft.FullTemplate = enabled, enabled
-		}
-		return
-	}
 	if m.page != 2 {
 		return
 	}
-	last := 1
-	if m.globalOutput {
-		last = 2
+	rows := m.globalSettingsRows()
+	if len(rows) == 0 {
+		return
 	}
+	m.cursor = min(m.cursor, len(rows)-1)
 	switch key {
 	case "up", "k":
 		m.cursor = max(0, m.cursor-1)
 	case "down", "j":
-		m.cursor = min(last, m.cursor+1)
+		m.cursor = min(len(rows)-1, m.cursor+1)
 	case "enter":
-		if m.cursor < 2 {
-			m.globalOutput = m.cursor == 1
+		r := rows[m.cursor]
+
+		switch r.kind {
+		case "guidance":
+			m.focusProvider(r.provider)
+			documentation := m.draft.DocumentationEnabled()
+			m.draft.Documentation = &documentation
+			m.draft.FullTemplate = !m.draft.FullTemplate
+		case "documentation":
+			m.focusProvider(r.provider)
+			enabled := !m.draft.DocumentationEnabled()
+			m.draft.Documentation = &enabled
+		case "concise":
+			m.focusProvider(r.provider)
+			m.draft.Concise = !m.draft.Concise
+
+		case "split":
+			if m.shareStorage() {
+				m.draft.SeparateByProvider = !m.draft.SeparateByProvider
+			} else {
+				m.err = "Choose one shared location before enabling LLM separation."
+			}
+		case "path":
+			m.draft.SharedStorage = true
+			m.editingPath = true
+			m.originalPath = m.outputPath
+			m.pathCursor = len([]rune(m.outputPath))
+		case "local", "external":
+			m.draft.SharedStorage = true
+			m.globalOutput = r.kind == "external"
 			m.draft.Output = ""
 			if m.globalOutput {
 				m.draft.Output = m.outputPath
@@ -137,49 +160,146 @@ func (m *model) editSettings(key string) {
 			m.err = ""
 		}
 	}
+
 }
 
 func (m model) guidanceEnabled() bool {
-	return m.draft.Concise || m.draft.FullTemplate
-}
-
-func (m model) outputSummary() string {
-	if m.globalOutput {
-		return "global: " + m.draft.Output
-	}
-	return "repo-local"
+	return m.draft.Concise || m.draft.FullTemplate || m.draft.DocumentationEnabled()
 }
 
 func (m model) settingsLines() []string {
-	providers := []string{}
-	for _, id := range m.draft.Providers {
-		providers = append(providers, providerName(id))
-	}
-	if m.page == 3 {
-		return []string{
-			"Add shared instructions to " + strings.Join(providers, ", ") + " global configuration.",
-			"Includes coding and documentation guidance, Markdown artifact rules, and concise-output automatic loading.",
-			"Disabling removes these instructions; the concise-output skill stays installed.",
-			"",
-			row(m.cursor == 0, check(m.guidanceEnabled())+"Global guidance and concise-output"),
-		}
-	}
 	lines := []string{
-		"Some skills produce Markdown. Repo-local output needs committing or discarding to keep your Git tree clean.",
-		"A global path outside your repos is recommended; outputs are separated by repo, branch, and skill.",
-		"Global output guidance is saved in " + strings.Join(providers, ", ") + " configuration.",
-		"Switching to repo-local leaves existing global artifacts in place.",
+		"Artifact storage",
+		"Applies to all LLMs.",
 		"",
-		row(m.cursor == 0, check(!m.globalOutput)+"Local repo"),
-		row(m.cursor == 1, check(m.globalOutput)+"A single global path (recommended)"),
 	}
-	if m.globalOutput {
-		path := m.outputPath
-		if m.editingPath {
-			runes := []rune(path)
-			path = string(runes[:m.pathCursor]) + "│" + string(runes[m.pathCursor:])
+	if !m.draft.SharedStorage {
+		lines = append(lines, "Legacy storage: choose Local repo or External path to save one shared location.")
+		for _, id := range m.enabledProviders() {
+			lines = append(lines, providerName(id)+": "+outputDescription(m.draft.ForProvider(id).Output))
 		}
-		lines = append(lines, row(m.cursor == 2, "Path: "+path), "↵ on Path edits · ↵ accepts · Esc/Ctrl+c restores · Ctrl+u clears")
+	}
+
+	for i, r := range m.storageRows() {
+		switch r.kind {
+		case "local":
+			lines = append(lines, row(i == m.cursor, check(!m.globalOutput)+"Local repo"))
+		case "external":
+			lines = append(lines, row(i == m.cursor, check(m.globalOutput)+"External path (recommended)"))
+		case "split":
+			lines = append(lines, "", row(i == m.cursor, check(m.draft.SeparateByProvider)+"Separate by LLM"), "Layout: "+storageLayout(m.draft), "Changing location leaves existing artifacts in place.")
+		case "path":
+			path := m.outputPath
+			if m.editingPath {
+				runes := []rune(path)
+				path = string(runes[:m.pathCursor]) + "│" + string(runes[m.pathCursor:])
+			}
+			lines = append(lines, row(i == m.cursor, "    Path: "+path), "      ↵ on Path edits · ↵ accepts · Esc restores · Ctrl+u clears")
+		}
+	}
+	lines = append(lines, "", "Agent guidance", "Applies across repositories; configure each LLM separately.", "")
+	for _, id := range m.enabledProviders() {
+		provider := m.providerView(id)
+		lines = append(lines, "  "+providerName(id))
+		guide := m.status.Guidance[id]
+		state := guide.State
+		if state == "" {
+			state = "Not installed"
+		}
+		lines = append(lines, "  Installed guidance: "+state)
+		if guide.Path != "" {
+			lines = append(lines, "  File: "+guide.Path)
+		}
+		for i, r := range m.globalSettingsRows() {
+			if r.provider != id {
+				continue
+			}
+			var label, target string
+			switch r.kind {
+			case "guidance":
+				target = guide.CodingPath
+				label = check(provider.draft.FullTemplate) + "Coding guidance — Follow coding standards and conventions."
+			case "documentation":
+				target = guide.DocumentationPath
+				label = check(provider.draft.DocumentationEnabled()) + "Documentation guidance — Write clear, structured documentation."
+			case "concise":
+				target = guide.ConcisePath
+				label = check(provider.draft.Concise) + "Concise replies — Apply concise-output to every prompt."
+			}
+			lines = append(lines, row(i == m.cursor, "  "+label))
+			if target != "" {
+				lines = append(lines, "    Installed target: "+target)
+			}
+		}
+		if guide.OutputPath != "" {
+			lines = append(lines, "  Markdown output instructions", "    Installed target: "+guide.OutputPath)
+		}
+		lines = append(lines, "")
+	}
+	if len(m.enabledProviders()) == 0 {
+		lines = append(lines, "Enable an LLM on the LLMs tab to configure guidance.")
+	}
+	if len(m.enabledProviders()) > 0 {
+		lines = append(lines, "Turning off Concise replies keeps its skill installed.")
 	}
 	return lines
+}
+
+func (m model) focusedSetting(kind string) bool {
+	rows := m.globalSettingsRows()
+	return m.cursor >= 0 && m.cursor < len(rows) && rows[m.cursor].kind == kind
+}
+
+func (m model) globalSettingsRows() []storageRow {
+	rows := m.storageRows()
+	for _, id := range m.enabledProviders() {
+		rows = append(rows, storageRow{id, "guidance"}, storageRow{id, "documentation"}, storageRow{id, "concise"})
+	}
+	return rows
+}
+
+type storageRow struct{ provider, kind string }
+
+func (m model) storageRows() []storageRow {
+	rows := []storageRow{{"", "local"}, {"", "external"}}
+	if m.globalOutput {
+		rows = append(rows, storageRow{"", "path"})
+	}
+	rows = append(rows, storageRow{"", "split"})
+	return rows
+}
+
+// missingOutputs validates every enabled provider before save, without writing.
+func (m model) missingOutputs() ([]string, error) {
+	if m.draft.SharedStorage {
+		missing, err := m.validateOutput()
+		if err != nil {
+			return nil, err
+		}
+		if missing {
+			return []string{m.draft.Output}, nil
+		}
+		return nil, nil
+	}
+	var paths []string
+	for _, id := range m.enabledProviders() {
+		provider := m.providerView(id)
+		missing, err := provider.validateOutput()
+		if err != nil {
+			return nil, fmt.Errorf("%s storage: %w", providerName(id), err)
+		}
+		if missing && !containsPath(paths, provider.draft.Output) {
+			paths = append(paths, provider.draft.Output)
+		}
+	}
+	return paths, nil
+}
+
+func containsPath(paths []string, path string) bool {
+	for _, p := range paths {
+		if p == path {
+			return true
+		}
+	}
+	return false
 }

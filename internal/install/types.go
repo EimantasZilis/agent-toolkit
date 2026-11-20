@@ -10,11 +10,70 @@ import (
 	"github.com/EimantasZilis/agent-toolkit/internal/catalog"
 )
 
-// Settings preserves the version 1 managed settings preferences.
+// Settings holds installation preferences. Shared selection fields support legacy callers.
 type Settings struct {
-	Providers, Requested, Retained []string
-	Output                         string
-	Concise, FullTemplate          bool
+	Documentation                     *bool `json:",omitempty"`
+	ByProvider                        map[string]ProviderSettings
+	Providers, Requested, Retained    []string
+	Output                            string
+	SharedStorage, SeparateByProvider bool
+	OutputProvider                    string
+	Concise, FullTemplate             bool
+}
+
+// ProviderSettings holds independent skills and guidance. Output is legacy storage.
+type ProviderSettings struct {
+	Documentation         *bool  `json:",omitempty"`
+	Output                string `json:",omitempty"`
+	Requested, Retained   []string
+	Concise, FullTemplate bool
+}
+
+// ForProvider returns independent installation preferences for one provider.
+func (s Settings) ForProvider(provider string) Settings {
+	result := s
+	result.ByProvider = nil
+	result.OutputProvider = provider
+	if p, ok := s.ByProvider[provider]; ok {
+		result.Requested, result.Retained = p.Requested, p.Retained
+		result.Concise, result.FullTemplate = p.Concise, p.FullTemplate
+		result.Documentation = p.Documentation
+		if !s.SharedStorage {
+			result.Output = p.Output
+		}
+	}
+	result.Requested = append([]string(nil), result.Requested...)
+	result.Retained = append([]string(nil), result.Retained...)
+	return result
+}
+
+// ProviderPreferences returns the selection stored for one provider.
+func (s Settings) ProviderPreferences(provider string) ProviderSettings {
+	p := s.ForProvider(provider)
+	if s.SharedStorage {
+		p.Output = ""
+	}
+	return ProviderSettings{Documentation: p.Documentation, Requested: p.Requested, Retained: p.Retained, Concise: p.Concise, FullTemplate: p.FullTemplate, Output: p.Output}
+}
+
+// DocumentationEnabled preserves combined guidance preferences when the separate
+// documentation setting has not yet been saved.
+func (s Settings) DocumentationEnabled() bool {
+	if s.Documentation == nil {
+		return s.FullTemplate
+	}
+	return *s.Documentation
+}
+
+// OutputPaths returns the distinct external output locations of enabled providers.
+func (s Settings) OutputPaths() []string {
+	var paths []string
+	for _, id := range s.Providers {
+		if path := s.ForProvider(id).Output; path != "" {
+			paths = append(paths, path)
+		}
+	}
+	return unique(paths)
 }
 
 // Intent identifies a local management action.
@@ -33,9 +92,10 @@ const (
 
 // Request describes desired settings and explicitly removed helpers.
 type Request struct {
-	Intent  Intent
-	Desired Settings
-	Removed []string
+	Intent            Intent
+	Desired           Settings
+	Removed           []string
+	RemovedByProvider map[string][]string
 }
 
 // Operation names a proposed change or ownership conflict at Path.
@@ -69,12 +129,22 @@ type NativeOverlap struct {
 	Skills, Overlaps []string
 }
 
+// GuidanceStatus describes the observed toolkit instructions in a provider file.
+type GuidanceStatus struct {
+	Path, State                                   string
+	FullTemplate, Concise, Output                 bool
+	CodingPath, ConcisePath, OutputPath, Location string
+	Documentation                                 bool
+	DocumentationPath                             string
+}
+
 // Status contains saved settings and independently observed installations.
 // Linked reports marker candidates; migration still verifies their full trees.
 type Status struct {
 	Installed, Linked bool
 	Desired           Settings
 	Applied, Observed map[string][]string
+	Guidance          map[string]GuidanceStatus
 	Revision          string
 	Native            NativeOverlap
 }
@@ -85,13 +155,14 @@ type Preview struct {
 	Desired               Settings
 	Revision              string
 	Selection             []Selection
+	SelectionByProvider   map[string][]Selection
 	Operations, Conflicts []Operation
 	Changes               []ContentChange
 	Confirmation          bool
 	Native                NativeOverlap
 	Source                Provenance
 	payloads              map[string]payload
-	guidance              string
+	guidance              map[string]string
 	seal                  string
 }
 

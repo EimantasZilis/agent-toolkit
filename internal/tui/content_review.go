@@ -61,11 +61,23 @@ func (m model) reviewSummaryLines() []string {
 	lines := []string{
 		"Review changes",
 		"",
-		"Providers: " + strings.Join(providers, ", "),
+		"LLMs: " + strings.Join(providers, ", "),
 		fmt.Sprintf("Skills selected: %d", len(m.preview.Selection)),
-		"Markdown output: " + outputDescription(m.preview.Desired.Output),
-		fmt.Sprintf("Global guidance and concise-output: %t", m.preview.Desired.FullTemplate && m.preview.Desired.Concise),
 		"",
+	}
+	if m.preview.Desired.ByProvider != nil {
+		for _, id := range m.preview.Desired.Providers {
+			p := m.preview.Desired.ForProvider(id)
+			lines = append(lines, fmt.Sprintf("%s: %d selected skills · coding guidance %t · documentation %t · concise replies %t", providerName(id), len(m.preview.Plan.SelectionByProvider[id]), p.FullTemplate, p.DocumentationEnabled(), p.Concise))
+			if !m.preview.Desired.SharedStorage {
+				lines = append(lines, "  Markdown output: "+outputDescription(p.Output))
+			}
+		}
+	} else {
+		lines = append(lines, fmt.Sprintf("Coding guidance: %t · Documentation: %t · Concise replies: %t", m.preview.Desired.FullTemplate, m.preview.Desired.DocumentationEnabled(), m.preview.Desired.Concise), "Markdown output: "+outputDescription(m.preview.Desired.Output))
+	}
+	if m.preview.Desired.SharedStorage {
+		lines = append(lines, "Shared Markdown output: "+outputDescription(m.preview.Desired.Output), "Layout: "+storageLayout(m.preview.Desired))
 	}
 	var actions []string
 	for _, action := range []string{"install", "update", "convert", "remove"} {
@@ -76,8 +88,8 @@ func (m model) reviewSummaryLines() []string {
 	if len(actions) > 0 {
 		lines = append(lines, strings.Join(actions, " · "))
 	}
-	if m.preview.Desired.FullTemplate != m.preview.Desired.Concise {
-		lines = append(lines, fmt.Sprintf("Saved preferences: guidance %t, concise-output %t", m.preview.Desired.FullTemplate, m.preview.Desired.Concise))
+	if m.preview.Desired.ByProvider == nil && m.preview.Desired.FullTemplate != m.preview.Desired.Concise {
+		lines = append(lines, fmt.Sprintf("Saved preferences: coding %t, documentation %t, concise-output %t", m.preview.Desired.FullTemplate, m.preview.Desired.DocumentationEnabled(), m.preview.Desired.Concise))
 	}
 	lines = append(lines, fmt.Sprintf("Changed paths: %d", len(m.preview.Changes)), "v: view paths and file diffs")
 	if m.preview.Native.Message != "" {

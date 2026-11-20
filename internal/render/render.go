@@ -16,16 +16,18 @@ import (
 type Mode string
 
 const (
-	// Local renders every Markdown file for a self-contained local installation.
+	// Local renders Markdown for installed skills, linking to checkout settings.
 	Local Mode = "local"
 	// Native renders every Markdown file for a self-contained package.
 	Native Mode = "native"
 )
 
 // Options supplies explicit destinations and selections for a text transform.
+// SourceRoot is the persistent checkout for local settings links; when empty,
+// it defaults to the catalog root. Native output always uses package-local links.
 type Options struct {
 	Mode                                      Mode
-	Provider, Package, SkillsRoot, OutputRoot string
+	Provider, Package, SkillsRoot, SourceRoot string
 	Selected                                  []string
 }
 
@@ -133,25 +135,19 @@ func Markdown(c *catalog.Catalog, name, relative, text string, opts Options) (st
 	if !skill.Output {
 		return text, nil
 	}
-	policy, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/instructions.md"))
-	if err != nil {
-		return "", err
+	if _, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/markdown-output.md")); err != nil {
+		return "", fmt.Errorf("load Markdown output instructions: %w", err)
 	}
-	_, tail, ok := strings.Cut(string(policy), "## Markdown artifact outputs")
-	if !ok {
-		return "", fmt.Errorf("missing Markdown artifact output policy")
-	}
-	text += "\n## Markdown artifact outputs" + tail
+	text += "\n## Markdown output settings\n\n"
 	if opts.Mode == Native {
-		text += "\n### Native output policy\n\nHonor explicit user guidance configuring an output location, including a centralized output root. Otherwise use `<repo-root>/<branch-slug>/<skill-name>/...`. These task-local defaults do not modify global settings.\n"
+		text += "Before writing or finding Markdown artifacts, load and apply the [Markdown output instructions](../../settings/markdown-output.md).\n"
 	} else {
-		text += "\n### Output location for this skill\n\n"
-		if opts.OutputRoot != "" {
-			text += "The configured centralized output root is `" + opts.OutputRoot + "`.\nUse `" + opts.OutputRoot + "/<repo-slug>/<branch-slug>/<skill-name>/...` unless the user supplies a path.\n"
-		} else {
-			text += "Use `<repo-root>/<branch-slug>/<skill-name>/...` unless the user supplies a path.\nNo centralized output root is configured for this installation.\n"
+		root := opts.SourceRoot
+		if root == "" {
+			root = c.Root
 		}
-		text += "These rules apply only while performing this skill.\n"
+		path := filepath.ToSlash(filepath.Join(root, ".agents/global/markdown-output.md"))
+		text += "Before writing or finding Markdown artifacts, load and apply the [Markdown output instructions](<" + path + ">).\nUse the artifact location configured in global AGENTS.md or CLAUDE.md.\n"
 	}
 	return text, nil
 }

@@ -27,6 +27,7 @@ type bundle struct {
 type response struct {
 	Desired               settings
 	Observed, Applied     map[string][]string
+	Guidance              map[string]install.GuidanceStatus
 	Skills                []skill
 	Bundles               []bundle
 	Selection             []selection
@@ -59,7 +60,7 @@ func catalogResponse(c *catalog.Catalog) response {
 }
 
 func statusResponse(s install.Status) response {
-	return response{Desired: s.Desired, Observed: s.Observed, Applied: s.Applied, Native: s.Native, Installed: s.Installed, Linked: s.Linked, Revision: s.Revision}
+	return response{Desired: s.Desired, Observed: s.Observed, Applied: s.Applied, Guidance: s.Guidance, Native: s.Native, Installed: s.Installed, Linked: s.Linked, Revision: s.Revision}
 }
 
 func previewResponse(p install.Preview) response {

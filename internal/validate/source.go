@@ -28,7 +28,7 @@ func Source(root string) error {
 			return fmt.Errorf("unsupported source layout: %s", name)
 		}
 	}
-	guide, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/instructions.md"))
+	guide, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/markdown-output.md"))
 	if err != nil {
 		return err
 	}

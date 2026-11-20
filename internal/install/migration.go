@@ -10,7 +10,7 @@ func sameNames(a, b []string) bool { return slices.Equal(unique(a), unique(b)) }
 
 // migrationSelection requires an unchanged dependency closure for each saved
 // provider. State records constrain selection; validateLegacy supplies ownership.
-func (s *Service) migrationSelection(status Status, selected []string) error {
+func (s *Service) migrationSelection(status Status, selected map[string][]string) error {
 	path := filepath.Join(s.Root, "config/inventory.json")
 	settings, err := os.ReadFile(filepath.Join(s.Root, "config/settings.env"))
 	if err != nil {
@@ -30,7 +30,7 @@ func (s *Service) migrationSelection(status Status, selected []string) error {
 	for _, provider := range []string{"codex", "claude"} {
 		var expected []string
 		if contains(status.Desired.Providers, provider) {
-			expected = selected
+			expected = selected[provider]
 		}
 		if !sameNames(expected, status.Applied[provider]) {
 			return problem("migration_selection", path, "saved dependency selection changed for "+provider+"; restore the matching checkout and state")

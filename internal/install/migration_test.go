@@ -12,11 +12,11 @@ import (
 func migrationFixture(t *testing.T) (*Service, Settings) {
 	t.Helper()
 	s, settings, _ := legacyFixture(t)
-	block, err := guidanceBlock(s.Root, settings)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, provider := range settings.Providers {
+		block, err := s.guidanceBlockFrom(s.Root, provider, settings)
+		if err != nil {
+			t.Fatal(err)
+		}
 		_, guidance := s.destinations(provider)
 		write(t, guidance, "User guidance before\n\n"+block+"\nUser guidance after\n")
 		write(t, filepath.Join(filepath.Dir(guidance), markerName), s.Root+"\nGUIDANCE_BLOCK "+digest([]byte(block))+"\n")
@@ -268,7 +268,7 @@ func TestMigrationMixedCopiedAndLinked(t *testing.T) {
 	}
 	root, _ := s.destinations("codex")
 	path := filepath.Join(root, "commit-message")
-	files, err := skillPayload(c, "commit-message", "codex", root, settings, settings.Requested)
+	files, err := skillPayload(c, "commit-message", "codex", root, s.Root, settings, settings.Requested)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,6 +351,15 @@ func TestMigrationFailedRecoveryRetainsLinks(t *testing.T) {
 		candidate := filepath.Join(recovery, entry.Name())
 		link, err := os.Readlink(filepath.Join(candidate, "scripts/nested/run.sh"))
 		if err == nil {
+			// Multiple providers may have backups with the same resource link.
+			// Match the complete tree before restoring this provider's backup.
+			var candidateTree strings.Builder
+			if err := fingerprint(candidate, &candidateTree); err != nil {
+				t.Fatal(err)
+			}
+			if strings.ReplaceAll(candidateTree.String(), candidate, path) != before.String() {
+				continue
+			}
 			if link != filepath.Join(s.Root, ".agents/skills/coding/python-standards/scripts/nested/run.sh") {
 				t.Fatal("backup changed link identity")
 			}

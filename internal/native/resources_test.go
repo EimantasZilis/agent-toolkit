@@ -77,10 +77,24 @@ func TestRepositoryReleaseResources(t *testing.T) {
 		}))
 		data, err = os.ReadFile(filepath.Join(root, provider, "plugins/ticket-to-plan/skills/ticket-to-plan/SKILL.md"))
 		must(t, err)
-		for _, text := range []string{"../plan-review/SKILL.md", "`quick-plan` (optional integration)", "Honor explicit user guidance"} {
+		for _, text := range []string{"../plan-review/SKILL.md", "`quick-plan` (optional integration)"} {
 			if !strings.Contains(string(data), text) {
 				t.Fatalf("missing native contract %q", text)
 			}
+		}
+		if !strings.Contains(string(data), "../../settings/markdown-output.md") || strings.Contains(string(data), "## Markdown artifact outputs") {
+			t.Fatal("native skill must route to the shared module")
+		}
+		module := filepath.Join(root, provider, "plugins/ticket-to-plan/settings/markdown-output.md")
+		policy, err := os.ReadFile(module)
+		must(t, err)
+		original, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/markdown-output.md"))
+		must(t, err)
+		if !bytes.HasPrefix(policy, original) || !bytes.Contains(policy, []byte("Honor explicit user guidance")) {
+			t.Fatal("native module missing shared instructions or standalone defaults")
+		}
+		if _, err := os.Stat(filepath.Join(filepath.Dir(module), "SKILL.md")); !os.IsNotExist(err) {
+			t.Fatal("internal module is invokable")
 		}
 		data, err = os.ReadFile(filepath.Join(root, provider, "plugins/ruby-rails-standards/skills/ruby-rails-standards/SKILL.md"))
 		must(t, err)

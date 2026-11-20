@@ -138,7 +138,7 @@ func (s *Service) captureSource() (payload, Provenance, error) {
 	return files, Provenance{Kind: "development", Checkout: s.Root, Digest: payloadDigest(files)}, nil
 }
 
-func skillPayload(c *catalog.Catalog, name, provider, root string, settings Settings, selected []string) (payload, error) {
+func skillPayload(c *catalog.Catalog, name, provider, root, sourceRoot string, settings Settings, selected []string) (payload, error) {
 	skill, err := c.Lookup(name)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func skillPayload(c *catalog.Catalog, name, provider, root string, settings Sett
 		if item.Directory || !strings.EqualFold(filepath.Ext(rel), ".md") {
 			continue
 		}
-		text, err := render.Markdown(c, name, rel, string(item.Data), render.Options{Mode: render.Local, Provider: provider, SkillsRoot: root, OutputRoot: settings.Output, Selected: selected})
+		text, err := render.Markdown(c, name, rel, string(item.Data), render.Options{Mode: render.Local, Provider: provider, SkillsRoot: root, SourceRoot: sourceRoot, Selected: selected})
 		if err != nil {
 			return nil, err
 		}

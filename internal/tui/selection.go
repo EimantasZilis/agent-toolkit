@@ -53,7 +53,7 @@ func (m model) selected() map[string]string {
 	}
 	helpers := m.helperNames()
 	for _, inventory := range []map[string][]string{m.status.Observed, m.status.Applied} {
-		for _, names := range inventory {
+		for _, names := range [][]string{inventory[m.provider()]} {
 			for _, name := range names {
 				if helpers[name] && !slices.Contains(m.removed, name) && roles[name] == "" {
 					roles[name] = "retained"
@@ -61,7 +61,7 @@ func (m model) selected() map[string]string {
 			}
 		}
 	}
-	if m.guidanceEnabled() {
+	if m.draft.Concise {
 		roles["concise-output"] = "automatic"
 	}
 
@@ -89,7 +89,7 @@ func (m model) selected() map[string]string {
 func (m *model) toggleSkill(name string) {
 	roles := m.selected()
 	if roles[name] == "automatic" {
-		m.notice = "Disable global guidance and concise-output on Page 4 before removing this skill."
+		m.notice = "Disable Concise replies in Global settings before removing this skill."
 		return
 	}
 	if roles[name] == "required" {
@@ -144,11 +144,31 @@ func (m *model) toggleGroup(names []string) {
 
 type skillRow struct {
 	category, name string
+	provider       string
 	members        []string
 	all            bool
 }
 
 func (m model) skillRows() []skillRow {
+	var rows []skillRow
+	for _, id := range m.enabledProviders() {
+		for _, r := range m.providerSkillRows(id) {
+			r.provider = id
+			rows = append(rows, r)
+		}
+	}
+	return rows
+}
+
+func (m model) categoryExpanded(provider, category string) bool {
+	expanded, ok := m.expanded[provider+"/"+category]
+	if ok {
+		return expanded
+	}
+	return m.expanded[category]
+}
+
+func (m model) providerSkillRows(provider string) []skillRow {
 	categories := []string{}
 	for _, s := range m.catalog.Skills {
 		if !slices.Contains(categories, s.Category) {
@@ -172,7 +192,7 @@ func (m model) skillRows() []skillRow {
 			}
 		}
 		rows = append(rows, skillRow{category: category, members: members})
-		if m.expanded[category] {
+		if m.categoryExpanded(provider, category) {
 			for _, name := range members {
 				rows = append(rows, skillRow{name: name})
 			}
@@ -190,11 +210,13 @@ func (m *model) editSelection(key string) {
 			m.cursor = min(1, m.cursor+1)
 		case "enter":
 			id := providerIDs[m.cursor]
+			m.storeProvider()
 			if slices.Contains(m.draft.Providers, id) {
 				m.draft.Providers = without(m.draft.Providers, id)
 			} else {
 				m.draft.Providers = add(m.draft.Providers, id)
 			}
+			m.loadProvider()
 			m.err = ""
 		}
 		return
@@ -214,18 +236,26 @@ func (m *model) editSelection(key string) {
 		m.cursor = min(len(rows)-1, m.cursor+1)
 	case "left", "right":
 		if rows[m.cursor].category != "" {
-			m.expanded[rows[m.cursor].category] = key == "right"
+			m.expanded[rows[m.cursor].provider+"/"+rows[m.cursor].category] = key == "right"
 		}
 	case "enter":
 		r := rows[m.cursor]
+		m.focusProvider(r.provider)
 		if r.name != "" {
 			m.toggleSkill(r.name)
 		} else {
 			m.toggleGroup(r.members)
 		}
 	case "a":
-		m.toggleGroup(rows[0].members)
+		m.focusProvider(rows[m.cursor].provider)
+		for _, r := range rows {
+			if r.provider == m.provider() && r.all {
+				m.toggleGroup(r.members)
+				break
+			}
+		}
 	}
+	m.focusProvider(m.skillRows()[m.cursor].provider)
 }
 
 func check(selected bool) string {
@@ -237,18 +267,30 @@ func check(selected bool) string {
 
 func (m model) selectionLines() []string {
 	if m.page == 0 {
-		lines := []string{"Select which LLM providers the skills should be installed for.", "Codex: skills and AGENTS.md. Claude Code: skills and CLAUDE.md.", ""}
+		lines := []string{"Select which LLMs the skills should be installed for.", "Codex: skills and AGENTS.md. Claude Code: skills and CLAUDE.md.", ""}
 		for i, id := range providerIDs {
 			lines = append(lines, row(i == m.cursor, check(slices.Contains(m.draft.Providers, id))+providerName(id)))
 		}
 		return lines
 	}
-	lines := []string{"Select skills to install. Required helpers are selected automatically.", "←/→ collapse/expand category · ↵ toggle bundle/skill · a toggle all", ""}
-	roles := m.selected()
+	lines := []string{"Each LLM has its own skill selection. Required helpers are selected automatically.", "←/→ collapse/expand category · ↵ toggle bundle/skill · a toggle all for this LLM", ""}
+	if len(m.enabledProviders()) == 0 {
+		return append(lines, "Enable a LLM on LLMs to configure its skills.")
+	}
+	lastProvider := ""
 	for i, r := range m.skillRows() {
+		if r.provider != lastProvider {
+			lines = append(lines, providerName(r.provider), fmt.Sprintf("Installed: %d skills · changes below are staged until saved.", len(m.status.Observed[r.provider])))
+			lastProvider = r.provider
+		}
+		provider := m.providerView(r.provider)
+		roles := provider.selected()
 		text := ""
 		if r.name != "" {
 			text = "  " + check(roles[r.name] != "") + r.name
+			if slices.Contains(m.status.Observed[r.provider], r.name) {
+				text += " (installed)"
+			}
 			if roles[r.name] == "required" || roles[r.name] == "retained" {
 				text += " (" + roles[r.name] + ")"
 			}
@@ -266,7 +308,7 @@ func (m model) selectionLines() []string {
 				continue
 			}
 			arrow := "▸ "
-			if m.expanded[r.category] {
+			if m.categoryExpanded(r.provider, r.category) {
 				arrow = "▾ "
 			}
 			mark := check(all)

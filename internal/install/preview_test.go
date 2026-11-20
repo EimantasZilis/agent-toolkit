@@ -112,7 +112,7 @@ func TestFreshPreviewIsReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Operations) != 1 || p.Operations[0].Action != "install" || p.Operations[0].Provider != "codex" {
+	if len(p.Operations) != 2 || p.Operations[0].Action != "install" || p.Operations[0].Provider != "codex" {
 		t.Fatal(p)
 	}
 	if !strings.Contains(p.Operations[0].Path, "agents home/skills/agent-toolkit/commit-message") {
@@ -200,7 +200,7 @@ func TestGuidanceAndUninstall(t *testing.T) {
 	s := testService(t)
 	settings := Settings{Providers: []string{"codex"}, Concise: true}
 	_, path := s.destinations("codex")
-	block, err := guidanceBlock(s.Root, settings)
+	block, err := s.guidanceBlockFrom(s.Root, "codex", settings)
 	if err != nil {
 		t.Fatal(err)
 	}

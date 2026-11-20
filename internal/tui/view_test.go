@@ -76,8 +76,8 @@ func TestWorkspaceTabsPreserveDraftAndFocus(t *testing.T) {
 	if m.page != 1 || m.cursor != 2 || !m.draft.Concise || len(b.calls) != 0 {
 		t.Fatal("tab lost draft or focus")
 	}
-	m, _ = press(m, "5")
-	if m.page != 3 {
+	m, _ = press(m, "4")
+	if m.page != 2 {
 		t.Fatal("direct tab shortcut failed")
 	}
 }
@@ -105,12 +105,46 @@ func TestWorkspaceFitsAndKeepsActionsVisible(t *testing.T) {
 				if ansi.StringWidth(row) > m.width {
 					t.Fatalf("width overflow at %v: %s", size, row)
 				}
+				if strings.Count(row, "[y/N]") > 1 {
+					t.Fatalf("duplicate confirmation choices at %v: %s", size, row)
+				}
 			}
 			if !strings.Contains(content, "agent-toolkit") {
 				t.Fatal("header disappeared")
 			}
 			if review && !strings.Contains(content, "[y/N]") {
 				t.Fatal("confirmation disappeared")
+			}
+			if review && strings.Count(content, "[y/N]") != 1 {
+				t.Fatal("confirmation appears in both the body and footer")
+			}
+		}
+	}
+}
+
+func TestOverviewUsesSingleColumn(t *testing.T) {
+	for _, providers := range [][]string{{"codex"}, {"codex", "claude"}} {
+		for _, width := range []int{40, 80, 110, 160, 240} {
+			m, _ := readyModel(t, false)
+			m.width, m.height, m.page = width, 40, managementPage
+			m.status.Observed = map[string][]string{}
+			for _, id := range providers {
+				m.status.Observed[id] = []string{"commit-message"}
+			}
+			rows := m.bodyRows(width - 4)
+			body := ansi.Strip(strings.Join(rows, "\n"))
+			if strings.Contains(body, "│") {
+				t.Fatalf("overview contains a column separator at width %d: %s", width, body)
+			}
+			for _, id := range providers {
+				if !strings.Contains(body, providerName(id)) {
+					t.Fatalf("provider %s missing at width %d", id, width)
+				}
+			}
+			for _, line := range strings.Split(m.View().Content, "\n") {
+				if ansi.StringWidth(line) > width {
+					t.Fatalf("column exceeds width %d: %q", width, line)
+				}
 			}
 		}
 	}
@@ -120,6 +154,7 @@ func TestOverviewWrapsPathsAndKeepsFocusedActionVisible(t *testing.T) {
 	for _, width := range []int{24, 40, 80, 240} {
 		m, _ := readyModel(t, false)
 		m.width, m.height, m.page = width, 32, managementPage
+		m.status.Observed = map[string][]string{"codex": {"commit-message"}, "claude": {"commit-message"}}
 		m.root = "/checkout/" + strings.Repeat("long-directory/", 20) + "\x1b[31m"
 		m.saved.Output = "/artifacts/" + strings.Repeat("output/", 20)
 		for cursor, action := range m.managementActions() {
@@ -162,9 +197,9 @@ func TestSharedPresentationFitsEveryScreen(t *testing.T) {
 				case "storage":
 					m.page, m.cursor, m.editingPath = 2, 2, true
 				case "guidance":
-					m.page = 3
+					m.page, m.cursor = 2, len(m.storageRows())
 				case "setup":
-					m.page, m.wizard = 4, true
+					m.page, m.wizard = 3, true
 				case "help":
 					m.help = true
 				case "summary", "details":
@@ -202,7 +237,7 @@ func TestSkillDescriptionFollowsFocus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, width := range []int{80, 120, 180} {
+	for _, width := range []int{80, 110, 120, 150, 180, 240} {
 		m, _ := readyModel(t, false)
 		m.width, m.height, m.page = width, 35, 1
 		m.catalog = catalogResponse(c)
@@ -225,8 +260,8 @@ func TestSkillDescriptionFollowsFocus(t *testing.T) {
 				t.Fatalf("description for %s missing at width %d", name, width)
 			}
 		}
-		if width >= 150 && strings.Count(strings.Split(ansi.Strip(m.View().Content), "\n")[4], "│") != 4 {
-			t.Fatal("wide Skills view does not have three panes")
+		if width >= 110 && strings.Count(strings.Split(ansi.Strip(m.View().Content), "\n")[4], "│") != 3 {
+			t.Fatal("wide Skills view does not have two panes")
 		}
 		for i, row := range m.skillRows() {
 			if row.name == "" {
@@ -270,8 +305,8 @@ func TestSkillDescriptionEscapesControlsAndHandlesMissingMetadata(t *testing.T) 
 				t.Fatalf("long description exceeds width %d", width)
 			}
 		}
-		if !strings.Contains(ansi.Strip(content), "Selection:") {
-			t.Fatalf("long description hid selection details at width %d", width)
+		if strings.Contains(ansi.Strip(content), "Selection:") || strings.Contains(ansi.Strip(content), "No required helpers") {
+			t.Fatalf("removed details panel is visible at width %d", width)
 		}
 	}
 }

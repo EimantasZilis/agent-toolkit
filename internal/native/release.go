@@ -152,11 +152,13 @@ func populate(c *catalog.Catalog, version, root string) error {
 }
 
 func renderPackage(c *catalog.Catalog, provider, name, pkg string, selected []string) error {
+	needsOutput := false
 	for _, item := range selected {
 		skill, err := c.Lookup(item)
 		if err != nil {
 			return err
 		}
+		needsOutput = needsOutput || skill.Output
 		err = filepath.WalkDir(skill.Source, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -200,6 +202,14 @@ func renderPackage(c *catalog.Catalog, provider, name, pkg string, selected []st
 				return err
 			}
 		}
+	}
+	if needsOutput {
+		policy, err := os.ReadFile(filepath.Join(c.Root, ".agents/global/markdown-output.md"))
+		if err != nil {
+			return err
+		}
+		policy = append(policy, []byte("\n## Native output policy\n\nHonor explicit user guidance configuring an output location, including a centralized output root. Otherwise use `<repo-root>/<skill-name>/<branch-slug>/...`. These task-local defaults do not modify global settings.\n")...)
+		return writeFile(filepath.Join(pkg, "settings/markdown-output.md"), policy, 0644)
 	}
 	return nil
 }

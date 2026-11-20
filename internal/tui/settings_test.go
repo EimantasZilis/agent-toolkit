@@ -60,7 +60,7 @@ func TestGlobalPathValidationDoesNotWrite(t *testing.T) {
 				t.Fatalf("missing=%t error=%v", missing, err)
 			}
 			next, cmd := press(m, "tab")
-			if cmd != nil || (next.page == 3) != tc.valid || len(b.calls) != 0 {
+			if cmd != nil || (next.page == managementPage) != tc.valid || len(b.calls) != 0 {
 				t.Fatal("path validation did not control continuation without backend I/O")
 			}
 		})
@@ -124,8 +124,8 @@ func TestOutputEditingAndModes(t *testing.T) {
 		t.Fatal("cancel did not restore the path")
 	}
 	guidance := strings.Join(m.settingsLines(), "\n")
-	if !strings.Contains(guidance, "Codex, Claude Code") || !strings.Contains(guidance, "repo, branch, and skill") {
-		t.Fatal("missing provider-specific output guidance")
+	if !strings.Contains(guidance, "Applies to all LLMs.") || !strings.Contains(guidance, "<skill>/<branch>/") {
+		t.Fatal("missing shared output guidance")
 	}
 	m.cursor = 0
 	m, _ = press(m, "enter")
@@ -145,7 +145,7 @@ func TestCreationConfirmationAndCancellation(t *testing.T) {
 				t.Fatal("missing directory was not staged")
 			}
 			m, _ = complete(m, cmd)
-			if !strings.Contains(m.dialogs[0].text, "Create the Markdown output directory?\n"+path) {
+			if !strings.Contains(m.dialogs[0].text, "Create the Markdown output directories?\n"+path) {
 				t.Fatal("missing creation confirmation")
 			}
 			m, cmd = press(m, key)
@@ -199,7 +199,16 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	m = saveFixture(t, m)
 	path := filepath.Join(root, "new outputs", "literal $(touch PWN) 'quoted'")
 	m.page, m.globalOutput, m.outputPath, m.draft.Output = 2, true, path, path
-	m.draft.Concise = true
+	m.draft.Concise, m.draft.FullTemplate = true, true
+	m.storeProvider()
+	if m.provider() == "codex" {
+		m.focusProvider("claude")
+	} else {
+		m.focusProvider("codex")
+	}
+	m.draft.Concise, m.draft.FullTemplate = true, true
+	m.draft.Output = path
+	m.globalOutput = true
 	m, cmd := press(m, "s")
 	m, _ = complete(m, cmd)
 	assertFile(t, filepath.Dir(path), false)
@@ -208,7 +217,7 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	}
 	m = saveFixture(t, m)
 	assertFile(t, path, true)
-	if m.dirty() || m.saved.Output != path || !m.saved.Concise {
+	if m.dirty() || m.saved.ForProvider(m.provider()).Output != path || !m.draft.Concise {
 		t.Fatal("actual backend result not reflected")
 	}
 	artifact := filepath.Join(path, "keep.md")
@@ -218,19 +227,23 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	guidance := []string{filepath.Join(root, "codex", "AGENTS.md"), filepath.Join(root, "claude", "CLAUDE.md")}
 	for _, file := range guidance {
 		data, err := os.ReadFile(file)
-		if err != nil || !strings.Contains(string(data), path) || !strings.Contains(string(data), "agent-toolkit:concise-output:start") {
+		if err != nil || !strings.Contains(string(data), path) || !strings.Contains(string(data), "[Concise output](") {
 			t.Fatalf("missing output/concise guidance: %s: %s: %v", file, data, err)
 		}
-		if !strings.Contains(string(data), "## Code readability") {
+		if !strings.Contains(string(data), "[Coding guidance](") {
 			t.Fatal("combined guidance omitted full template")
 		}
 	}
-	m.page, m.cursor = 3, 0
+	m.page, m.cursor = 2, len(m.storageRows())+2
+	m, _ = press(m, "enter")
+	m, _ = press(m, "down")
+	m, _ = press(m, "down")
+	m, _ = press(m, "down")
 	m, _ = press(m, "enter")
 	m = saveFixture(t, m)
 	for _, file := range guidance {
 		data, err := os.ReadFile(file)
-		if err != nil || !strings.Contains(string(data), path) || strings.Contains(string(data), "agent-toolkit:concise-output:start") {
+		if err != nil || !strings.Contains(string(data), path) || strings.Contains(string(data), "[Concise output](") {
 			t.Fatalf("concise disable changed output guidance: %s: %v", data, err)
 		}
 	}
@@ -238,39 +251,64 @@ func TestBackendOutputAndConcise(t *testing.T) {
 	assertFile(t, filepath.Join(root, "claude", "skills", "concise-output", "SKILL.md"), true)
 	m.page, m.cursor = 2, 0
 	m, _ = press(m, "enter")
+	m, _ = press(m, "down")
+	m, _ = press(m, "down")
+	m, _ = press(m, "enter")
 	m = saveFixture(t, m)
 	for _, file := range guidance {
-		assertFile(t, file, false)
+		assertFile(t, file, true)
 	}
 	assertFile(t, artifact, true)
 }
 
-func TestConfigureCombinesLegacyGuidancePreferences(t *testing.T) {
+func TestDocumentationGuidanceIsIndependent(t *testing.T) {
+	m, _ := backendFixture(t)
+	m.draft.Providers = []string{"codex"}
+	m.loadProvider()
+	m.page, m.cursor = 2, len(m.storageRows())+1
+	m, _ = press(m, "enter")
+	if !m.draft.DocumentationEnabled() || m.draft.FullTemplate || !m.dirty() {
+		t.Fatal("documentation toggle changed coding or was not tracked")
+	}
+	m = saveFixture(t, m)
+	if !m.status.Guidance[m.provider()].Documentation || m.status.Guidance[m.provider()].FullTemplate {
+		t.Fatal("independent documentation preference was not installed")
+	}
+	m.page, m.cursor = 2, len(m.storageRows())
+	m, _ = press(m, "enter")
+	if !m.draft.FullTemplate || !m.draft.DocumentationEnabled() {
+		t.Fatal("coding toggle changed documentation")
+	}
+	m, _ = press(m, "down")
+	m, _ = press(m, "enter")
+	if !m.draft.FullTemplate || m.draft.DocumentationEnabled() {
+		t.Fatal("documentation toggle changed coding")
+	}
+	m = saveFixture(t, m)
+	if m.status.Guidance[m.provider()].Documentation || !m.status.Guidance[m.provider()].FullTemplate {
+		t.Fatal("coding-only setting was not installed")
+	}
+}
+
+func TestConfigurePreservesIndependentGuidancePreferences(t *testing.T) {
 	for _, concise := range []bool{false, true} {
 		for _, full := range []bool{false, true} {
 			m, _ := readyModel(t, false)
 			m.saved.Concise, m.saved.FullTemplate = concise, full
 			m.draft = clone(m.saved)
-			m.page = 3
+			m.page, m.cursor = 2, len(m.storageRows())
 			if m.dirty() {
-				t.Fatal("loading legacy preferences created unsaved changes")
+				t.Fatal("loading preferences created unsaved changes")
 			}
 			lines := strings.Join(m.settingsLines(), "\n")
-			if !strings.Contains(lines, check(concise || full)+"Global guidance and concise-output") {
-				t.Fatal("combined setting does not reflect saved preferences")
+			if !strings.Contains(lines, check(concise)+"Concise replies") || !strings.Contains(lines, check(full)+"Coding guidance") {
+				t.Fatal("settings do not reflect independent preferences", lines)
 			}
 			next, cmd := m.startSave()
 			m = next.(model)
-			desired := m.applyRequest.Desired
-			if cmd == nil || desired.Concise != (concise || full) || desired.FullTemplate != (concise || full) {
-				t.Fatalf("legacy preferences (%t, %t) not combined: %+v", concise, full, desired)
-			}
-			// The same setting turns both features off, including mixed legacy values.
-			m.busy = false
-			m.draft.Concise, m.draft.FullTemplate = concise, full
-			m, _ = press(m, "enter")
-			if m.draft.Concise != !(concise || full) || m.draft.FullTemplate != !(concise || full) {
-				t.Fatal("toggle did not change both preferences together")
+			desired := m.applyRequest.Desired.ForProvider(m.provider())
+			if cmd == nil || desired.Concise != concise || desired.FullTemplate != full {
+				t.Fatalf("preferences (%t, %t) changed: %+v", concise, full, desired)
 			}
 		}
 	}
@@ -301,9 +339,9 @@ func TestViewportResizeLongListsAndDialogs(t *testing.T) {
 	if !strings.Contains(m.View().Content, "[y/N]") {
 		t.Fatal("default choice is offscreen")
 	}
-	before := m.View().Content
+	before := m.viewOffset()
 	m, _ = press(m, "pgup")
-	if m.View().Content == before || !strings.Contains(m.View().Content, "pgup/pgdown") {
+	if m.viewOffset() >= before || !strings.Contains(m.View().Content, "pgup/pgdown") {
 		t.Fatal("long dialog cannot be scrolled")
 	}
 }

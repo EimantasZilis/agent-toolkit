@@ -13,8 +13,9 @@ an interactive terminal and fails without changing installations when redirected
 
 Fresh setup starts with no provider selected and the starter skills preselected.
 Choose Codex, Claude Code, or both. Complete the settings pages and final review.
-Saved installations open the Overview tab. Section headings and rules separate
-installation settings, source information, and actions. Muted labels distinguish
+Saved installations open the Overview tab. Installed skill counts, storage,
+source, and actions appear in a single column at every terminal width.
+Muted labels distinguish
 settings from bold values; enabled guidance uses green text. The focused action
 has a filled background and a `>` marker. The same styles apply to settings
 pages, keyboard help, review summaries, and unsaved-change dialogs. Skill categories use accent headings; checked items use
@@ -22,18 +23,50 @@ green markers. Detailed reviews show additions in green and removals in red,
 while retaining their `+` and `-` markers. Font and text size follow your terminal
 settings.
 
-Use the Providers, Skills, Storage, and Guidance tabs to edit settings. Tabs share one draft and remember the focused
+Use the LLMs, Skills, and Global settings tabs to edit settings. Tabs share one
+draft and remember the focused
 row. Switching tabs does not apply changes or prompt to save.
+
+Skills shows a separate list for each enabled provider, with installed skills
+marked in the list. Each provider keeps its own selection and retained helpers.
+Use Up/Down to reach a provider’s rows, then Space or Enter to edit them.
+Select-all and category actions affect only that provider. Wide terminals show
+two columns: the skill list and the focused skill's description. Narrow
+terminals show the description below the list.
+
+Global settings groups controls under **Artifact storage** (all LLMs) and
+**Agent guidance** (configured per LLM, across repositories). Provider names
+appear as subordinate headings with installed guidance state, short inline
+setting descriptions, and installed file paths. Overview shows installed skill
+counts for Codex and Claude Code, including providers that are not currently
+enabled in the draft. Guidance details appear only in Global settings. Use
+Page Up/Page Down to inspect long lists. Draft edits do not change the
+installed overview until applied.
+Its Artifact storage section has one shared repo-local or external location for all providers.
+It displays `<global-path>/<repo>/<skill>/<branch>/` for external storage and
+`<repo-root>/<skill>/<branch>/` for repo-local storage. **Separate by LLM**
+appends `/codex/` or `/claude/`. The toggle defaults to off and keeps its value
+when providers change. Overview and review show the shared layout.
+
+Existing artifacts stay in place. Discovery checks shared and provider folders
+together, then previous branch/skill layouts. Multiple plausible matches require
+a choice. Artifacts beneath a replaced root require an explicit path.
+
+Configure saves shared storage in version 4 settings. Older settings remain
+readable without writes. When provider locations agree, Configure reuses that
+location. Otherwise choose one shared location in Global settings before saving.
+Refresh and linked-install migration preserve legacy preferences until Configure
+saves the shared policy.
 
 | Control | Action |
 | --- | --- |
 | Arrow keys | Move between rows; Left/Right expand skill categories |
 | ↵ | Open a menu item or toggle a setting, skill, or category |
 | Tab / Shift+Tab | Move to the next / previous tab |
-| `1`–`5` | Open Overview, Providers, Skills, Storage, or Guidance |
+| `1`–`4` | Open Overview, LLMs, Skills, or Global settings |
 | Space | Toggle the focused selection |
 | `?` | Open or close keyboard help |
-| `a` | Select or deselect all skills |
+| `a` | Select or deselect all skills for the provider of the focused row |
 | `s` | Preview and save settings |
 | ↵ on Path | Edit the output path; ↵ accepts, Esc or Ctrl+C cancels |
 | Page Up / Page Down | Scroll long pages and previews |
@@ -66,17 +99,25 @@ Partially selected categories use `[-]` and show selection counts. Review keeps 
 ## Settings
 
 - **Skills:** required helpers are included automatically. Removing a parent
-  keeps its installed helpers; remove unused helpers individually.
+  keeps its installed helpers for that provider; remove unused helpers individually.
   Use the first row to select or deselect all skills with ↵. The `a` shortcut
   performs the same action. Automatic concise loading and retained helpers
   follow the same rules as category selection.
-- **Markdown output:** use each repository or a shared absolute path, grouped
-  by repository, branch, and skill. Existing artifacts stay in place.
-- **Global guidance and concise-output:** add shared coding, documentation,
-  and Markdown artifact instructions together with concise-output automatic
-  loading. Disabling removes these instructions and keeps the skill installed.
-  When saving Configure, either enabled legacy option enables both together.
-  Refresh and migration preserve the existing saved preferences.
+- **Global settings — storage:** choose one repo-local or external absolute path for all
+  providers. Output is grouped by skill and branch, with repository first for
+  external output. Optionally separate artifacts by provider.
+- **Global settings — guidance:** control coding guidance, documentation guidance,
+  and concise replies independently for each provider. Global `AGENTS.md` and
+  `CLAUDE.md` files route agents to the selected instructions before working.
+  Concise replies loads the installed `concise-output` skill. Disabling it
+  keeps that skill installed.
+- **Internal instructions:** coding, documentation, and Markdown storage rules
+  live in `.agents/global/`, outside invokable skill discovery. Storage rules
+  always apply, including with repo-local storage and other guidance disabled.
+  The installed summary shows instruction targets and the effective location.
+  Keep the checkout available; edits apply on the next load without refreshing.
+  Changes to enabled settings or storage require reviewed apply. Configure,
+  refresh, and migration preserve each provider's separate preferences.
 
 Removing skills or providers and creating an output directory require explicit
 confirmation. ↵, No, Esc, and Backspace cancel; the default is No. Apply checks that

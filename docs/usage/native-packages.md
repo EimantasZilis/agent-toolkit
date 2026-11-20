@@ -15,8 +15,10 @@ and global guidance unchanged.
 | `bundle-all` | The full catalog |
 
 Prefer one installation route per skill to avoid duplicate copies.
-Markdown artifacts default to `<repo-root>/<branch-slug>/<skill-name>/...`;
-an explicit path or output policy in user guidance takes precedence.
+Markdown artifacts default to `<repo-root>/<skill-name>/<branch-slug>/...`;
+an explicit path or output policy in user guidance takes precedence. Output-producing
+skills load a shared internal module at `settings/markdown-output.md` inside each
+package. This module is outside skill discovery and needs no source checkout.
 
 ## Codex CLI
 

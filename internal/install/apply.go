@@ -70,11 +70,14 @@ func (s *Service) Apply(ctx context.Context, p Preview, confirmed Confirmations)
 		}
 	}
 	if confirmed.CreateOutput {
-		if p.Desired.Output == "" {
+		paths := p.Desired.OutputPaths()
+		if len(paths) == 0 {
 			return Status{}, problem("invalid_settings", "", "directory creation requires an output path")
 		}
-		if err := tx.mkdir(p.Desired.Output); err != nil {
-			return Status{}, err
+		for _, path := range paths {
+			if err := tx.mkdir(path); err != nil {
+				return Status{}, err
+			}
 		}
 	}
 	for _, provider := range []string{"codex", "claude"} {
@@ -230,7 +233,7 @@ func (s *Service) applyGuidance(tx *transaction, p Preview, op Operation) error 
 	if op.Action != "write-guidance" {
 		return problem("invalid_operation", op.Path, op.Action)
 	}
-	block := p.guidance
+	block := p.guidance[op.Provider]
 	if user != "" {
 		user += "\n"
 	}

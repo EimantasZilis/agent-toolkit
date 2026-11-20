@@ -30,9 +30,16 @@ to a source skill. Move or remove adapters when moving or removing a skill;
 `make validate` checks these references before `make verify` checks both
 providers' installed metadata.
 
-Global guidance lives at `.agents/global/instructions.md` and is optional at
-installation. Choose providers and guidance in the TUI started by `make run`
-or `go run ./cmd/agent-toolkit`. Local Markdown links are relative to their
+Global settings live in `.agents/global/`. Internal coding and documentation
+instructions use `instructions.md` and `documentation.md`, respectively. Storage
+and discovery rules use `markdown-output.md`. These modules live outside skill discovery and must not
+be registered as invokable skills. Global provider files route directly to
+selected modules and the installed `concise-output` skill, and record the chosen
+artifact location. Keep the checkout available while those links are installed.
+Local Markdown-producing skills link to the shared storage module. Native
+packages carry one portable copy under `settings/`, outside their skills directory.
+Choose providers and guidance in the TUI started by `make run` or
+`go run ./cmd/agent-toolkit`. Local Markdown links are relative to their
 source file; rendering resolves cross-skill links for the installed layout.
 
 Declare only required in-session skill loads and invocations in
@@ -65,7 +72,7 @@ Validate selective and full-catalog installation for both providers with `make v
 Skills that write Markdown must follow the installed output-location policy.
 When no path is supplied, write beneath the current repository's branch and
 skill directory in repo-local mode, or beneath the configured
-`<output-root>/<repo>/<branch>/<skill>/` hierarchy in external mode. Explicit
+`<output-root>/<repo>/<skill>/<branch>/` hierarchy in external mode. Explicit
 user-provided paths always win. Keep all files from one invocation beneath the
 skill directory, avoid overwriting existing artifacts, and report the exact
 written path. Do not hardcode `docs/` as the default destination for new

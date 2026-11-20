@@ -12,6 +12,9 @@ import (
 func (m model) wrappedLines() []string {
 	lines := []string{}
 	width, _ := m.viewportSize()
+	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && len(m.dialogs) == 0 {
+		return m.overviewRows(width)
+	}
 
 	for _, line := range m.viewLines() {
 		// Newlines here separate trusted layout rows. Escape every other control
@@ -33,8 +36,8 @@ func (m model) viewportSize() (width, height int) {
 	if m.width < 20 || m.height < 10 {
 		return max(1, m.width), max(1, m.height-1)
 	}
-	if len(m.skillDetails()) > 0 {
-		width, _, _ = m.skillPaneWidths()
+	if m.skillDescriptionVisible() {
+		width, _ = m.skillPaneWidths()
 		if m.width < 110 {
 			height -= m.skillPanelHeight() + 1
 		}
@@ -51,11 +54,19 @@ func (m model) viewOffset() int {
 	}
 	anchor := 0
 	for i, line := range lines {
-		if strings.HasPrefix(line, "> ") {
+		if strings.HasPrefix(ansi.Strip(line), "> ") {
 			anchor = i
 		}
 		if m.editingPath && strings.Contains(line, "│") {
 			anchor = i
+		}
+	}
+	// Keep the resulting layout visible while changing LLM separation.
+	if m.page == 2 && !m.help && m.focusedSetting("split") {
+		for i, line := range lines {
+			if strings.HasPrefix(line, "Layout:") {
+				anchor = i
+			}
 		}
 	}
 	// Dialog choices and errors take priority over the selected page row.
@@ -81,7 +92,11 @@ func (m model) View() tea.View {
 		end := min(len(lines), start+max(1, height-1))
 		content := strings.Join(lines[start:end], "\n")
 		if height > 1 {
-			content += "\n" + m.style(padLine("pgup/pgdown · y confirm · Esc back", width), "muted")
+			shortcuts := "pgup/pgdown · y confirm · Esc back"
+			if len(m.dialogs) > 0 {
+				shortcuts = "[y/N] · " + shortcuts
+			}
+			content += "\n" + m.style(padLine(shortcuts, width), "muted")
 		}
 		v := tea.NewView(content)
 		v.AltScreen = true
@@ -89,31 +104,21 @@ func (m model) View() tea.View {
 	}
 	inner := width - 4
 	bodyWidth := inner
-	details := m.skillDetails()
-	split := width >= 110 && len(details) > 0
-	_, descriptionWidth, detailsWidth := m.skillPaneWidths()
+	showDescription := m.skillDescriptionVisible()
+	split := width >= 110 && showDescription
+	_, descriptionWidth := m.skillPaneWidths()
 	if split {
-		bodyWidth, _, _ = m.skillPaneWidths()
+		bodyWidth, _ = m.skillPaneWidths()
 	}
 	bodyHeight := height - 8
-	if len(details) > 0 && !split {
+	if showDescription && !split {
 		bodyHeight -= m.skillPanelHeight() + 1
 	}
 	bodyHeight = max(1, bodyHeight)
 	var description []string
 	if split {
 		description = m.skillDescriptionRows(descriptionWidth)
-		limit := bodyHeight
-		if detailsWidth == 0 {
-			limit -= len(details) + 1
-		}
-		description = clippedRows(description, max(1, limit), descriptionWidth)
-	}
-	if split && detailsWidth == 0 {
-		description = append(description, "")
-		for i, detail := range details {
-			description = append(description, m.detailLine(detail, i))
-		}
+		description = clippedRows(description, bodyHeight, descriptionWidth)
 	}
 	rows := m.bodyRows(bodyWidth)
 	start := min(m.scroll, max(0, len(rows)-bodyHeight))
@@ -122,6 +127,13 @@ func (m model) View() tea.View {
 		for i, row := range rows {
 			if strings.HasPrefix(ansi.Strip(row), "> ") {
 				anchor = i
+			}
+		}
+		if m.page == 2 && !m.help && len(m.dialogs) == 0 && m.focusedSetting("split") {
+			for i, row := range rows {
+				if strings.HasPrefix(ansi.Strip(row), "Layout:") {
+					anchor = i
+				}
 			}
 		}
 		start = min(max(0, anchor-bodyHeight+2), max(0, len(rows)-bodyHeight))
@@ -141,29 +153,16 @@ func (m model) View() tea.View {
 				detail = description[i]
 			}
 			text = padLine(text, bodyWidth) + " " + border + " " + padLine(detail, descriptionWidth)
-			if detailsWidth > 0 {
-				detail = ""
-				if i < len(details) {
-					detail = m.detailLine(details[i], i)
-				}
-				text += " " + border + " " + padLine(detail, detailsWidth)
-			}
 		}
 		out = append(out, line(text))
 	}
-	if len(details) > 0 && !split {
+	if showDescription && !split {
 		out = append(out, rule("├", "┤"))
-		panel := clippedRows(m.skillDescriptionRows(inner), m.skillPanelHeight()-2, inner)
-		for i, detail := range details[1:] {
-			panel = append(panel, m.detailLine(detail, i+1))
-		}
+		panel := clippedRows(m.skillDescriptionRows(inner), m.skillPanelHeight(), inner)
 		for i := 0; i < m.skillPanelHeight(); i++ {
 			text := ""
 			if i < len(panel) {
 				text = panel[i]
-			}
-			if i == m.skillPanelHeight()-1 && len(panel) > i+1 {
-				text = ansi.Truncate(text, inner-1, "") + "…"
 			}
 			out = append(out, line(text))
 		}
@@ -171,7 +170,7 @@ func (m model) View() tea.View {
 
 	status := "Saved configuration"
 	if m.wizard {
-		status = "Setup · Choose providers, skills, output, and guidance"
+		status = "Setup · Choose LLMs, skills, output, and guidance"
 	}
 	if m.dirty() {
 		status = m.style("Draft changed · Installed files unchanged", "accent")
@@ -183,7 +182,8 @@ func (m model) View() tea.View {
 		status = m.style(terminalText(m.err), "error")
 	}
 	if len(m.dialogs) > 0 {
-		status = m.style(ansi.Truncate(terminalText(strings.Split(m.dialogs[0].text, "\n")[0]), max(1, inner-7), "…")+" [y/N]", "accent")
+		prompt := strings.TrimSuffix(strings.Split(m.dialogs[0].text, "\n")[0], " [y/N]")
+		status = m.style(ansi.Truncate(terminalText(prompt), max(1, inner-7), "…")+" [y/N]", "accent")
 	}
 	if m.busy {
 		status = "Working… Please wait for the operation to finish."
@@ -223,11 +223,11 @@ func (m model) tabs(width int) string {
 		}
 		return m.style("[Summary]", "selected") + "   " + m.style("Details", "muted")
 	}
-	names := []string{"Overview", "Providers", "Skills", "Storage", "Guidance"}
-	if width < 64 {
-		names = []string{"Home", "LLMs", "Skills", "Storage", "Guide"}
+	names := []string{"Overview", "LLMs", "Skills", "Global settings"}
+	if width < 60 {
+		names = []string{"Home", "LLMs", "Skills", "Settings"}
 	}
-	pages := []int{managementPage, 0, 1, 2, 3}
+	pages := []int{managementPage, 0, 1, 2}
 	tabs := []string{}
 	for i, name := range names {
 		text := fmt.Sprintf("%d %s", i+1, name)
@@ -267,19 +267,18 @@ func (m model) shortcuts() string {
 }
 
 func (m model) bodyRows(width int) []string {
+	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && len(m.dialogs) == 0 {
+		return m.overviewRows(width)
+	}
 	lines := m.viewLines()
 	if m.help {
-		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–5: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
+		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–4: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
 	}
 	rows := []string{}
 	for index, text := range lines {
 		for _, line := range strings.Split(text, "\n") {
 			line = terminalText(line)
-			if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && len(m.dialogs) == 0 {
-				line = m.overviewLine(line, width)
-			} else {
-				line = m.contentLine(line, width, index == 0)
-			}
+			line = m.contentLine(line, width, index == 0)
 			rows = append(rows, strings.Split(ansi.Hardwrap(line, width, true), "\n")...)
 		}
 	}
@@ -289,12 +288,12 @@ func (m model) bodyRows(width int) []string {
 // overviewLine receives escaped text so saved paths cannot inject terminal styles.
 func (m model) overviewLine(line string, width int) string {
 	switch line {
-	case "Installation", "Source", "Actions":
+	case "Overview", "Storage", "Installation", "Source", "Actions", "Codex", "Claude Code":
 		return m.sectionHeading(line, width)
 	case "Development checkout":
 		return m.style(line, "value")
 	}
-	for _, key := range []string{"Providers", "Skills", "Markdown", "Guidance"} {
+	for _, key := range []string{"LLMs", "Skills", "Markdown", "Guidance"} {
 		label := fmt.Sprintf("%-16s", key)
 		if strings.HasPrefix(line, label) {
 			value := strings.TrimPrefix(line, label)
@@ -336,6 +335,14 @@ func (m model) contentLine(line string, width int, heading bool) string {
 		return m.style(line, "notice")
 	case strings.Contains(line, "[y/N]"):
 		return m.style(line, "accent")
+	case !m.help && len(m.dialogs) == 0 && m.page == 2 && (line == "  Codex" || line == "  Claude Code"):
+		return m.style(line, "heading")
+	case !m.help && len(m.dialogs) == 0 && m.page == 2 && (strings.HasPrefix(line, "  Installed guidance:") || strings.HasPrefix(line, "Applies ") || strings.HasPrefix(line, "Changing location ") || strings.HasPrefix(line, "Turning off ")):
+		return m.style(line, "muted")
+	case !m.help && len(m.dialogs) == 0 && (line == "Codex" || line == "Claude Code"):
+		return m.sectionHeading(line, width)
+	case !m.help && len(m.dialogs) == 0 && m.page == 2 && (line == "Artifact storage" || line == "Agent guidance"):
+		return m.sectionHeading(line, width)
 	case heading:
 		return m.sectionHeading(line, width)
 	case len(m.dialogs) > 0 && m.reviewDetails:
@@ -357,6 +364,9 @@ func (m model) contentLine(line string, width int, heading bool) string {
 	case strings.HasPrefix(line, "> "):
 		return m.style(line+strings.Repeat(" ", max(0, min(width, 56)-ansi.StringWidth(line))), "selected")
 	}
+	if !m.help && len(m.dialogs) == 0 && m.page == 2 && strings.HasPrefix(line, "    ") && !strings.HasPrefix(strings.TrimSpace(line), "Path: ") && !strings.Contains(line, "[x]") && !strings.Contains(line, "[ ]") {
+		return m.style(line, "muted")
+	}
 	if !m.help && len(m.dialogs) == 0 && strings.HasPrefix(line, "  ") {
 		if strings.Contains(line, "▸ ") || strings.Contains(line, "▾ ") {
 			return m.style(line, "heading")
@@ -367,30 +377,23 @@ func (m model) contentLine(line string, width int, heading bool) string {
 				if mark == "[x]" {
 					role = "notice"
 				}
-				name, suffix, _ := strings.Cut(after, " (")
+				name, description, hasDescription := strings.Cut(after, " — ")
+				name, suffix, _ := strings.Cut(name, " (")
 				text := m.style(before+mark, role) + m.style(name, "value")
 				if suffix != "" {
 					text += m.style(" ("+suffix, "muted")
 				}
+				if hasDescription {
+					text += m.style(" — "+description, "muted")
+				}
 				return text
 			}
 		}
-		if !strings.HasPrefix(line, "  Path: ") {
+		if !strings.HasPrefix(strings.TrimSpace(line), "Path: ") {
 			return m.style(line, "value")
 		}
 	}
-	if key, value, ok := strings.Cut(line, ": "); ok && (m.help || len(m.dialogs) > 0 || strings.HasPrefix(line, "  Path: ") || m.page == 4) {
-		return m.style(key+": ", "muted") + m.style(value, "value")
-	}
-	return m.style(line, "muted")
-}
-
-func (m model) detailLine(line string, index int) string {
-	line = terminalText(line)
-	if index == 0 {
-		return m.sectionHeading(line, 34)
-	}
-	if key, value, ok := strings.Cut(line, ": "); ok {
+	if key, value, ok := strings.Cut(line, ": "); ok && (m.help || len(m.dialogs) > 0 || strings.HasPrefix(strings.TrimSpace(line), "Path: ") || m.page == 3) {
 		return m.style(key+": ", "muted") + m.style(value, "value")
 	}
 	return m.style(line, "muted")
@@ -405,16 +408,13 @@ func clippedRows(rows []string, height, width int) []string {
 	return rows
 }
 
-func (m model) skillPaneWidths() (list, description, details int) {
+func (m model) skillPaneWidths() (list, description int) {
 	inner := max(1, m.width-4)
-	if m.width >= 150 {
-		list = min(56, inner/3)
-		return list, inner - list - 40, 34
-	}
 	if m.width >= 110 {
-		return inner - 37, 34, 0
+		list = min(56, inner/2)
+		return list, inner - list - 3
 	}
-	return inner, 0, 0
+	return inner, 0
 }
 
 func (m model) skillPanelHeight() int {
@@ -447,44 +447,11 @@ func (m model) skillDescriptionRows(width int) []string {
 	return out
 }
 
-func (m model) skillDetails() []string {
+func (m model) skillDescriptionVisible() bool {
 	if m.height < 14 || m.page != 1 || m.unsaved || m.conflictReview || m.help || len(m.dialogs) > 0 {
-		return nil
+		return false
 	}
-	rows := m.skillRows()
-	if m.cursor >= len(rows) {
-		return nil
-	}
-	r := rows[m.cursor]
-	if r.name == "" {
-		return []string{"Category selection", "Space toggles this group.", "Required helpers remain included."}
-	}
-	role := m.selected()[r.name]
-	if role == "" {
-		role = "Not selected"
-	}
-	reason := "No required helpers"
-	for _, item := range m.catalog.Skills {
-		if item.Name == r.name && len(item.Helpers) > 0 {
-			reason = "Includes: " + strings.Join(item.Helpers, ", ")
-		}
-		if role == "required" && m.selected()[item.Name] != "" {
-			for _, helper := range item.Helpers {
-				if helper == r.name {
-					reason = "Required by: " + item.Name
-					break
-				}
-			}
-		}
-	}
-	if role == "automatic" {
-		reason = "Enabled by global guidance"
-	}
-	status := role
-	if role == "requested" || role == "automatic" {
-		status = "Selected"
-	}
-	return []string{r.name, "Selection: " + status, reason}
+	return m.cursor >= 0 && m.cursor < len(m.skillRows())
 }
 
 func (m model) unsavedOverlay(background string) string {

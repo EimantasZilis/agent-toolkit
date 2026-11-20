@@ -21,13 +21,36 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	status := Status{Installed: installed, Desired: desired, Applied: applied, Observed: map[string][]string{}}
+	status := Status{Installed: installed, Desired: desired, Applied: applied, Observed: map[string][]string{}, Guidance: map[string]GuidanceStatus{}}
 	for _, provider := range []string{"codex", "claude"} {
 		names, err := s.observed(provider)
 		if err != nil {
 			return Status{}, err
 		}
 		status.Observed[provider] = names
+		_, path := s.destinations(provider)
+		_, block, count, guideErr := s.guidanceParts(path)
+		guide := GuidanceStatus{Path: path, State: "Not installed"}
+		if guideErr != nil {
+			guide.State = "Needs review"
+		} else if count > 0 {
+			guide.State = "Installed"
+			guide.FullTemplate = strings.Contains(block, "# agent-toolkit guidance") || strings.Contains(block, "[Global guidance](") || strings.Contains(block, "[Coding guidance](")
+			guide.Concise = strings.Contains(block, conciseStart) || strings.Contains(block, "[Concise output](")
+			guide.Output = strings.Contains(block, "[Markdown output](") || strings.Contains(block, "## Markdown output") || strings.Contains(block, "## Installed Markdown output location")
+			guide.Documentation = strings.Contains(block, "[Documentation guidance](") || strings.Contains(block, "## Documentation") || strings.Contains(block, "[Global guidance](")
+			guide.DocumentationPath = guidanceTarget(block, "Documentation guidance")
+			guide.CodingPath = guidanceTarget(block, "Coding guidance")
+			if guide.CodingPath == "" {
+				guide.CodingPath = guidanceTarget(block, "Global guidance")
+			}
+			guide.ConcisePath = guidanceTarget(block, "Concise output")
+			guide.OutputPath = guidanceTarget(block, "Markdown output")
+			if _, tail, ok := strings.Cut(block, "Markdown artifact location: `"); ok {
+				guide.Location, _, _ = strings.Cut(tail, "`")
+			}
+		}
+		status.Guidance[provider] = guide
 		root, _ := s.destinations(provider)
 		for _, name := range names {
 			data, err := os.ReadFile(filepath.Join(root, name, markerName))
@@ -47,18 +70,22 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	selected := append(append([]string(nil), desired.Requested...), desired.Retained...)
-	if desired.Concise {
-		selected = append(selected, "concise-output")
-	}
-	if len(selected) > 0 {
-		// Status still reports saved preferences if a source skill disappeared;
-		// refresh/setup diagnoses that separately before applying anything.
-		expanded, selectErr := c.Select(strings.Join(selected, " "), false)
-		if selectErr == nil {
-			selected = expanded
+	var selected []string
+	for _, provider := range desired.Providers {
+		p := desired.ForProvider(provider)
+		names := append(p.Requested, p.Retained...)
+		if p.Concise {
+			names = append(names, "concise-output")
 		}
+		if len(names) > 0 {
+			expanded, selectErr := c.Select(strings.Join(names, " "), false)
+			if selectErr == nil {
+				names = expanded
+			}
+		}
+		selected = append(selected, names...)
 	}
+	selected = unique(selected)
 	status.Native, err = s.nativeNotice(c, selected)
 	return status, err
 }
@@ -145,9 +172,11 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		}
 		desired = status.Desired
 		request.Removed = nil
+		request.RemovedByProvider = nil
 	case Uninstall:
 		desired = Settings{}
 		request.Removed = nil
+		request.RemovedByProvider = nil
 	default:
 		return Preview{}, problem("invalid_intent", "", string(request.Intent))
 	}
@@ -155,64 +184,38 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		return Preview{}, err
 	}
 	desired.Providers = unique(desired.Providers)
-	desired.Requested = unique(desired.Requested)
-	desired.Retained = append([]string(nil), desired.Retained...)
-	if request.Intent != Uninstall {
-		for _, name := range append(append([]string(nil), desired.Requested...), desired.Retained...) {
-			if _, err := c.Lookup(name); err != nil {
-				return Preview{}, problem("setup_required", "", err.Error())
-			}
-		}
-	}
-	if request.Intent != Uninstall && request.Intent != Migrate {
-		var required []string
-		if len(desired.Requested) > 0 {
-			required, err = c.Select(strings.Join(desired.Requested, " "), desired.Concise)
-			if err != nil {
-				return Preview{}, err
-			}
-		}
-		installed := append(append([]string(nil), status.Applied["codex"]...), status.Applied["claude"]...)
-		installed = append(installed, status.Observed["codex"]...)
-		installed = append(installed, status.Observed["claude"]...)
-		for _, skill := range c.Skills {
-			for _, helper := range skill.Helpers {
-				if contains(installed, helper) && !contains(request.Removed, helper) && !contains(required, helper) {
-					desired.Retained = append(desired.Retained, helper)
-				}
-			}
-		}
-		if status.Desired.Concise && !desired.Concise && contains(installed, "concise-output") && !contains(request.Removed, "concise-output") {
-			desired.Retained = append(desired.Retained, "concise-output")
-		}
-	}
-	for _, name := range request.Removed {
-		if !validName.MatchString(name) {
-			return Preview{}, problem("invalid_settings", "", "invalid removed skill: "+name)
-		}
-		desired.Requested = without(desired.Requested, name)
-		desired.Retained = without(desired.Retained, name)
-	}
-	desired.Retained = unique(desired.Retained)
-	names := append(append([]string(nil), desired.Requested...), desired.Retained...)
+	selections := map[string][]string{}
+	scoped := map[string]Settings{}
 	var selected []string
-	if len(names) > 0 || desired.Concise {
-		if len(names) == 0 {
-			names = []string{"concise-output"}
+	if desired.ByProvider != nil {
+		copy := map[string]ProviderSettings{}
+		for id, preferences := range desired.ByProvider {
+			copy[id] = preferences
 		}
-		selected, err = c.Select(strings.Join(names, " "), desired.Concise)
+		desired.ByProvider = copy
+	}
+	input := desired
+	for _, provider := range desired.Providers {
+		providerRequest := request
+		if request.RemovedByProvider != nil {
+			providerRequest.Removed = request.RemovedByProvider[provider]
+		}
+		preferences, names, err := resolveSelection(c, input.ForProvider(provider), status, providerRequest, provider)
 		if err != nil {
-			return Preview{}, problem("setup_required", "", err.Error())
+			return Preview{}, err
+		}
+		scoped[provider], selections[provider] = preferences, names
+		selected = append(selected, names...)
+		if desired.ByProvider != nil {
+			desired.ByProvider[provider] = preferences.ProviderPreferences(provider)
+		} else {
+			desired.Requested, desired.Retained = preferences.Requested, preferences.Retained
 		}
 	}
-	for _, name := range request.Removed {
-		if contains(selected, name) {
-			return Preview{}, problem("required_helper", "", "remove parents requiring "+name+" first")
-		}
-	}
+	selected = unique(selected)
 	var legacyCatalog *catalog.Catalog
 	if request.Intent == Migrate {
-		if err := s.migrationSelection(status, selected); err != nil {
+		if err := s.migrationSelection(status, selections); err != nil {
 			return Preview{}, err
 		}
 		legacyCatalog, err = s.Catalog()
@@ -221,20 +224,35 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		}
 	}
 	preview := Preview{Request: request, Desired: desired, Revision: status.Revision, Source: source, payloads: map[string]payload{}}
-	preview.guidance, err = guidanceBlock(snapshot, desired)
-	if err != nil {
-		return Preview{}, err
+	preview.guidance = map[string]string{}
+	for _, provider := range desired.Providers {
+		block, err := s.guidanceBlockFrom(snapshot, provider, scoped[provider])
+		if err != nil {
+			return Preview{}, err
+		}
+		preview.guidance[provider] = block
+	}
+	preview.SelectionByProvider = map[string][]Selection{}
+	roles := map[string]string{}
+	for _, provider := range desired.Providers {
+		preferences := scoped[provider]
+		for _, name := range selections[provider] {
+			role := "required"
+			if contains(preferences.Requested, name) {
+				role = "requested"
+			} else if preferences.Concise && name == "concise-output" {
+				role = "automatic"
+			} else if contains(preferences.Retained, name) {
+				role = "retained"
+			}
+			preview.SelectionByProvider[provider] = append(preview.SelectionByProvider[provider], Selection{name, role})
+			if roles[name] == "" || role == "requested" {
+				roles[name] = role
+			}
+		}
 	}
 	for _, name := range selected {
-		role := "required"
-		if contains(desired.Requested, name) {
-			role = "requested"
-		} else if desired.Concise && name == "concise-output" {
-			role = "automatic"
-		} else if contains(desired.Retained, name) {
-			role = "retained"
-		}
-		preview.Selection = append(preview.Selection, Selection{name, role})
+		preview.Selection = append(preview.Selection, Selection{name, roles[name]})
 	}
 	add := func(op Operation) {
 		preview.Operations = append(preview.Operations, op)
@@ -249,6 +267,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		if err := ctx.Err(); err != nil {
 			return Preview{}, err
 		}
+		selected := selections[provider]
 		root, guidance := s.destinations(provider)
 		base := s.Homes.Agents
 		if provider == "claude" {
@@ -264,7 +283,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		}
 		if contains(desired.Providers, provider) {
 			for _, name := range selected {
-				expected, err := skillPayload(c, name, provider, root, desired, selected)
+				expected, err := skillPayload(c, name, provider, root, s.Root, scoped[provider], selected)
 				if err != nil {
 					return Preview{}, err
 				}
@@ -307,7 +326,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 			}
 			add(Operation{provider, action, name, path})
 		}
-		op, err := s.planGuidance(provider, desired, preview.guidance)
+		op, err := s.planGuidance(provider, desired, preview.guidance[provider])
 		if err != nil {
 			return Preview{}, err
 		}
@@ -356,12 +375,72 @@ func previewSignature(p Preview) string {
 	data, err := json.Marshal(struct {
 		Preview  Preview
 		Payloads map[string]payload
-		Guidance string
+		Guidance map[string]string
 	}{p, p.payloads, p.guidance})
 	if err != nil {
 		return ""
 	}
 	return digest(data)
+}
+
+func resolveSelection(c *catalog.Catalog, desired Settings, status Status, request Request, provider string) (Settings, []string, error) {
+	var err error
+	desired.Requested = unique(desired.Requested)
+	desired.Retained = append([]string(nil), desired.Retained...)
+	if request.Intent != Uninstall {
+		for _, name := range append(append([]string(nil), desired.Requested...), desired.Retained...) {
+			if _, err := c.Lookup(name); err != nil {
+				return Settings{}, nil, problem("setup_required", "", err.Error())
+			}
+		}
+	}
+	if request.Intent != Uninstall && request.Intent != Migrate {
+		var required []string
+		if len(desired.Requested) > 0 {
+			required, err = c.Select(strings.Join(desired.Requested, " "), desired.Concise)
+			if err != nil {
+				return Settings{}, nil, err
+			}
+		}
+		installed := append([]string(nil), status.Applied[provider]...)
+		installed = append(installed, status.Observed[provider]...)
+		for _, skill := range c.Skills {
+			for _, helper := range skill.Helpers {
+				if contains(installed, helper) && !contains(request.Removed, helper) && !contains(required, helper) {
+					desired.Retained = append(desired.Retained, helper)
+				}
+			}
+		}
+		if status.Desired.ForProvider(provider).Concise && !desired.Concise && contains(installed, "concise-output") && !contains(request.Removed, "concise-output") {
+			desired.Retained = append(desired.Retained, "concise-output")
+		}
+	}
+	for _, name := range request.Removed {
+		if !validName.MatchString(name) {
+			return Settings{}, nil, problem("invalid_settings", "", "invalid removed skill: "+name)
+		}
+		desired.Requested = without(desired.Requested, name)
+		desired.Retained = without(desired.Retained, name)
+	}
+	desired.Retained = unique(desired.Retained)
+	names := append(append([]string(nil), desired.Requested...), desired.Retained...)
+	var selected []string
+	if len(names) > 0 || desired.Concise {
+		if len(names) == 0 {
+			names = []string{"concise-output"}
+		}
+		selected, err = c.Select(strings.Join(names, " "), desired.Concise)
+		if err != nil {
+			return Settings{}, nil, problem("setup_required", "", err.Error())
+		}
+	}
+	for _, name := range request.Removed {
+		if contains(selected, name) {
+			return Settings{}, nil, problem("required_helper", "", "remove parents requiring "+name+" first")
+		}
+	}
+
+	return desired, selected, nil
 }
 
 func expectedManifest(c *catalog.Catalog, name, provider, root string, settings Settings, selected []string) (string, error) {
@@ -373,7 +452,7 @@ func expectedManifest(c *catalog.Catalog, name, provider, root string, settings 
 	if err != nil {
 		return "", err
 	}
-	return render.Markdown(c, name, "SKILL.md", string(data), render.Options{Mode: render.Local, Provider: provider, SkillsRoot: root, OutputRoot: settings.Output, Selected: selected})
+	return render.Markdown(c, name, "SKILL.md", string(data), render.Options{Mode: render.Local, Provider: provider, SkillsRoot: root, Selected: selected})
 }
 
 func without(names []string, removed string) []string {

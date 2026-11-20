@@ -19,7 +19,7 @@ const managementPage = -3
 
 const unsavedPrompt = "There are unsaved changes on the page. Would you like to save them? [S]ave / Discard"
 
-var pageNames = []string{"LLM providers", "Skills", "Markdown output", "Global settings", "Review setup"}
+var pageNames = []string{"LLMs", "Skills", "Global settings", "Review setup"}
 
 type loadedMsg struct {
 	catalog, status response
@@ -43,6 +43,8 @@ type model struct {
 	catalog                     response
 	status                      response
 	removed                     []string
+	activeProvider              string
+	removedProviders            map[string][]string
 	preview                     response
 	applyRequest                install.Request
 	quitAfter                   bool
@@ -55,13 +57,16 @@ type model struct {
 	expanded                    map[string]bool
 	globalOutput                bool
 	outputPath, originalPath    string
+	outputPaths                 map[string]string
+	outputModes                 map[string]bool
+	outputPathsToCreate         []string
 	editingPath                 bool
 	pathCursor                  int
 	createOutput                bool
 	scroll                      int
 	manualScroll                bool
 	help                        bool
-	positions                   [5]int
+	positions                   [4]int
 	reviewDetails               bool
 	conflictReview              bool
 }
@@ -139,6 +144,13 @@ func (m model) Init() tea.Cmd {
 }
 
 func clone(s settings) settings {
+	if s.ByProvider != nil {
+		profiles := map[string]install.ProviderSettings{}
+		for id := range s.ByProvider {
+			profiles[id] = s.ProviderPreferences(id)
+		}
+		s.ByProvider = profiles
+	}
 	s.Providers = append([]string(nil), s.Providers...)
 	s.Requested = append([]string(nil), s.Requested...)
 	s.Retained = append([]string(nil), s.Retained...)
@@ -146,12 +158,60 @@ func clone(s settings) settings {
 }
 
 func (m model) dirty() bool {
+	for id, removed := range m.removedProviders {
+		if id == m.provider() {
+			removed = m.removed
+		}
+		for _, name := range removed {
+			if slices.Contains(m.status.Applied[id], name) || slices.Contains(m.status.Observed[id], name) {
+				return true
+			}
+		}
+	}
 	baseline := m.originalSettings()
+	if m.draft.SharedStorage {
+		for _, id := range m.draft.Providers {
+			if baseline.ForProvider(id).Output != m.draft.Output {
+				return true
+			}
+		}
+		if m.globalOutput != (m.draft.Output != "") {
+			return true
+		}
+	}
+	if baseline.SeparateByProvider != m.draft.SeparateByProvider {
+		return true
+	}
+	for id, mode := range m.outputModes {
+		if m.draft.SharedStorage {
+			continue
+		}
+		if id == m.provider() || id == "" {
+			mode = m.globalOutput
+		}
+		if mode != (baseline.ForProvider(id).Output != "") {
+			return true
+		}
+	}
+	if m.draft.ByProvider != nil {
+		current := clone(m.draft)
+		current.ByProvider[m.provider()] = install.ProviderSettings{Requested: current.Requested, Retained: current.Retained, Concise: current.Concise, FullTemplate: current.FullTemplate, Documentation: current.Documentation, Output: current.Output}
+		for _, id := range providerIDs {
+			a, b := baseline.ForProvider(id), current.ForProvider(id)
+			if !sameNames(a.Requested, b.Requested) || !sameNames(a.Retained, b.Retained) || a.Concise != b.Concise || a.FullTemplate != b.FullTemplate || a.DocumentationEnabled() != b.DocumentationEnabled() || (!m.draft.SharedStorage && a.Output != b.Output) {
+				return true
+			}
+		}
+		baseline.Requested, baseline.Retained = m.draft.Requested, m.draft.Retained
+		baseline.Concise, baseline.FullTemplate = m.draft.Concise, m.draft.FullTemplate
+		baseline.Output = m.draft.Output
+		baseline.Documentation = m.draft.Documentation
+	}
 	if !sameNames(baseline.Providers, m.draft.Providers) ||
 		!sameNames(baseline.Requested, m.draft.Requested) ||
 		!sameNames(baseline.Retained, m.draft.Retained) ||
 		baseline.Output != m.draft.Output || baseline.Concise != m.draft.Concise ||
-		baseline.FullTemplate != m.draft.FullTemplate || m.globalOutput != (baseline.Output != "") {
+		baseline.FullTemplate != m.draft.FullTemplate || baseline.DocumentationEnabled() != m.draft.DocumentationEnabled() || m.globalOutput != (baseline.Output != "") {
 		return true
 	}
 	for _, inventory := range []map[string][]string{m.status.Observed, m.status.Applied} {
@@ -196,6 +256,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.loaded, m.catalog, m.status = true, msg.catalog, msg.status
 		m.saved, m.draft = clone(msg.status.Desired), clone(msg.status.Desired)
+		m.loadProvider()
+		m.shareStorage()
 		m.includeUnavailableSkills()
 		if msg.installed {
 			m.page = managementPage
@@ -309,7 +371,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		case "s", "S":
 			m.unsaved = false
 			if m.wizard {
-				m.page, m.cursor, m.depart = 4, 0, false
+				m.page, m.cursor, m.depart = 3, 0, false
 				return m, nil
 			}
 			return m.startSave()
@@ -317,6 +379,10 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			m.unsaved = false
 			m.draft = clone(m.originalSettings())
 			m.removed = nil
+			m.removedProviders = nil
+			m.outputPaths = nil
+			m.outputModes = nil
+			m.loadProvider()
 			m.syncOutput()
 			return m.leave()
 		case "backspace":
@@ -361,8 +427,8 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		m.depart = false
 		return m.startSave()
 	}
-	if key == "tab" || key == "shift+tab" || (key >= "1" && key <= "5") {
-		pages := []int{managementPage, 0, 1, 2, 3}
+	if key == "tab" || key == "shift+tab" || (key >= "1" && key <= "4") {
+		pages := []int{managementPage, 0, 1, 2}
 		index := 0
 		for i, page := range pages {
 			if m.page == page {
@@ -377,11 +443,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			next = int(key[0] - '1')
 		}
 		if m.wizard && m.page == 0 && next > 1 && len(m.draft.Providers) == 0 {
-			m.err = "Select at least one LLM provider before continuing."
+			m.err = "Select at least one LLM before continuing."
 			return m, nil
 		}
-		if m.wizard && m.page == 2 && next > 3 {
-			if _, err := m.validateOutput(); err != nil {
+		if m.wizard && m.page == 2 && next != 3 {
+			if _, err := m.missingOutputs(); err != nil {
 				m.err = err.Error()
 				return m, nil
 			}
@@ -440,16 +506,10 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			m.cursor = max(0, m.cursor-1)
 		case "down", "j":
-			m.cursor = min(3, m.cursor+1)
+			m.cursor = min(2, m.cursor+1)
 		case "enter":
 			m.page, m.cursor = m.cursor, 0
 		}
-		return m, nil
-	}
-	if key == "enter" && m.page == 2 && m.globalOutput && m.cursor == 2 {
-		m.editingPath = true
-		m.originalPath = m.outputPath
-		m.pathCursor = len([]rune(m.outputPath))
 		return m, nil
 	}
 	return m.edit(key)
@@ -457,11 +517,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 
 func (m model) navigate(target int) (tea.Model, tea.Cmd) {
 	if m.wizard && m.page == 0 && target > 0 && len(m.draft.Providers) == 0 {
-		m.err = "Select at least one LLM provider before continuing."
+		m.err = "Select at least one LLM before continuing."
 		return m, nil
 	}
 	if m.wizard && m.page == 2 && target > 2 {
-		if _, err := m.validateOutput(); err != nil {
+		if _, err := m.missingOutputs(); err != nil {
 			m.err = err.Error()
 			return m, nil
 		}
@@ -489,8 +549,14 @@ func (m model) startSave() (tea.Model, tea.Cmd) { return m.startAction(install.C
 func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
 	missing := false
 	var err error
+	checked := m
+	if intent == install.Refresh {
+		checked.draft = clone(m.saved)
+		checked.outputModes, checked.outputPaths = nil, nil
+		checked.loadProvider()
+	}
 	if intent != install.Uninstall && intent != install.Migrate {
-		missing, err = m.validate()
+		missing, err = checked.validate()
 	}
 	if err != nil {
 		m.err = err.Error()
@@ -498,14 +564,29 @@ func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if intent == install.Configure {
-		enabled := m.guidanceEnabled()
-		m.draft.Concise, m.draft.FullTemplate = enabled, enabled
+		if !m.shareStorage() {
+			m.err = "Choose one shared storage location on Global settings before saving."
+			return m, nil
+		}
+		m.storeProvider()
 	}
 	m.err, m.notice, m.busy = "", "Preparing preview…", true
 	m.preview = response{}
 	m.reviewDetails = false
 	m.createOutput = missing
-	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), Removed: append([]string(nil), m.removed...)}
+	m.outputPathsToCreate = nil
+	if missing {
+		m.outputPathsToCreate, err = checked.missingOutputs()
+		if err != nil {
+			m.busy = false
+			m.err = err.Error()
+			return m, nil
+		}
+	}
+	m.applyRequest = install.Request{Intent: intent, Desired: clone(m.draft), RemovedByProvider: m.removedProviders}
+	if intent == install.Refresh {
+		m.applyRequest.Desired = clone(m.saved)
+	}
 	if intent == install.Migrate {
 		m.applyRequest = install.Request{Intent: intent}
 	}
@@ -557,6 +638,10 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 	intent := m.applyRequest.Intent
 	m.saved, m.draft = clone(msg.response.Desired), clone(msg.response.Desired)
 	m.initial = nil
+	m.outputPaths = nil
+	m.outputModes = nil
+	m.removedProviders = nil
+	m.loadProvider()
 	m.syncOutput()
 	m.status = msg.response
 	m.removed, m.preview, m.applyRequest = nil, response{}, install.Request{}
@@ -597,16 +682,20 @@ func (m model) apply() (tea.Model, tea.Cmd) {
 	plan := m.preview.Plan
 	confirmed := install.Confirmations{Removals: m.preview.Confirmation, CreateOutput: m.createOutput}
 	return m, func() tea.Msg {
-		missing := false
-		var err error
 		if plan.Request.Intent != install.Uninstall && plan.Request.Intent != install.Migrate {
-			missing, err = m.validateOutput()
-		}
-		if err != nil {
-			return resultMsg{action: "apply", err: err}
-		}
-		if missing && !m.createOutput {
-			return resultMsg{action: "apply", err: fmt.Errorf("output directory disappeared; preview again to confirm creation")}
+			checked := m
+			checked.draft = clone(plan.Desired)
+			checked.outputModes, checked.outputPaths = nil, nil
+			checked.loadProvider()
+			paths, err := checked.missingOutputs()
+			if err != nil {
+				return resultMsg{action: "apply", err: err}
+			}
+			for _, path := range paths {
+				if !slices.Contains(m.outputPathsToCreate, path) {
+					return resultMsg{action: "apply", err: fmt.Errorf("output directory disappeared; preview again to confirm creation")}
+				}
+			}
 		}
 		status, err := m.backend.Apply(context.Background(), plan, confirmed)
 		return resultMsg{"apply", statusResponse(status), err}
@@ -622,16 +711,17 @@ func (m model) confirmations() []dialog {
 	}
 	dialogs := m.selectionConfirmations()
 	if m.createOutput {
-		dialogs = append([]dialog{{"Create the Markdown output directory?\n" + m.draft.Output + "\n[y/N]"}}, dialogs...)
+		dialogs = append([]dialog{{"Create the Markdown output directories?\n" + strings.Join(m.outputPathsToCreate, "\n") + "\n[y/N]"}}, dialogs...)
 	}
 	return dialogs
 }
 
 func (m model) validate() (bool, error) {
 	if m.wizard && len(m.draft.Providers) == 0 {
-		return false, fmt.Errorf("select at least one LLM provider on Page 1")
+		return false, fmt.Errorf("select at least one LLM on Page 1")
 	}
-	return m.validateOutput()
+	paths, err := m.missingOutputs()
+	return len(paths) > 0, err
 }
 
 func (m model) edit(key string) (tea.Model, tea.Cmd) {
@@ -653,25 +743,22 @@ func (m model) viewLines() []string {
 		if m.reviewDetails {
 			lines = m.operationLines()
 		}
-		return append(lines, "", m.dialogs[0].text, "↵/No/Esc/⌫ cancels; y confirms")
+		context := strings.Split(m.dialogs[0].text, "\n")[1:]
+		for _, line := range context {
+			if line != "[y/N]" {
+				lines = append(lines, line)
+			}
+		}
+		return lines
 	}
 	lines := []string{}
 	if !m.loaded {
 		lines = append(lines, "Loading backend…", m.err, "r retry · q quit")
 	} else {
 		if m.page == managementPage {
-			lines = append(lines, "Installation", "",
-				fmt.Sprintf("Providers       %s", strings.Join(m.saved.Providers, ", ")),
-				fmt.Sprintf("Skills          %d selected", len(m.selected())),
-				"Markdown        "+outputDescription(m.saved.Output),
-				"Guidance        "+guidanceStatus(m.saved.FullTemplate || m.saved.Concise),
-				"", "Source", "Development checkout", m.root, "", "Actions")
-			for i, name := range m.managementActions() {
-				lines = append(lines, row(i == m.cursor, name))
-			}
-			lines = append(lines, "", "Refresh reads the current Development working tree, including uncommitted edits.")
+			return m.overviewLines()
 		} else if m.page < 0 {
-			for i, name := range pageNames[:4] {
+			for i, name := range pageNames[:3] {
 				lines = append(lines, row(i == m.cursor, name))
 			}
 		} else {
@@ -714,12 +801,15 @@ func (m model) operationLines() []string {
 	if m.applyRequest.Intent == install.Migrate {
 		saved := m.preview.Desired
 		lines = append(lines, "Migration uses the current Development checkout.",
-			fmt.Sprintf("Saved providers: %v", saved.Providers),
+			fmt.Sprintf("Saved LLMs: %v", saved.Providers),
 			fmt.Sprintf("Requested skills: %v", saved.Requested),
 			fmt.Sprintf("Retained helpers: %v", saved.Retained),
 			"Markdown output: "+outputDescription(saved.Output),
 			fmt.Sprintf("Concise loading: %t", saved.Concise),
 			fmt.Sprintf("Full guidance: %t", saved.FullTemplate))
+		if saved.ByProvider != nil {
+			lines = append(lines, m.providerSummary(saved)...)
+		}
 		for _, item := range m.preview.Selection {
 			if item.Role == "required" {
 				lines = append(lines, "Required helper: "+item.Name)
@@ -750,8 +840,12 @@ func (m model) pageLines() []string {
 	if m.page < 2 {
 		return m.selectionLines()
 	}
-	if m.page == 4 {
-		return []string{fmt.Sprintf("Providers: %v\nSkills selected: %d\nOutput: %s\nGlobal guidance and concise-output: %t\nPress s to preview and apply setup.", m.draft.Providers, len(m.selected()), m.outputSummary(), m.guidanceEnabled())}
+	if m.page == 3 {
+		draft := clone(m.draft)
+		if draft.ByProvider != nil {
+			draft.ByProvider[m.provider()] = install.ProviderSettings{Requested: draft.Requested, Retained: draft.Retained, Concise: draft.Concise, FullTemplate: draft.FullTemplate, Documentation: draft.Documentation, Output: draft.Output}
+		}
+		return append(m.providerSummary(draft), "Press s to preview and apply setup.")
 	}
 	return m.settingsLines()
 }
@@ -763,7 +857,13 @@ func (m *model) includeUnavailableSkills() {
 	for _, s := range m.catalog.Skills {
 		known[s.Name] = true
 	}
-	for _, name := range append(append([]string(nil), m.saved.Requested...), m.saved.Retained...) {
+	var names []string
+	for _, id := range providerIDs {
+		p := m.saved.ForProvider(id)
+		names = append(names, p.Requested...)
+		names = append(names, p.Retained...)
+	}
+	for _, name := range names {
 		if !known[name] {
 			m.catalog.Skills = append(m.catalog.Skills, skill{Name: name, Category: "unavailable"})
 			known[name] = true

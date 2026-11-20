@@ -186,10 +186,13 @@ func TestMigrationReviewCancelAndApply(t *testing.T) {
 				m = reviewMigration(t, m)
 				m, _ = press(m, "v")
 				review := strings.Join(m.viewLines(), "\n")
-				for _, text := range []string{"convert", "Saved providers:", "Retained helpers:", "Required helper: plan-review", saved.Output, "Concise loading: true", "Full guidance: true", "[y/N]"} {
+				for _, text := range []string{"convert", "Saved LLMs:", "Retained helpers:", "Required helper: plan-review", saved.Output, "Concise loading: true", "Full guidance: true"} {
 					if !strings.Contains(review, text) {
 						t.Fatalf("review missing %q: %s", text, review)
 					}
+				}
+				if !strings.Contains(m.View().Content, "[y/N]") {
+					t.Fatal("review footer hides the confirmation choice")
 				}
 				next, cmd := press(m, cancel)
 				m = next

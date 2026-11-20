@@ -88,11 +88,11 @@ func TestSupportingMarkdownAndOutputPolicy(t *testing.T) {
 			t.Fatal(got)
 		}
 	}
-	got, err := Markdown(c, "next-phase", "SKILL.md", "---\nname: next-phase\n---\n", Options{Mode: Local, Provider: "claude", OutputRoot: "/shared output"})
+	got, err := Markdown(c, "next-phase", "SKILL.md", "---\nname: next-phase\n---\n", Options{Mode: Local, Provider: "claude", SourceRoot: "/shared checkout"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(got, "disable-model-invocation: true") || !strings.Contains(got, "`/shared output/<repo-slug>/<branch-slug>/<skill-name>/...`") {
+	if !strings.Contains(got, "disable-model-invocation: true") || !strings.Contains(got, "[Markdown output instructions](</shared checkout/.agents/global/markdown-output.md>)") {
 		t.Fatal(got)
 	}
 	for _, opts := range []Options{{Mode: "bad", Provider: "codex"}, {Mode: Local, Provider: "bad"}, {Mode: Native, Provider: "codex", Selected: []string{"unknown"}}} {
