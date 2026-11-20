@@ -229,3 +229,5 @@ Refresh with pending configuration asks whether to discard the draft and refresh
 Conflicts show the agent, affected item, path, cause, and recovery guidance. Press `e` when an error is shown to read its full message in a scrollable view; Enter or Esc returns. No recovery action changes files automatically.
 
 On Skills, category and select-all rows use the full browsing area. Below 110 columns, focused skill descriptions use at most five rows. Press `v` on a skill for its full scrollable description; Enter, Esc, or `v` returns to the same browsing position.
+
+The Agents tab selects Codex and Claude Code. On Skills, press `/` to search names and descriptions for the focused agent. Enter accepts, Esc restores the previous query, and Ctrl+u clears it. Press `f` to cycle All, Installed, and Selected filters. Each agent retains its own search and filter. These controls change visibility only: category toggles and `a` still affect their full category or agent selection, including hidden skills.

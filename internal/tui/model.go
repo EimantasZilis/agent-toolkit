@@ -19,7 +19,7 @@ const managementPage = -3
 
 const unsavedPrompt = "There are unsaved changes in the configuration. Would you like to save them? [S]ave / Discard"
 
-var pageNames = []string{"LLMs", "Skills", "Global settings", "Review setup"}
+var pageNames = []string{"Agents", "Skills", "Global settings", "Review setup"}
 
 type loadedMsg struct {
 	catalog, status response
@@ -34,46 +34,50 @@ type resultMsg struct {
 type dialog struct{ text string }
 
 type model struct {
-	backend                     backend
-	root                        string
-	loaded, wizard, busy        bool
-	page, cursor, width, height int
-	saved, draft                settings
-	initial                     *settings
-	catalog                     response
-	status                      response
-	removed                     []string
-	activeProvider              string
-	removedProviders            map[string][]string
-	preview                     response
-	applyRequest                install.Request
-	quitAfter                   bool
-	dialogs                     []dialog
-	unsaved                     bool
-	refreshPending              bool
-	target                      int // -1 menu, -2 quit; other values are wizard pages.
-	depart                      bool
-	err                         string
-	notice                      string
-	expanded                    map[string]bool
-	globalOutput                bool
-	outputPath, originalPath    string
-	outputPaths                 map[string]string
-	outputModes                 map[string]bool
-	outputPathsToCreate         []string
-	editingPath                 bool
-	pathCursor                  int
-	createOutput                bool
-	scroll                      int
-	manualScroll                bool
-	help                        bool
-	positions                   [4]int
-	reviewDetails               bool
-	conflictReview              bool
-	errorReview                 bool
-	skillDetails                bool
-	browseScroll                int
-	browseManual                bool
+	backend                        backend
+	root                           string
+	loaded, wizard, busy           bool
+	page, cursor, width, height    int
+	saved, draft                   settings
+	initial                        *settings
+	catalog                        response
+	status                         response
+	removed                        []string
+	activeProvider                 string
+	removedProviders               map[string][]string
+	preview                        response
+	applyRequest                   install.Request
+	quitAfter                      bool
+	dialogs                        []dialog
+	unsaved                        bool
+	refreshPending                 bool
+	target                         int // -1 menu, -2 quit; other values are wizard pages.
+	depart                         bool
+	err                            string
+	notice                         string
+	expanded                       map[string]bool
+	globalOutput                   bool
+	outputPath, originalPath       string
+	outputPaths                    map[string]string
+	outputModes                    map[string]bool
+	outputPathsToCreate            []string
+	editingPath                    bool
+	pathCursor                     int
+	createOutput                   bool
+	scroll                         int
+	manualScroll                   bool
+	help                           bool
+	positions                      [4]int
+	reviewDetails                  bool
+	conflictReview                 bool
+	errorReview                    bool
+	skillDetails                   bool
+	browseScroll                   int
+	browseManual                   bool
+	searches                       map[string]string
+	filters                        map[string]int
+	editingSearch                  bool
+	searchProvider, originalSearch string
 }
 
 type uiTheme struct {
@@ -289,12 +293,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case tea.KeyPressMsg:
+		if m.editingSearch && !m.busy && msg.Text != "" {
+			m.appendSearch(msg.Text)
+			return m, nil
+		}
 		if m.editingPath && !m.busy && msg.Text != "" {
 			m.insertPath(msg.Text)
 			return m, nil
 		}
 		return m.key(msg.String())
 	case tea.PasteMsg:
+		if m.editingSearch && !m.busy {
+			m.appendSearch(msg.Content)
+			return m, nil
+		}
 		if m.editingPath && !m.busy {
 			m.insertPath(msg.Content)
 		}
@@ -304,6 +316,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) key(key string) (tea.Model, tea.Cmd) {
 	browseManual := m.manualScroll
+	if m.editingSearch && !m.busy {
+		return m.searchKey(key), nil
+	}
 	if m.busy {
 		return m, nil
 	}
@@ -464,6 +479,10 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if m.page == 1 && (key == "/" || key == "f") {
+		m.startDiscovery(key)
+		return m, nil
+	}
 	if key == "v" && m.page == 1 && m.focusedSkillName() != "" {
 		m.skillDetails = true
 		m.browseScroll, m.browseManual = m.scroll, browseManual
@@ -495,7 +514,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			next = int(key[0] - '1')
 		}
 		if m.wizard && m.page == 0 && next > 1 && len(m.draft.Providers) == 0 {
-			m.err = "Select at least one LLM before continuing."
+			m.err = "Select at least one agent before continuing."
 			return m, nil
 		}
 		if m.wizard && m.page == 2 && next != 3 {
@@ -569,7 +588,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 
 func (m model) navigate(target int) (tea.Model, tea.Cmd) {
 	if m.wizard && m.page == 0 && target > 0 && len(m.draft.Providers) == 0 {
-		m.err = "Select at least one LLM before continuing."
+		m.err = "Select at least one agent before continuing."
 		return m, nil
 	}
 	if m.wizard && m.page == 2 && target > 2 {
@@ -774,7 +793,7 @@ func (m model) confirmations() []dialog {
 
 func (m model) validate() (bool, error) {
 	if m.wizard && len(m.draft.Providers) == 0 {
-		return false, fmt.Errorf("select at least one LLM on Page 1")
+		return false, fmt.Errorf("select at least one agent on Page 1")
 	}
 	paths, err := m.missingOutputs()
 	return len(paths) > 0, err

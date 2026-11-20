@@ -191,9 +191,18 @@ func (m model) providerSkillRows(provider string) []skillRow {
 				members = append(members, s.Name)
 			}
 		}
+		visible := []string{}
+		for _, name := range members {
+			if m.matchesSkill(provider, name) {
+				visible = append(visible, name)
+			}
+		}
+		if len(visible) == 0 {
+			continue
+		}
 		rows = append(rows, skillRow{category: category, members: members})
-		if m.categoryExpanded(provider, category) {
-			for _, name := range members {
+		if m.categoryExpanded(provider, category) || m.searches[provider] != "" || m.filters[provider] != 0 {
+			for _, name := range visible {
 				rows = append(rows, skillRow{name: name})
 			}
 		}
@@ -255,7 +264,9 @@ func (m *model) editSelection(key string) {
 			}
 		}
 	}
-	m.focusProvider(m.skillRows()[m.cursor].provider)
+	updated := m.skillRows()
+	m.cursor = min(m.cursor, len(updated)-1)
+	m.focusProvider(updated[m.cursor].provider)
 }
 
 func check(selected bool) string {
@@ -267,20 +278,24 @@ func check(selected bool) string {
 
 func (m model) selectionLines() []string {
 	if m.page == 0 {
-		lines := []string{"Select which LLMs the skills should be installed for.", "Codex: skills and AGENTS.md. Claude Code: skills and CLAUDE.md.", ""}
+		lines := []string{"Select which agents the skills should be installed for.", "Codex: skills and AGENTS.md. Claude Code: skills and CLAUDE.md.", ""}
 		for i, id := range providerIDs {
 			lines = append(lines, row(i == m.cursor, check(slices.Contains(m.draft.Providers, id))+providerName(id)))
 		}
 		return lines
 	}
-	lines := []string{"Each LLM has its own skill selection. Required helpers are selected automatically.", "←/→ collapse/expand category · ↵ toggle bundle/skill · a toggle all for this LLM", ""}
+	lines := []string{"Each agent has its own skill selection. Required helpers are selected automatically.", "←/→ collapse/expand category · ↵ toggle bundle/skill · a toggles ALL skills for this agent, including hidden matches", ""}
 	if len(m.enabledProviders()) == 0 {
-		return append(lines, "Enable a LLM on LLMs to configure its skills.")
+		return append(lines, "Enable an agent on Agents to configure its skills.")
 	}
 	lastProvider := ""
 	for i, r := range m.skillRows() {
 		if r.provider != lastProvider {
 			lines = append(lines, providerName(r.provider), fmt.Sprintf("Installed: %d skills · changes below are staged until saved.", len(m.status.Observed[r.provider])))
+			lines = append(lines, fmt.Sprintf("Search: %s · Filter: %s · / search · f filter", m.searches[r.provider], filterNames[m.filters[r.provider]]))
+			if len(m.providerSkillRows(r.provider)) == 1 {
+				lines = append(lines, "No matching skills. Press / then Ctrl+u to clear search; f changes filter.")
+			}
 			lastProvider = r.provider
 		}
 		provider := m.providerView(r.provider)

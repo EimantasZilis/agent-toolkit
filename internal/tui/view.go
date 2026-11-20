@@ -232,9 +232,9 @@ func (m model) tabs(width int) string {
 		}
 		return m.style("[Summary]", "selected") + "   " + m.style("Details", "muted")
 	}
-	names := []string{"Overview", "LLMs", "Skills", "Global settings"}
+	names := []string{"Overview", "Agents", "Skills", "Global settings"}
 	if width < 60 {
-		names = []string{"Home", "LLMs", "Skills", "Settings"}
+		names = []string{"Home", "Agents", "Skills", "Settings"}
 	}
 	pages := []int{managementPage, 0, 1, 2}
 	tabs := []string{}
@@ -251,6 +251,9 @@ func (m model) tabs(width int) string {
 }
 
 func (m model) shortcuts() string {
+	if m.editingSearch {
+		return "Type search · Enter accept · Esc restore · Ctrl+u clear"
+	}
 	if m.skillDetails {
 		return "↑↓ / PgUp/PgDn scroll · Enter/Esc/v back · q quit"
 	}
@@ -273,7 +276,7 @@ func (m model) shortcuts() string {
 		return "v view details · y confirm · Enter/Esc cancel"
 	}
 	if m.page == 1 {
-		return "↑↓ move · Space toggle · ←→ fold · v details · a all · s review · ? help"
+		return "↑↓ move · Space toggle · / search · f filter · v details · a all · s review"
 	}
 	return "↑↓ move · Enter select · Tab section · s review · ? help · q quit"
 }
@@ -305,7 +308,7 @@ func (m model) overviewLine(line string, width int) string {
 	case "Development checkout":
 		return m.style(line, "value")
 	}
-	for _, key := range []string{"LLMs", "Skills", "Markdown", "Guidance"} {
+	for _, key := range []string{"Agents", "Skills", "Markdown", "Guidance"} {
 		label := fmt.Sprintf("%-16s", key)
 		if strings.HasPrefix(line, label) {
 			value := strings.TrimPrefix(line, label)

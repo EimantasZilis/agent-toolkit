@@ -237,7 +237,7 @@ func (m model) settingsLines() []string {
 		lines = append(lines, "")
 	}
 	if len(m.enabledProviders()) == 0 {
-		lines = append(lines, "Enable an LLM on the LLMs tab to configure guidance.")
+		lines = append(lines, "Enable an LLM on the Agents tab to configure guidance.")
 	}
 	if len(m.enabledProviders()) > 0 {
 		lines = append(lines, "Turning off Concise replies keeps its skill installed.")
