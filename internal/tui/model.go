@@ -17,7 +17,7 @@ import (
 
 const managementPage = -3
 
-const unsavedPrompt = "There are unsaved changes on the page. Would you like to save them? [S]ave / Discard"
+const unsavedPrompt = "There are unsaved changes in the configuration. Would you like to save them? [S]ave / Discard"
 
 var pageNames = []string{"LLMs", "Skills", "Global settings", "Review setup"}
 
@@ -50,6 +50,7 @@ type model struct {
 	quitAfter                   bool
 	dialogs                     []dialog
 	unsaved                     bool
+	refreshPending              bool
 	target                      int // -1 menu, -2 quit; other values are wizard pages.
 	depart                      bool
 	err                         string
@@ -366,6 +367,20 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if m.refreshPending {
+		if key == "d" || key == "D" {
+			m.refreshPending, m.unsaved = false, false
+			m.draft = clone(m.saved)
+			m.removed, m.removedProviders = nil, nil
+			m.outputPaths, m.outputModes = nil, nil
+			m.loadProvider()
+			return m.startAction(install.Refresh)
+		}
+		if key == "enter" || key == "backspace" || key == "n" {
+			m.refreshPending, m.unsaved = false, false
+		}
+		return m, nil
+	}
 	if m.unsaved {
 		switch key {
 		case "s", "S":
@@ -547,6 +562,10 @@ func (m model) leave() (tea.Model, tea.Cmd) {
 func (m model) startSave() (tea.Model, tea.Cmd) { return m.startAction(install.Configure) }
 
 func (m model) startAction(intent install.Intent) (tea.Model, tea.Cmd) {
+	if intent == install.Refresh && m.dirty() {
+		m.refreshPending, m.unsaved = true, true
+		return m, nil
+	}
 	missing := false
 	var err error
 	checked := m

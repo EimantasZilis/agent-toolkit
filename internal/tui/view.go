@@ -80,7 +80,7 @@ func (m model) viewOffset() int {
 func (m model) View() tea.View {
 	if m.unsaved {
 		background := m
-		background.unsaved = false
+		background.unsaved, background.refreshPending = false, false
 		v := tea.NewView(m.unsavedOverlay(background.View().Content))
 		v.AltScreen = true
 		return v
@@ -180,6 +180,9 @@ func (m model) View() tea.View {
 	}
 	if m.err != "" {
 		status = m.style(terminalText(m.err), "error")
+	}
+	if m.dirty() {
+		status = m.style("Unsaved configuration · ", "accent") + status
 	}
 	if len(m.dialogs) > 0 {
 		prompt := strings.TrimSuffix(strings.Split(m.dialogs[0].text, "\n")[0], " [y/N]")
@@ -459,9 +462,15 @@ func (m model) unsavedOverlay(background string) string {
 	boxWidth := min(72, width)
 	innerWidth := max(1, boxWidth-4)
 	text := "Unsaved changes\n\n" + unsavedPrompt + "\n\nEsc/⌫: keep editing"
+	if m.refreshPending {
+		text = "Unsaved configuration\n\nRefresh uses saved settings.\n[d] Discard draft and refresh\nEnter/Esc: return to editing"
+	}
 	rows := strings.Split(ansi.Hardwrap(text, innerWidth, true), "\n")
 	if len(rows)+2 > height {
 		text = "Save changes?\ns save / d discard\nEsc/⌫: keep editing"
+		if m.refreshPending {
+			text = "Discard draft and refresh?\nd discard and refresh\nEnter/Esc: keep editing"
+		}
 		rows = strings.Split(ansi.Hardwrap(text, innerWidth, true), "\n")
 	}
 

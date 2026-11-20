@@ -228,3 +228,5 @@ preferences; refresh reapplies them.
 Local management uses the TUI. The former Bash scripts and installation, update,
 and uninstall Make targets have been removed. See [INSTALL.md](../../INSTALL.md)
 for installation paths, output rules, and recovery.
+
+Refresh with pending configuration asks whether to discard the draft and refresh saved settings. Enter or Esc keeps editing; only `d` discards. The footer keeps an unsaved-configuration indicator alongside notices.
