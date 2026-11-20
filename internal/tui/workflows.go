@@ -60,6 +60,11 @@ func (m *model) editWorkflow(key string) {
 	case "down", "j":
 		m.cursor = min(count-1, m.cursor+1)
 	case "enter":
+		if m.cursor < len(workflows) {
+			m.workflowIndex = m.cursor
+			m.cursor = len(workflows)
+			return
+		}
 		if m.cursor >= len(workflows) {
 			if len(ids) == 0 {
 				m.page, m.cursor = 0, 0
@@ -91,7 +96,7 @@ func (m *model) editWorkflow(key string) {
 }
 
 func (m model) workflowLines() []string {
-	lines := []string{"Choose a task; use the example prompts in your agent after installation.", "This page stages skills only. Press s to review and confirm installation.", ""}
+	lines := []string{"Choose a task and press Enter for its agent actions. Use prompts in your agent.", "This page stages skills only. Press s to review and confirm installation.", ""}
 	for i, w := range workflows {
 		lines = append(lines, row(m.cursor == i, w.name))
 	}

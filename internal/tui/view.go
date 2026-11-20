@@ -170,7 +170,7 @@ func (m model) View() tea.View {
 
 	status := "Saved configuration"
 	if m.wizard {
-		status = "Setup · Choose LLMs, skills, output, and guidance"
+		status = "Setup · Choose agents, skills, output, and guidance"
 	}
 	if m.dirty() {
 		status = m.style("Draft changed · Installed files unchanged", "accent")
@@ -290,7 +290,7 @@ func (m model) bodyRows(width int) []string {
 	}
 	lines := m.viewLines()
 	if m.help {
-		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–5: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
+		lines = []string{"Keyboard help", "", "Tab / Shift+Tab: next / previous section", "1–5: jump to a section", "Up / Down: move between rows", "Space / Enter: toggle selection", "Left / Right: collapse / expand a category", "a: select or deselect all skills, including hidden skills", "/: search skills for the focused agent", "f: cycle All / Installed / Selected", "s: review configuration", "v: switch review summary and details", "Page Up / Page Down: scroll", "q: quit · unsaved changes are protected"}
 	}
 	rows := []string{}
 	for index, text := range lines {

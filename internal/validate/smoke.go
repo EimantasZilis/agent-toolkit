@@ -90,7 +90,7 @@ func SmokeSource(ctx context.Context, source string) error {
 		quitting, discarded := false, false
 		output, err := testutil.RunTerminal(launch, cmd, func(output string) string {
 			plain := ansi.Strip(output)
-			if !quitting && strings.Contains(plain, "Select which LLMs") && strings.Contains(plain, "q quit") && strings.Contains(plain, title) {
+			if !quitting && strings.Contains(plain, "Select which agents") && strings.Contains(plain, "q quit") && strings.Contains(plain, title) {
 				quitting = true
 				return "q"
 			}

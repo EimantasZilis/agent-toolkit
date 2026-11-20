@@ -8,10 +8,21 @@ import (
 )
 
 func (m model) overviewLines() []string {
-	general := []string{"Overview", "",
-		fmt.Sprintf("LLMs            %s", strings.Join(m.installedProviders(), ", ")),
-		fmt.Sprintf("Skills          %d installed", len(m.status.Observed["codex"])+len(m.status.Observed["claude"])),
+	unique := map[string]bool{}
+	installations := 0
+	for _, names := range m.status.Observed {
+		installations += len(names)
+		for _, name := range names {
+			unique[name] = true
+		}
 	}
+	general := []string{"Overview", "", "Actions"}
+	for i, name := range m.managementActions() {
+		general = append(general, row(i == m.cursor, name))
+	}
+	general = append(general, "", "Installation",
+		fmt.Sprintf("Agents          %s", strings.Join(m.installedProviders(), ", ")),
+		fmt.Sprintf("Skills          %d unique · %d installations across agents", len(unique), installations))
 	for _, id := range m.installedProviders() {
 		general = append(general, fmt.Sprintf("%s: Installed skills: %d", providerName(id), len(m.status.Observed[id])))
 		if !m.saved.SharedStorage {
@@ -24,10 +35,7 @@ func (m model) overviewLines() []string {
 	} else {
 		general = append(general, "Markdown output: Configured per LLM")
 	}
-	general = append(general, "", "Source", "Development checkout", m.root, "", "Actions")
-	for i, name := range m.managementActions() {
-		general = append(general, row(i == m.cursor, name))
-	}
+	general = append(general, "", "Source", "Development checkout", m.root)
 	general = append(general, "", "Refresh reads the current Development working tree, including uncommitted edits.")
 	for _, message := range []string{m.status.Native.Message, m.notice, m.err} {
 		if message != "" {

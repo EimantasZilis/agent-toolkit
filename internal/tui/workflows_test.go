@@ -84,3 +84,16 @@ func TestWorkflowNavigationAndCatalog(t *testing.T) {
 		t.Fatal("workflow escape did not return home")
 	}
 }
+
+func TestChoosingWorkflowMovesDirectlyToAgentActions(t *testing.T) {
+	m, _ := workflowModel(t)
+	m.cursor = 0
+	m, _ = press(m, "enter")
+	if m.cursor != len(workflows) || m.workflowIndex != 0 {
+		t.Fatal("task choice did not reach its actions")
+	}
+	m, _ = press(m, "enter")
+	if m.selected()["ticket-to-plan"] == "" || m.selected()["pr-description"] != "" {
+		t.Fatal("navigation changed chosen workflow")
+	}
+}

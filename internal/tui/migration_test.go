@@ -165,7 +165,7 @@ func migrationSnapshot(t *testing.T, root string) string {
 func reviewMigration(t *testing.T, m model) model {
 	t.Helper()
 	m.cursor = 0
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 4; i++ {
 		m, _ = press(m, "down")
 	}
 	m, cmd := press(m, "enter")

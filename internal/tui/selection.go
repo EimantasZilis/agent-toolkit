@@ -279,6 +279,9 @@ func check(selected bool) string {
 func (m model) selectionLines() []string {
 	if m.page == 0 {
 		lines := []string{"Select which agents the skills should be installed for.", "Codex: skills and AGENTS.md. Claude Code: skills and CLAUDE.md.", ""}
+		if m.wizard {
+			lines = append(lines, "Starter selection: concise-output keeps replies focused; commit-message drafts messages for staged changes.", "Adjust the selection on Skills, or open Workflows to choose skills for a task.", "")
+		}
 		for i, id := range providerIDs {
 			lines = append(lines, row(i == m.cursor, check(slices.Contains(m.draft.Providers, id))+providerName(id)))
 		}

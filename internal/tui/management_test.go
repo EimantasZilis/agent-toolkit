@@ -95,7 +95,7 @@ func TestManagementRefreshAndUninstall(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			m.cursor = 1
+			m.cursor = 2
 			m, cmd := press(m, "enter")
 			m, _ = complete(m, cmd)
 			if m.applyRequest.Intent != install.Refresh || len(m.dialogs) == 0 {
@@ -112,7 +112,7 @@ func TestManagementRefreshAndUninstall(t *testing.T) {
 			if before.Revision != after.Revision {
 				t.Fatal("unchanged refresh changed installation")
 			}
-			m.cursor = 2
+			m.cursor = 3
 			m, cmd = press(m, "enter")
 			m, _ = complete(m, cmd)
 			if len(m.dialogs) != 1 || !strings.Contains(m.dialogs[0].text, "forget saved settings") {
@@ -145,7 +145,7 @@ func TestRefreshConflictShowsPathAndPreservesChoices(t *testing.T) {
 	if err := os.WriteFile(path, []byte("modified by user\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	m.cursor = 1
+	m.cursor = 2
 	m, cmd := press(m, "enter")
 	m, _ = complete(m, cmd)
 	if len(m.dialogs) != 0 || !strings.Contains(m.err, filepath.Dir(path)) || !reflect.DeepEqual(m.draft, before) {

@@ -189,7 +189,7 @@ func TestStaleReviewRequiresCorrectAction(t *testing.T) {
 				t.Fatal("stale apply wrote files")
 			}
 			if change == "source" || change == "inventory" {
-				m.cursor = 1
+				m.cursor = 2
 				m, cmd = press(m, "enter")
 				m, _ = complete(m, cmd)
 				if m.err != "" || m.preview.Plan.Request.Intent != install.Refresh || len(m.dialogs) == 0 {

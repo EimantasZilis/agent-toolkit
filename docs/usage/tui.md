@@ -234,6 +234,8 @@ The Agents tab selects Codex and Claude Code. On Skills, press `/` to search nam
 
 ## Discover a workflow
 
-Open **5 Workflows** to plan a change, implement a reviewed plan, or prepare a pull request. Move through the task names to read their inputs, ordered steps, expected outputs, and example prompts. Prompts run in your agent session, separately from this manager.
+Open **5 Workflows** to plan a change, implement a reviewed plan, or prepare a pull request. Move through the task names to read their inputs, ordered steps, expected outputs, and example prompts. Press Enter on a task to move directly to its agent actions. Prompts run in your agent session, separately from this manager.
 
 Coverage shows installed and draft skill counts for each enabled agent, including required helpers. Focus **Add missing skills for Codex** or **Add missing skills for Claude Code** and press Enter to add missing selections without removing existing ones. Press `s` to review installation changes; installation still requires explicit confirmation. With no agent enabled, the action opens Agents. Esc returns to Overview. The implementation workflow presents `next-phase` as an alternative to the `next-commit` and separate commit sequence.
+
+Overview starts with **Explore workflows**, followed by configuration and installation actions. Installation counts distinguish unique skill identities from copies installed across agents. Storage and checkout details follow the actions. Fresh setup explains the starter selection: concise-output keeps replies focused and commit-message drafts messages for staged changes. Customize those selections on Skills or use Workflows to choose skills around a task. Discovery and workflow selection only stage configuration; `s` prepares a preview and explicit confirmation applies it.

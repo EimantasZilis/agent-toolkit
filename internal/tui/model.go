@@ -565,14 +565,17 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		case "down", "j":
 			m.cursor = min(len(m.managementActions())-1, m.cursor+1)
 		case "enter":
-			switch m.cursor {
-			case 0:
+			switch m.managementActions()[m.cursor] {
+			case "Explore workflows":
+				m.page, m.cursor = workflowsPage, 0
+				m.workflowIndex = 0
+			case "Configure":
 				m.page, m.cursor = 0, 0
-			case 1:
+			case "Refresh installation":
 				return m.startAction(install.Refresh)
-			case 2:
+			case "Uninstall":
 				return m.startAction(install.Uninstall)
-			case 3:
+			case "Migrate linked installation":
 				return m.startAction(install.Migrate)
 			}
 		}
@@ -880,7 +883,7 @@ func row(focused bool, text string) string {
 }
 
 func (m model) managementActions() []string {
-	actions := []string{"Configure", "Refresh installation", "Uninstall"}
+	actions := []string{"Explore workflows", "Configure", "Refresh installation", "Uninstall"}
 	if m.status.Linked {
 		actions = append(actions, "Migrate linked installation")
 	}

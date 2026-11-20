@@ -66,7 +66,8 @@ func TestInstalledListsStaySeparateFromDraft(t *testing.T) {
 	m.loadProvider()
 	m = saveFixture(t, m)
 	overview := func() string {
-		return strings.SplitN(strings.Join(m.overviewLines(), "\n"), "\nSource", 2)[0]
+		_, installation, _ := strings.Cut(strings.Join(m.overviewLines(), "\n"), "\nInstallation\n")
+		return strings.SplitN(installation, "\nSource", 2)[0]
 	}
 	before := overview()
 	codex, claude, ok := strings.Cut(before, "Claude Code")
@@ -139,7 +140,7 @@ func TestOverviewShowsOnlyObservedProviders(t *testing.T) {
 			if strings.Contains(lines, "Claude Code") != tc.visible {
 				t.Fatal(lines)
 			}
-			if strings.Contains(strings.Split(lines, "\n")[2], "claude") != tc.visible {
+			if strings.Contains(lines, "codex, claude") != tc.visible {
 				t.Fatal("provider summary differs", lines)
 			}
 			if !strings.Contains(lines, "Codex") {
