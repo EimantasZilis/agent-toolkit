@@ -269,7 +269,7 @@ func TestSkillDescriptionFollowsFocus(t *testing.T) {
 				break
 			}
 		}
-		if !strings.Contains(ansi.Strip(m.View().Content), "Select a skill") {
+		if strings.Contains(ansi.Strip(m.View().Content), "Description") {
 			t.Fatal("category focus left a stale description")
 		}
 	}

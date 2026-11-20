@@ -204,6 +204,9 @@ func (m model) screenTitle() string {
 	if !m.loaded {
 		return "Loading"
 	}
+	if m.skillDetails {
+		return "Skill details"
+	}
 	if m.errorReview {
 		return "Operation error"
 	}
@@ -248,6 +251,9 @@ func (m model) tabs(width int) string {
 }
 
 func (m model) shortcuts() string {
+	if m.skillDetails {
+		return "↑↓ / PgUp/PgDn scroll · Enter/Esc/v back · q quit"
+	}
 	if m.busy {
 		return "Applying or rolling back · Input paused"
 	}
@@ -267,7 +273,7 @@ func (m model) shortcuts() string {
 		return "v view details · y confirm · Enter/Esc cancel"
 	}
 	if m.page == 1 {
-		return "↑↓ move · Space toggle · ←→ fold · a all · s review · ? help"
+		return "↑↓ move · Space toggle · ←→ fold · v details · a all · s review · ? help"
 	}
 	return "↑↓ move · Enter select · Tab section · s review · ? help · q quit"
 }
@@ -424,25 +430,28 @@ func (m model) skillPaneWidths() (list, description int) {
 }
 
 func (m model) skillPanelHeight() int {
-	return min(10, max(4, (m.height-8)/2))
+	return min(5, max(4, (m.height-8)/2))
+}
+
+func (m model) focusedSkillName() string {
+	rows := m.skillRows()
+	if m.cursor < 0 || m.cursor >= len(rows) {
+		return ""
+	}
+	return rows[m.cursor].name
+}
+
+func (m model) focusedSkillDescription() string {
+	for _, item := range m.catalog.Skills {
+		if item.Name == m.focusedSkillName() && strings.TrimSpace(item.Description) != "" {
+			return item.Description
+		}
+	}
+	return "No description available."
 }
 
 func (m model) skillDescriptionRows(width int) []string {
-	rows := m.skillRows()
-	if m.cursor < 0 || m.cursor >= len(rows) {
-		return nil
-	}
-	r := rows[m.cursor]
-	description := "Select a skill to read what it does."
-	if r.name != "" {
-		description = "No description available."
-		for _, item := range m.catalog.Skills {
-			if item.Name == r.name && strings.TrimSpace(item.Description) != "" {
-				description = item.Description
-				break
-			}
-		}
-	}
+	description := m.focusedSkillDescription()
 	// Escape metadata before adding our own ANSI styles or wrapping it.
 	text := strings.Join(strings.Fields(terminalText(description)), " ")
 	wrapped := strings.Split(ansi.Wrap(text, width, ""), "\n")
@@ -454,10 +463,10 @@ func (m model) skillDescriptionRows(width int) []string {
 }
 
 func (m model) skillDescriptionVisible() bool {
-	if m.height < 14 || m.page != 1 || m.unsaved || m.conflictReview || m.errorReview || m.help || len(m.dialogs) > 0 {
+	if m.height < 14 || m.page != 1 || m.unsaved || m.skillDetails || m.conflictReview || m.errorReview || m.help || len(m.dialogs) > 0 {
 		return false
 	}
-	return m.cursor >= 0 && m.cursor < len(m.skillRows())
+	return m.focusedSkillName() != ""
 }
 
 func (m model) unsavedOverlay(background string) string {

@@ -88,12 +88,7 @@ location of retained backups.
 While editing a path, Backspace deletes the previous character. Esc or Ctrl+C restores
 the original path and leaves editing.
 
-The header and footer stay visible while content scrolls. At 150 columns or
-wider, Skills shows three panes: the skill list, its description, and selection
-details. Descriptions come from each skill’s `SKILL.md` metadata and change as
-you move through the list. At 110–149 columns, the description and selection
-details share a pane beside the list. Smaller terminals show them below it. Long
-descriptions wrap to the pane width; an ellipsis marks text that does not fit.
+The header and footer stay visible while content scrolls. At 110 columns or wider, Skills shows the skill list beside the focused skill's description. Smaller terminals show a compact description below the list. Category and select-all rows reserve no description panel. Descriptions come from each skill's `SKILL.md` metadata and change as you move through the list. Long descriptions wrap to the pane width; an ellipsis marks text that does not fit. Press `v` for the complete description.
 Partially selected categories use `[-]` and show selection counts. Review keeps its confirmation visible while paths and diffs scroll.
 
 ## Settings
@@ -232,3 +227,5 @@ for installation paths, output rules, and recovery.
 Refresh with pending configuration asks whether to discard the draft and refresh saved settings. Enter or Esc keeps editing; only `d` discards. The footer keeps an unsaved-configuration indicator alongside notices.
 
 Conflicts show the agent, affected item, path, cause, and recovery guidance. Press `e` when an error is shown to read its full message in a scrollable view; Enter or Esc returns. No recovery action changes files automatically.
+
+On Skills, category and select-all rows use the full browsing area. Below 110 columns, focused skill descriptions use at most five rows. Press `v` on a skill for its full scrollable description; Enter, Esc, or `v` returns to the same browsing position.

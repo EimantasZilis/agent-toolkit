@@ -71,6 +71,9 @@ type model struct {
 	reviewDetails               bool
 	conflictReview              bool
 	errorReview                 bool
+	skillDetails                bool
+	browseScroll                int
+	browseManual                bool
 }
 
 type uiTheme struct {
@@ -300,6 +303,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) key(key string) (tea.Model, tea.Cmd) {
+	browseManual := m.manualScroll
 	if m.busy {
 		return m, nil
 	}
@@ -308,6 +312,27 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	}
 	if key == "esc" {
 		key = "backspace"
+	}
+	if m.skillDetails {
+		switch key {
+		case "enter", "backspace", "v":
+			m.skillDetails = false
+			m.scroll, m.manualScroll = m.browseScroll, m.browseManual
+		case "down", "j", "up", "k", "pgdown", "pgup":
+			step := 1
+			if key == "pgdown" || key == "pgup" {
+				_, height := m.viewportSize()
+				step = max(1, height-1)
+			}
+			if key == "up" || key == "k" || key == "pgup" {
+				step = -step
+			}
+			m.scroll, m.manualScroll = max(0, m.viewOffset()+step), true
+		case "q", "ctrl+c":
+			m.skillDetails = false
+			return m.navigate(-2)
+		}
+		return m, nil
 	}
 	if m.conflictReview || m.errorReview {
 		switch key {
@@ -437,6 +462,12 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		if key == "backspace" {
 			m.help = false
 		}
+		return m, nil
+	}
+	if key == "v" && m.page == 1 && m.focusedSkillName() != "" {
+		m.skillDetails = true
+		m.browseScroll, m.browseManual = m.scroll, browseManual
+		m.scroll, m.manualScroll = 0, true
 		return m, nil
 	}
 	if key == "e" && m.err != "" {
@@ -756,6 +787,9 @@ func (m model) edit(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) viewLines() []string {
+	if m.skillDetails {
+		return []string{m.focusedSkillName(), "Enter/Esc or v returns; arrows and Page Up/Page Down scroll.", "", m.focusedSkillDescription()}
+	}
 	if m.errorReview {
 		return []string{"Operation error", "Enter/Esc returns; Up/Down or Page Up/Page Down scroll.", "", m.err, "", m.notice}
 	}
