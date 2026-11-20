@@ -234,6 +234,11 @@ func TestCopiedConflictsPreserveContent(t *testing.T) {
 					if err != nil || len(p.Conflicts) == 0 {
 						t.Fatalf("%s failed to conflict: %v", intent, err)
 					}
+					for _, conflict := range p.Conflicts {
+						if conflict.Reason == "" || conflict.Recovery == "" {
+							t.Fatalf("conflict has no diagnosis: %+v", conflict)
+						}
+					}
 					if _, err := s.Apply(context.Background(), p, Confirmations{Removals: true}); err == nil {
 						t.Fatal("conflicted content was accepted")
 					}

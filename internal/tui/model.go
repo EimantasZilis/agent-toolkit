@@ -70,6 +70,7 @@ type model struct {
 	positions                   [4]int
 	reviewDetails               bool
 	conflictReview              bool
+	errorReview                 bool
 }
 
 type uiTheme struct {
@@ -308,7 +309,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 	if key == "esc" {
 		key = "backspace"
 	}
-	if m.conflictReview {
+	if m.conflictReview || m.errorReview {
 		switch key {
 		case "up", "k", "down", "j":
 			step := 1
@@ -319,7 +320,7 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 			m.manualScroll = true
 			return m, nil
 		case "backspace", "enter", "q", "ctrl+c":
-			m.conflictReview = false
+			m.conflictReview, m.errorReview = false, false
 			m.err, m.notice = "", "Nothing applied; draft preserved."
 			m.scroll, m.manualScroll = 0, false
 			if key == "q" || key == "ctrl+c" {
@@ -436,6 +437,11 @@ func (m model) key(key string) (tea.Model, tea.Cmd) {
 		if key == "backspace" {
 			m.help = false
 		}
+		return m, nil
+	}
+	if key == "e" && m.err != "" {
+		m.errorReview = true
+		m.scroll, m.manualScroll = 0, true
 		return m, nil
 	}
 	if key == "s" {
@@ -646,7 +652,7 @@ func (m model) result(msg resultMsg) (tea.Model, tea.Cmd) {
 			m.conflictReview = true
 			m.scroll, m.manualScroll = 0, true
 			for _, conflict := range m.preview.Conflicts {
-				m.err += "\n" + terminalText(conflict.Path)
+				m.err += "\n\n" + terminalText(providerName(conflict.Provider)+" / "+conflict.Name) + "\n" + terminalText(conflict.Path) + "\nCause: " + terminalText(conflict.Reason) + "\nRecovery: " + terminalText(conflict.Recovery)
 			}
 			m.depart = false
 			return m, nil
@@ -750,6 +756,9 @@ func (m model) edit(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m model) viewLines() []string {
+	if m.errorReview {
+		return []string{"Operation error", "Enter/Esc returns; Up/Down or Page Up/Page Down scroll.", "", m.err, "", m.notice}
+	}
 	if m.conflictReview {
 		lines := []string{"Installation blocked. Nothing applied.", "Esc, ⌫ or ↵ returns; Up/Down or Page Up/Page Down scroll.", ""}
 		if m.status.Linked && m.applyRequest.Intent != install.Migrate {

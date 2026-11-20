@@ -12,7 +12,7 @@ import (
 func (m model) wrappedLines() []string {
 	lines := []string{}
 	width, _ := m.viewportSize()
-	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && len(m.dialogs) == 0 {
+	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && !m.errorReview && len(m.dialogs) == 0 {
 		return m.overviewRows(width)
 	}
 
@@ -179,7 +179,7 @@ func (m model) View() tea.View {
 		status = m.style(terminalText(m.notice), "notice")
 	}
 	if m.err != "" {
-		status = m.style(terminalText(m.err), "error")
+		status = m.style("e: full error · "+terminalText(m.err), "error")
 	}
 	if m.dirty() {
 		status = m.style("Unsaved configuration · ", "accent") + status
@@ -203,6 +203,9 @@ func (m model) View() tea.View {
 func (m model) screenTitle() string {
 	if !m.loaded {
 		return "Loading"
+	}
+	if m.errorReview {
+		return "Operation error"
 	}
 	if m.conflictReview {
 		return "Installation blocked"
@@ -254,7 +257,7 @@ func (m model) shortcuts() string {
 	if m.editingPath {
 		return "Enter accept · Esc restore · Ctrl+u clear"
 	}
-	if m.conflictReview {
+	if m.conflictReview || m.errorReview {
 		return "↑↓ / PgUp/PgDn scroll · Enter/Esc back · q quit"
 	}
 	if len(m.dialogs) > 0 {
@@ -270,7 +273,7 @@ func (m model) shortcuts() string {
 }
 
 func (m model) bodyRows(width int) []string {
-	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && len(m.dialogs) == 0 {
+	if m.loaded && m.page == managementPage && !m.help && !m.conflictReview && !m.errorReview && len(m.dialogs) == 0 {
 		return m.overviewRows(width)
 	}
 	lines := m.viewLines()
@@ -451,7 +454,7 @@ func (m model) skillDescriptionRows(width int) []string {
 }
 
 func (m model) skillDescriptionVisible() bool {
-	if m.height < 14 || m.page != 1 || m.unsaved || m.conflictReview || m.help || len(m.dialogs) > 0 {
+	if m.height < 14 || m.page != 1 || m.unsaved || m.conflictReview || m.errorReview || m.help || len(m.dialogs) > 0 {
 		return false
 	}
 	return m.cursor >= 0 && m.cursor < len(m.skillRows())

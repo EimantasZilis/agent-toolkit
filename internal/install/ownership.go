@@ -156,3 +156,32 @@ func (s *Service) revision() (string, error) {
 	}
 	return digest([]byte(result.String())), nil
 }
+
+// conflictReason diagnoses a failed ownership check without changing content.
+func (s *Service) conflictReason(path string) string {
+	record, ok := s.copiedRecord(path)
+	if !ok {
+		if s.owned(path) {
+			return "Legacy linked installation requires a separate migration review."
+		}
+		return "Ownership record is missing, invalid, or belongs to another checkout."
+	}
+	files, err := readTree(path)
+	if err != nil {
+		return "Cannot inspect installed content: " + err.Error()
+	}
+	delete(files, markerName)
+	for _, expected := range record.Files {
+		actual, exists := files[expected.Path]
+		if !exists {
+			return "Managed file is missing: " + expected.Path
+		}
+		if actual.Directory != expected.Directory || uint32(actual.Mode) != expected.Mode {
+			return "Managed file type or permissions changed: " + expected.Path
+		}
+		if !actual.Directory && digest(actual.Data) != expected.Hash {
+			return "Managed content was edited: " + expected.Path
+		}
+	}
+	return "Unexpected content exists in the managed directory."
+}

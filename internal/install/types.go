@@ -99,7 +99,11 @@ type Request struct {
 }
 
 // Operation names a proposed change or ownership conflict at Path.
-type Operation struct{ Provider, Action, Name, Path string }
+type Operation struct {
+	Provider, Action, Name, Path string
+	// Reason and Recovery explain why a conflict blocks the operation.
+	Reason, Recovery string
+}
 
 // ContentState describes a reviewed file, directory, or legacy resource link.
 // Size and SHA256 describe file bytes (the target bytes for a verified link).

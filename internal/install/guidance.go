@@ -153,7 +153,7 @@ func (s *Service) planGuidance(provider string, desired Settings, expected strin
 				return nil, nil
 			}
 		}
-		return &Operation{provider, "conflict", "guidance", path}, nil
+		return &Operation{Provider: provider, Action: "conflict", Name: "guidance", Path: path, Reason: err.Error(), Recovery: "Restore the managed guidance block from a matching backup, then preview again."}, nil
 	}
 	if block == "" && count == 0 || block != "" && count == 1 && current == block {
 		return nil, nil
@@ -165,7 +165,7 @@ func (s *Service) planGuidance(provider string, desired Settings, expected strin
 			action = "strip-guidance"
 		}
 	}
-	return &Operation{provider, action, "guidance", path}, nil
+	return &Operation{Provider: provider, Action: action, Name: "guidance", Path: path}, nil
 }
 
 func (s *Service) guidanceChange(p Preview, op Operation) (ContentChange, error) {

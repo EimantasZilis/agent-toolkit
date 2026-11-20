@@ -255,6 +255,10 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 		preview.Selection = append(preview.Selection, Selection{name, roles[name]})
 	}
 	add := func(op Operation) {
+		if op.Action == "conflict" && op.Reason == "" {
+			op.Reason = s.conflictReason(op.Path)
+			op.Recovery = "Back up local edits and restore the matching managed installation and state, then preview again."
+		}
 		preview.Operations = append(preview.Operations, op)
 		if op.Action == "conflict" {
 			preview.Conflicts = append(preview.Conflicts, op)
@@ -278,7 +282,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 			guidanceBase = s.Homes.Claude
 		}
 		if !realDirectoryPath(root, base) || !realDirectoryPath(filepath.Dir(guidance), guidanceBase) {
-			add(Operation{provider, "conflict", "skills", root})
+			add(Operation{Provider: provider, Action: "conflict", Name: "skills", Path: root, Reason: "Installation parent is inaccessible, symlinked, or not a real directory.", Recovery: "Inspect the provider paths and restore real directories before retrying."})
 			continue
 		}
 		if contains(desired.Providers, provider) {
@@ -309,7 +313,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 						action = "convert"
 					}
 				}
-				add(Operation{provider, action, name, path})
+				add(Operation{Provider: provider, Action: action, Name: name, Path: path})
 			}
 		}
 		for _, name := range unique(append(append([]string(nil), status.Observed[provider]...), status.Applied[provider]...)) {
@@ -324,7 +328,7 @@ func (s *Service) Preview(ctx context.Context, request Request) (Preview, error)
 			if request.Intent == Refresh {
 				return Preview{}, problem("setup_required", path, "refresh would remove a skill; review setup")
 			}
-			add(Operation{provider, action, name, path})
+			add(Operation{Provider: provider, Action: action, Name: name, Path: path})
 		}
 		op, err := s.planGuidance(provider, desired, preview.guidance[provider])
 		if err != nil {

@@ -230,3 +230,5 @@ and uninstall Make targets have been removed. See [INSTALL.md](../../INSTALL.md)
 for installation paths, output rules, and recovery.
 
 Refresh with pending configuration asks whether to discard the draft and refresh saved settings. Enter or Esc keeps editing; only `d` discards. The footer keeps an unsaved-configuration indicator alongside notices.
+
+Conflicts show the agent, affected item, path, cause, and recovery guidance. Press `e` when an error is shown to read its full message in a scrollable view; Enter or Esc returns. No recovery action changes files automatically.
